@@ -149,6 +149,8 @@ function App() {
           isAdmin={profile?.is_admin || false}
           onAuthRequired={() => setShowAuth(true)}
           onWorkoutsChanged={loadWorkouts}
+          collections={[]}
+          onCollectionsChanged={() => {}}
         />
       )}
       {showAuth && <Auth onClose={() => setShowAuth(false)} />}

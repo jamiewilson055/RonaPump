@@ -1,32 +1,41 @@
 import { useState, useMemo } from 'react'
 import Filters from '../components/Filters'
 import WorkoutCard from '../components/WorkoutCard'
-import NewWorkoutModal from '../components/NewWorkoutModal'
 
-const PP = 30 // per page
+const PP = 30
 
-export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, session, isAdmin, onAuthRequired, onWorkoutsChanged }) {
+export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, session, isAdmin, onAuthRequired, onWorkoutsChanged, collections, onCollectionsChanged }) {
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState('newest')
   const [page, setPage] = useState(1)
-  const [filters, setFilters] = useState({ eq: [], mv: [], cat: [], wt: [], durMin: null, durMax: null })
+  const [filters, setFilters] = useState({
+    eq: [], eqEx: [], mv: [], mvEx: [], cat: [], wt: [], bp: [],
+    durMin: null, durMax: null, includeNoDur: true
+  })
   const [showNewModal, setShowNewModal] = useState(false)
 
-  // Extract all unique filter values
+  // Dynamic import for NewWorkoutModal (only admin needs it)
+  const [NewWorkoutModal, setNewWorkoutModal] = useState(null)
+  function openNewWorkout() {
+    import('../components/NewWorkoutModal').then(mod => {
+      setNewWorkoutModal(() => mod.default)
+      setShowNewModal(true)
+    })
+  }
+
   const allEquipment = useMemo(() => [...new Set(workouts.flatMap(w => w.equipment || []))].sort(), [workouts])
   const allMovements = useMemo(() => [...new Set(workouts.flatMap(w => w.movement_categories || []))].sort(), [workouts])
   const allCategories = useMemo(() => [...new Set(workouts.flatMap(w => w.categories || []))].sort(), [workouts])
   const allWorkoutTypes = useMemo(() => [...new Set(workouts.flatMap(w => w.workout_types || []))].sort(), [workouts])
+  const allBodyParts = useMemo(() => [...new Set(workouts.flatMap(w => w.body_parts || []))].sort(), [workouts])
 
   const filtered = useMemo(() => {
     let w = [...workouts]
 
-    // Tab filter
     if (tab === 'done') w = w.filter(x => x.performance_log && x.performance_log.length > 0)
     else if (tab === 'queue') w = w.filter(x => !x.performance_log || x.performance_log.length === 0)
     else if (tab === 'favs') w = w.filter(x => favorites.has(x.id))
 
-    // Search (name, description, equipment, movements, categories, workout types)
     if (query) {
       const q = query.toLowerCase()
       w = w.filter(x =>
@@ -35,15 +44,23 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
         x.equipment?.some(e => e.toLowerCase().includes(q)) ||
         x.movement_categories?.some(m => m.toLowerCase().includes(q)) ||
         x.categories?.some(c => c.toLowerCase().includes(q)) ||
-        x.workout_types?.some(t => t.toLowerCase().includes(q))
+        x.workout_types?.some(t => t.toLowerCase().includes(q)) ||
+        x.body_parts?.some(b => b.toLowerCase().includes(q))
       )
     }
 
-    // Filters (AND logic)
+    // Include filters (AND)
     if (filters.eq.length) w = w.filter(x => filters.eq.every(f => x.equipment?.includes(f)))
     if (filters.mv.length) w = w.filter(x => filters.mv.every(f => x.movement_categories?.includes(f)))
     if (filters.cat.length) w = w.filter(x => filters.cat.every(f => x.categories?.includes(f)))
     if (filters.wt.length) w = w.filter(x => filters.wt.every(f => x.workout_types?.includes(f)))
+    if (filters.bp?.length) w = w.filter(x => filters.bp.every(f => x.body_parts?.includes(f)))
+
+    // Exclude filters
+    if (filters.eqEx?.length) w = w.filter(x => !filters.eqEx.some(f => x.equipment?.includes(f)))
+    if (filters.mvEx?.length) w = w.filter(x => !filters.mvEx.some(f => x.movement_categories?.includes(f)))
+
+    // Duration
     if (filters.durMin != null || filters.durMax != null) {
       const includeNoDur = filters.includeNoDur !== false
       w = w.filter(x => {
@@ -52,24 +69,20 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
         const rangeMax = x.estimated_duration_max
         const hasAnyDur = exact || (rangeMin && rangeMax)
         if (!hasAnyDur) return includeNoDur
-        // Check exact duration
         if (exact) {
           if (filters.durMin != null && exact < filters.durMin) return false
           if (filters.durMax != null && exact > filters.durMax) return false
           return true
         }
-        // Check range overlap: workout range overlaps with filter range
         if (rangeMin && rangeMax) {
           if (filters.durMax != null && rangeMin > filters.durMax) return false
           if (filters.durMin != null && rangeMax < filters.durMin) return false
           return true
         }
         return includeNoDur
-        return true
       })
     }
 
-    // Sort
     if (sort === 'newest') w.sort((a, b) => (b.original_date || '').localeCompare(a.original_date || ''))
     else if (sort === 'oldest') w.sort((a, b) => (a.original_date || '9999').localeCompare(b.original_date || '9999'))
     else if (sort === 'name') w.sort((a, b) => (a.name || 'zzz').localeCompare(b.name || 'zzz'))
@@ -82,10 +95,10 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
   const totalPages = Math.ceil(filtered.length / PP)
   const items = filtered.slice((page - 1) * PP, page * PP)
 
-  const hasFilters = filters.eq.length || filters.mv.length || filters.cat.length || filters.wt.length || filters.durMin != null || filters.durMax != null
+  const hasFilters = filters.eq.length || filters.eqEx?.length || filters.mv.length || filters.mvEx?.length || filters.cat.length || filters.wt.length || filters.bp?.length || filters.durMin != null || filters.durMax != null
 
   function clearFilters() {
-    setFilters({ eq: [], mv: [], cat: [], wt: [], durMin: null, durMax: null })
+    setFilters({ eq: [], eqEx: [], mv: [], mvEx: [], cat: [], wt: [], bp: [], durMin: null, durMax: null, includeNoDur: true })
     setQuery('')
     setPage(1)
   }
@@ -95,28 +108,66 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
     const pick = filtered[Math.floor(Math.random() * filtered.length)]
     const idx = filtered.indexOf(pick)
     setPage(Math.floor(idx / PP) + 1)
-    // Scroll handled by the card expanding
     setTimeout(() => {
       const el = document.getElementById('wc-' + pick.id)
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }, 100)
   }
 
+  // Find similar workouts to a given workout
+  function getSimilar(workout) {
+    if (!workout) return []
+    return workouts
+      .filter(w => w.id !== workout.id)
+      .map(w => {
+        let score = 0
+        // Shared equipment
+        const sharedEq = (w.equipment || []).filter(e => workout.equipment?.includes(e)).length
+        score += sharedEq * 2
+        // Shared movements
+        const sharedMv = (w.movement_categories || []).filter(m => workout.movement_categories?.includes(m)).length
+        score += sharedMv * 3
+        // Shared workout type
+        const sharedWt = (w.workout_types || []).filter(t => workout.workout_types?.includes(t)).length
+        score += sharedWt * 2
+        // Similar duration
+        if (w.estimated_duration_mins && workout.estimated_duration_mins) {
+          const diff = Math.abs(w.estimated_duration_mins - workout.estimated_duration_mins)
+          if (diff <= 5) score += 3
+          else if (diff <= 10) score += 1
+        }
+        // Shared body parts
+        const sharedBp = (w.body_parts || []).filter(b => workout.body_parts?.includes(b)).length
+        score += sharedBp
+        return { ...w, similarityScore: score }
+      })
+      .filter(w => w.similarityScore > 3)
+      .sort((a, b) => b.similarityScore - a.similarityScore)
+      .slice(0, 3)
+  }
+
   return (
     <>
       <div className="srow">
         <div className="sbox">
-          <input type="text" placeholder="Search by name, movement, keyword..." value={query}
+          <input type="text" placeholder="Search by name, movement, equipment, keyword..." value={query}
             onChange={e => { setQuery(e.target.value); setPage(1) }} />
         </div>
         <button className="rbtn" onClick={randomWorkout} title="Random workout">🎲</button>
-        {isAdmin && <button className="nbtn" onClick={() => setShowNewModal(true)}>+ New Workout</button>}
+        {isAdmin && <button className="nbtn" onClick={openNewWorkout}>+ New Workout</button>}
       </div>
 
-      {showNewModal && <NewWorkoutModal onClose={() => setShowNewModal(false)} onSaved={() => { setShowNewModal(false); onWorkoutsChanged() }} />}
+      {showNewModal && NewWorkoutModal && <NewWorkoutModal onClose={() => setShowNewModal(false)} onSaved={() => { setShowNewModal(false); onWorkoutsChanged() }} />}
 
-      <Filters filters={filters} setFilters={(f) => { setFilters(typeof f === 'function' ? f(filters) : f); setPage(1) }}
-        allEquipment={allEquipment} allMovements={allMovements} allCategories={allCategories} allWorkoutTypes={allWorkoutTypes} />
+      <Filters
+        filters={filters}
+        setFilters={(f) => { setFilters(typeof f === 'function' ? f(filters) : f); setPage(1) }}
+        allEquipment={allEquipment}
+        allMovements={allMovements}
+        allCategories={allCategories}
+        allWorkoutTypes={allWorkoutTypes}
+        allBodyParts={allBodyParts}
+      />
 
       <div className="rbar">
         <span className="rcnt">
@@ -134,8 +185,19 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
 
       <div className="wl">
         {items.map(w => (
-          <WorkoutCard key={w.id} workout={w} isFav={favorites.has(w.id)} toggleFavorite={toggleFavorite}
-            session={session} isAdmin={isAdmin} onAuthRequired={onAuthRequired} onWorkoutsChanged={onWorkoutsChanged} />
+          <WorkoutCard
+            key={w.id}
+            workout={w}
+            isFav={favorites.has(w.id)}
+            toggleFavorite={toggleFavorite}
+            session={session}
+            isAdmin={isAdmin}
+            onAuthRequired={onAuthRequired}
+            onWorkoutsChanged={onWorkoutsChanged}
+            getSimilar={getSimilar}
+            collections={collections}
+            onCollectionsChanged={onCollectionsChanged}
+          />
         ))}
       </div>
 

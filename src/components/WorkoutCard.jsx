@@ -32,7 +32,7 @@ function bestScore(w) {
   return pl.reduce((b, e) => (!b || (e.score && e.score > b)) ? e.score : b, null)
 }
 
-export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session, isAdmin, onAuthRequired, onWorkoutsChanged }) {
+export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session, isAdmin, onAuthRequired, onWorkoutsChanged, getSimilar, collections, onCollectionsChanged }) {
   const [expanded, setExpanded] = useState(false)
   const [addingLog, setAddingLog] = useState(false)
   const [logScore, setLogScore] = useState('')
@@ -44,6 +44,9 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const [logSort, setLogSort] = useState('date') // date, score
   const [editingLogId, setEditingLogId] = useState(null)
   const [editLogForm, setEditLogForm] = useState(null)
+  const [showSimilar, setShowSimilar] = useState(false)
+  const [showCollections, setShowCollections] = useState(false)
+  const [quickLogged, setQuickLogged] = useState(false)
 
   function shareWorkout() {
     let text = ''
@@ -282,13 +285,51 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
           <div className="inf">
             <span>Equipment: {w.equipment?.join(', ')}</span>
             <span>Movements: {w.movement_categories?.join(', ')}</span>
+            {w.body_parts?.length > 0 && <span>Focus: {w.body_parts.join(', ')}</span>}
           </div>
           <div className="acts">
             <button className={`ab ${isFav ? '' : 'g'}`} onClick={() => toggleFavorite(w.id)}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>
+            {!hasDone && (
+              <button className={`ab${quickLogged ? ' g' : ''}`} onClick={async () => {
+                if (!session) { onAuthRequired(); return }
+                if (quickLogged) return
+                const { supabase } = await import('../lib/supabase')
+                await supabase.from('performance_log').insert({
+                  user_id: session.user.id, workout_id: w.id,
+                  completed_at: new Date().toISOString().slice(0, 10),
+                  score: null, notes: 'Quick logged'
+                })
+                setQuickLogged(true)
+                onWorkoutsChanged()
+              }}>{quickLogged ? '✓ Done!' : '✓ I Did This'}</button>
+            )}
             <button className="ab" onClick={shareWorkout}>{copied ? '✓ Copied!' : '↗ Share'}</button>
+            <button className="ab" onClick={() => setShowSimilar(!showSimilar)}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
             {isAdmin && <button className="ab p" onClick={startEdit}>Edit</button>}
             {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}
           </div>
+
+          {showSimilar && getSimilar && (
+            <div className="similar-section">
+              <h4 style={{ fontSize: '12px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--tx3)', marginBottom: '6px' }}>Similar Workouts</h4>
+              {getSimilar(w).length === 0 ? (
+                <div style={{ fontSize: '11px', color: 'var(--tx3)' }}>No similar workouts found.</div>
+              ) : (
+                getSimilar(w).map(s => (
+                  <div key={s.id} className="similar-card" onClick={() => {
+                    const el = document.getElementById('wc-' + s.id)
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  }}>
+                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', fontWeight: 600 }}>{s.name || 'Unnamed'}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--tx2)', marginTop: '2px' }}>
+                      {s.equipment?.filter(e => e !== 'Bodyweight').slice(0, 3).join(', ')}
+                      {s.estimated_duration_mins ? ` · ${s.estimated_duration_mins}m` : ''}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
