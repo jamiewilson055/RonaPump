@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 
 const SCORE_TYPES = ['Time', 'Rounds + Reps', 'Reps', 'Calories', 'Distance', 'Load', 'None']
@@ -40,14 +40,17 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const [logNotes, setLogNotes] = useState('')
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState(null)
-
   const [copied, setCopied] = useState(false)
+  const [logSort, setLogSort] = useState('date') // date, score
+  const [editingLogId, setEditingLogId] = useState(null)
+  const [editLogForm, setEditLogForm] = useState(null)
 
   function shareWorkout() {
     let text = ''
     if (w.name) text += w.name + '\n\n'
     text += w.description || ''
     if (w.estimated_duration_mins) text += `\n\n⏱ ${w.estimated_duration_mins} min`
+    else if (w.estimated_duration_min && w.estimated_duration_max) text += `\n\n⏱ ${w.estimated_duration_min}-${w.estimated_duration_max} min`
     if (w.equipment?.filter(e => e !== 'Bodyweight').length) text += `\n🏋 ${w.equipment.filter(e => e !== 'Bodyweight').join(', ')}`
     text += '\n\n🦍 — RonaPump | www.ronapump.com'
     navigator.clipboard.writeText(text).then(() => {
@@ -60,7 +63,37 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const bs = bestScore(w)
   const pl = w.performance_log || []
 
+  // Sort performance logs: PR always on top, then by selected sort
+  const sortedPl = useMemo(() => {
+    const sorted = [...pl]
+    if (logSort === 'score') {
+      if (w.score_type === 'Time') {
+        sorted.sort((a, b) => (a.score || '').localeCompare(b.score || ''))
+      } else {
+        sorted.sort((a, b) => (b.score || '').localeCompare(a.score || ''))
+      }
+    } else {
+      sorted.sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''))
+    }
+    // Move PR to top
+    if (bs && sorted.length > 1) {
+      const prIdx = sorted.findIndex(e => e.score === bs)
+      if (prIdx > 0) {
+        const [pr] = sorted.splice(prIdx, 1)
+        sorted.unshift(pr)
+      }
+    }
+    return sorted
+  }, [pl, logSort, bs, w.score_type])
+
   const scoreLabel = w.score_type === 'Time' ? 'Time' : w.score_type === 'Rounds + Reps' ? 'Score' : w.score_type === 'Calories' ? 'Cals' : w.score_type === 'Reps' ? 'Reps' : w.score_type === 'Distance' ? 'Distance' : w.score_type === 'Load' ? 'Weight' : 'Result'
+
+  // Duration display
+  const durDisplay = w.estimated_duration_mins
+    ? `${w.estimated_duration_mins}m`
+    : (w.estimated_duration_min && w.estimated_duration_max)
+      ? `${w.estimated_duration_min}-${w.estimated_duration_max}m`
+      : null
 
   async function addLog() {
     if (!session) { onAuthRequired(); return }
@@ -84,12 +117,31 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     onWorkoutsChanged()
   }
 
+  function startEditLog(entry) {
+    setEditingLogId(entry.id)
+    setEditLogForm({ score: entry.score || '', completed_at: entry.completed_at || '', notes: entry.notes || '' })
+  }
+
+  async function saveEditLog() {
+    if (!editLogForm || !editingLogId) return
+    await supabase.from('performance_log').update({
+      score: editLogForm.score.trim() || null,
+      completed_at: editLogForm.completed_at,
+      notes: editLogForm.notes.trim() || null,
+    }).eq('id', editingLogId)
+    setEditingLogId(null)
+    setEditLogForm(null)
+    onWorkoutsChanged()
+  }
+
   function startEdit() {
     setEditForm({
       name: w.name || '',
       description: w.description || '',
       score_type: w.score_type || 'None',
       estimated_duration_mins: w.estimated_duration_mins || '',
+      estimated_duration_min: w.estimated_duration_min || '',
+      estimated_duration_max: w.estimated_duration_max || '',
       equipment: [...(w.equipment || [])],
       workout_types: [...(w.workout_types || [])],
       categories: [...(w.categories || [])],
@@ -116,6 +168,8 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
         description: editForm.description.trim(),
         score_type: editForm.score_type,
         estimated_duration_mins: editForm.estimated_duration_mins ? parseInt(editForm.estimated_duration_mins) : null,
+        estimated_duration_min: editForm.estimated_duration_min ? parseInt(editForm.estimated_duration_min) : null,
+        estimated_duration_max: editForm.estimated_duration_max ? parseInt(editForm.estimated_duration_max) : null,
         equipment: editForm.equipment.length ? editForm.equipment : ['Bodyweight'],
         workout_types: editForm.workout_types.length ? editForm.workout_types : ['General'],
         categories: editForm.categories,
@@ -148,7 +202,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
           {w.name || 'Unnamed Workout'}
           {w.auto_named && <span className="auto-tag">auto</span>}
         </div>
-        {w.estimated_duration_mins && <span className="wdr">{w.estimated_duration_mins}m</span>}
+        {durDisplay && <span className="wdr">{durDisplay}</span>}
         {w.score_type !== 'None' && <span className="wst">{w.score_type}</span>}
         {bs && <span className="wbs">{bs}</span>}
         {w.original_date_display && <span className="wdt">{w.original_date_display}</span>}
@@ -168,20 +222,47 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
           <div className="plog">
             <div className="plog-hdr">
               <h4>Performance Log {w.score_type !== 'None' && <span className="st-badge">Scored by: {w.score_type}</span>}</h4>
-              <span className="plog-add" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }}>{addingLog ? 'Cancel' : '+ Log Result'}</span>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {pl.length > 1 && (
+                  <select className="ssel" value={logSort} onChange={e => setLogSort(e.target.value)} style={{ width: 'auto', fontSize: '10px', padding: '3px 6px' }}>
+                    <option value="date">By Date</option>
+                    <option value="score">By {w.score_type === 'Time' ? 'Time' : 'Score'}</option>
+                  </select>
+                )}
+                <span className="plog-add" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }}>{addingLog ? 'Cancel' : '+ Log Result'}</span>
+              </div>
             </div>
-            {pl.length > 0 && (
+            {sortedPl.length > 0 && (
               <table className="plog-table">
                 <thead><tr><th>Date</th><th>{scoreLabel}</th><th>Notes</th><th></th></tr></thead>
                 <tbody>
-                  {pl.map((e) => {
+                  {sortedPl.map((e) => {
                     const isBest = e.score === bs && pl.length > 1
+                    const isEditingThis = editingLogId === e.id
+
+                    if (isEditingThis && editLogForm) {
+                      return (
+                        <tr key={e.id}>
+                          <td><input type="date" value={editLogForm.completed_at} onChange={ev => setEditLogForm({ ...editLogForm, completed_at: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
+                          <td><input value={editLogForm.score} onChange={ev => setEditLogForm({ ...editLogForm, score: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
+                          <td><input value={editLogForm.notes} onChange={ev => setEditLogForm({ ...editLogForm, notes: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
+                          <td style={{ whiteSpace: 'nowrap' }}>
+                            <span className="del-entry" onClick={saveEditLog} style={{ color: 'var(--grn)', marginRight: '4px' }}>✓</span>
+                            <span className="del-entry" onClick={() => { setEditingLogId(null); setEditLogForm(null) }}>✕</span>
+                          </td>
+                        </tr>
+                      )
+                    }
+
                     return (
                       <tr key={e.id}>
                         <td>{e.completed_at || '—'}</td>
                         <td className={isBest ? 'best' : ''}>{e.score}{isBest ? ' ★' : ''}</td>
                         <td style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
-                        <td><span className="del-entry" onClick={(ev) => { ev.stopPropagation(); deleteLog(e.id) }}>✕</span></td>
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); startEditLog(e) }} style={{ marginRight: '4px' }} title="Edit">✎</span>
+                          <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); deleteLog(e.id) }}>✕</span>
+                        </td>
                       </tr>
                     )
                   })}
@@ -230,8 +311,16 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
             ))}
           </div>
 
-          <label>Duration (minutes)</label>
+          <label>Duration (exact minutes, if known)</label>
           <input type="number" value={editForm.estimated_duration_mins} onChange={e => setEditForm({ ...editForm, estimated_duration_mins: e.target.value })} placeholder="e.g. 30" />
+
+          <label>Duration Range (if exact is unknown)</label>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <input type="number" value={editForm.estimated_duration_min} onChange={e => setEditForm({ ...editForm, estimated_duration_min: e.target.value })} placeholder="Min" style={{ width: '80px' }} />
+            <span style={{ color: 'var(--tx3)' }}>–</span>
+            <input type="number" value={editForm.estimated_duration_max} onChange={e => setEditForm({ ...editForm, estimated_duration_max: e.target.value })} placeholder="Max" style={{ width: '80px' }} />
+            <span style={{ color: 'var(--tx3)', fontSize: '12px' }}>minutes</span>
+          </div>
 
           <label>Equipment</label>
           <div className="cr">
@@ -251,7 +340,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
           <label>Category</label>
           <div className="cr">
-            {['Abs', 'Basement', 'Bedroom', 'HYROX', 'Hotel Workouts', 'Murph', 'Outdoor', 'Outdoor With Running', 'Top 10', 'Track Workouts'].map(c => (
+            {['Abs', 'Basement', 'Bedroom', 'Harambe Favorites', 'HYROX', 'Hotel Workouts', 'Murph', 'Outdoor', 'Outdoor With Running', 'Track Workouts'].map(c => (
               <button key={c} className={`ch${editForm.categories.includes(c) ? ' on' : ''}`}
                 onClick={() => toggleEditArray('categories', c)}>{c}</button>
             ))}
@@ -259,7 +348,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
           <label>Movement Type</label>
           <div className="cr">
-            {['Cardio', 'Core', 'Farmers Carry', 'General', 'Hinge', 'Lunge', 'Olympic Lifting', 'Plyometric', 'Pull', 'Pull-Up', 'Push', 'Push-Up', 'Snatch', 'Squat'].map(m => (
+            {['Cardio', 'Core', 'Farmers Carry', 'General', 'Hinge', 'Jump', 'Lunge', 'Olympic Lifting', 'Plyometric', 'Pull', 'Pull-Up', 'Push', 'Push-Up', 'Run', 'Snatch', 'Squat'].map(m => (
               <button key={m} className={`ch${editForm.movement_categories.includes(m) ? ' on' : ''}`}
                 onClick={() => toggleEditArray('movement_categories', m)}>{m}</button>
             ))}

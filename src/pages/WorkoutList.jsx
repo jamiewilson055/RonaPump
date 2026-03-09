@@ -47,9 +47,24 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
     if (filters.durMin != null || filters.durMax != null) {
       const includeNoDur = filters.includeNoDur !== false
       w = w.filter(x => {
-        if (!x.estimated_duration_mins) return includeNoDur
-        if (filters.durMin != null && x.estimated_duration_mins < filters.durMin) return false
-        if (filters.durMax != null && x.estimated_duration_mins > filters.durMax) return false
+        const exact = x.estimated_duration_mins
+        const rangeMin = x.estimated_duration_min
+        const rangeMax = x.estimated_duration_max
+        const hasAnyDur = exact || (rangeMin && rangeMax)
+        if (!hasAnyDur) return includeNoDur
+        // Check exact duration
+        if (exact) {
+          if (filters.durMin != null && exact < filters.durMin) return false
+          if (filters.durMax != null && exact > filters.durMax) return false
+          return true
+        }
+        // Check range overlap: workout range overlaps with filter range
+        if (rangeMin && rangeMax) {
+          if (filters.durMax != null && rangeMin > filters.durMax) return false
+          if (filters.durMin != null && rangeMax < filters.durMin) return false
+          return true
+        }
+        return includeNoDur
         return true
       })
     }
