@@ -12,8 +12,26 @@
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: var(--bg); color: var(--tx); font-family: 'DM Sans', sans-serif; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+body { background: var(--bg); color: var(--tx); font-family: 'DM Sans', sans-serif; min-height: 100vh; -webkit-font-smoothing: antialiased; font-size: 14px; }
 .app { max-width: 1060px; margin: 0 auto; padding: 14px 18px 40px; }
+
+/* Desktop font bump */
+@media (min-width: 641px) {
+  body { font-size: 16px; }
+  .wn { font-size: 15px; }
+  .wod-name { font-size: 16px; }
+  .dsc { font-size: 15px; }
+  .tab { font-size: 14px; }
+  .sbox input { font-size: 15px; padding: 12px 12px 12px 36px; }
+  .qbar { font-size: 14px; padding: 11px 16px; }
+  .fhd { font-size: 13px; }
+  .fb { font-size: 12px; }
+  .tg { font-size: 11px; }
+  .plog-table { font-size: 12px; }
+  .inf { font-size: 12px; }
+  .ab { font-size: 13px; }
+  .stat-num { font-size: 28px; }
+}
 button { cursor: pointer; font-family: inherit; border: none; background: none; }
 input, select, textarea { font-family: inherit; }
 ::-webkit-scrollbar { width: 6px; }
