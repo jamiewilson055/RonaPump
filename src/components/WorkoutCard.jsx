@@ -49,7 +49,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     text += w.description || ''
     if (w.estimated_duration_mins) text += `\n\n⏱ ${w.estimated_duration_mins} min`
     if (w.equipment?.filter(e => e !== 'Bodyweight').length) text += `\n🏋 ${w.equipment.filter(e => e !== 'Bodyweight').join(', ')}`
-    text += '\n\n— ronapump.com'
+    text += '\n\n🦍 — RonaPump | www.ronapump.com'
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
