@@ -1,4 +1,4 @@
-export default function Header({ counts, session, profile, onAuthClick, onSignOut }) {
+export default function Header({ counts, session, profile, onAuthClick }) {
   return (
     <div className="hdr">
       <div>
@@ -11,8 +11,9 @@ export default function Header({ counts, session, profile, onAuthClick, onSignOu
         <div className="hs"><div className="hs-n">{counts.queue}</div><div className="hs-l">Queue</div></div>
         <div className="hs"><div className="hs-n">{counts.favs}</div><div className="hs-l">Favs</div></div>
         {session ? (
-          <button className="user-btn" onClick={onSignOut}>
-            {profile?.display_name || 'Account'} ✕
+          <button className="user-btn" onClick={onAuthClick}>
+            {profile?.avatar_url && <img src={profile.avatar_url} className="user-avatar-sm" alt="" />}
+            {profile?.display_name || 'Profile'}
           </button>
         ) : (
           <button className="user-btn" onClick={onAuthClick}>Sign In</button>

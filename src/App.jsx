@@ -7,6 +7,7 @@ import Tabs from './components/Tabs'
 import WorkoutList from './pages/WorkoutList'
 import PRTracker from './pages/PRTracker'
 import Stats from './pages/Stats'
+import Profile from './pages/Profile'
 import Auth from './components/Auth'
 import './App.css'
 
@@ -14,6 +15,7 @@ function App() {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [tab, setTab] = useState('all')
+  const [showProfile, setShowProfile] = useState(false)
   const [workouts, setWorkouts] = useState([])
   const [favorites, setFavorites] = useState(new Set())
   const [counts, setCounts] = useState({ total: 0, done: 0, queue: 0, favs: 0 })
@@ -29,7 +31,7 @@ function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       if (session) loadProfile(session.user.id)
-      else { setProfile(null); setFavorites(new Set()) }
+      else { setProfile(null); setFavorites(new Set()); setShowProfile(false) }
     })
     return () => subscription.unsubscribe()
   }, [])
@@ -88,9 +90,31 @@ function App() {
     setFavorites(newFavs)
   }
 
+  function handleProfileClick() {
+    if (session) {
+      setShowProfile(true)
+    } else {
+      setShowAuth(true)
+    }
+  }
+
+  if (showProfile && session) {
+    return (
+      <div className="app">
+        <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} />
+        <Profile
+          session={session}
+          profile={profile}
+          onClose={() => setShowProfile(false)}
+          onProfileUpdated={() => loadProfile(session.user.id)}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="app">
-      <Header counts={counts} session={session} profile={profile} onAuthClick={() => setShowAuth(true)} onSignOut={() => supabase.auth.signOut()} />
+      <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} />
       <QuoteBar />
       {tab !== 'prs' && tab !== 'stats' && <WODCard workouts={workouts} />}
       <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} />
