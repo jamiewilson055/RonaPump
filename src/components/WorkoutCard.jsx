@@ -37,7 +37,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const [logDate, setLogDate] = useState(new Date().toISOString().slice(0, 10))
   const [logNotes, setLogNotes] = useState('')
 
-  const hasDone = w.original_date || (w.performance_log && w.performance_log.length > 0)
+  const hasDone = w.performance_log && w.performance_log.length > 0
   const bs = bestScore(w)
   const pl = w.performance_log || []
 

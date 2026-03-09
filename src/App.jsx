@@ -50,25 +50,36 @@ function App() {
   // Load workouts
   useEffect(() => {
     loadWorkouts()
-  }, [])
+  }, [session])
 
   async function loadWorkouts() {
     setLoading(true)
-    const { data, error } = await supabase
+    let query = supabase
       .from('workouts')
       .select('*, performance_log(*)')
       .order('original_date', { ascending: false, nullsFirst: false })
+
+    const { data, error } = await query
+
     if (data) {
-      setWorkouts(data)
-      updateCounts(data)
+      // Filter performance logs to current user only
+      const userId = session?.user?.id
+      const filtered = data.map(w => ({
+        ...w,
+        performance_log: userId
+          ? (w.performance_log || []).filter(p => p.user_id === userId)
+          : []
+      }))
+      setWorkouts(filtered)
+      updateCounts(filtered)
     }
     setLoading(false)
   }
 
   const updateCounts = useCallback((wks, favs) => {
     const f = favs || favorites
-    const done = wks.filter(w => w.original_date || (w.performance_log && w.performance_log.length > 0)).length
-    const queue = wks.filter(w => !w.original_date && (!w.performance_log || w.performance_log.length === 0)).length
+    const done = wks.filter(w => w.performance_log && w.performance_log.length > 0).length
+    const queue = wks.filter(w => !w.performance_log || w.performance_log.length === 0).length
     setCounts({ total: wks.length, done, queue, favs: f.size })
   }, [favorites])
 

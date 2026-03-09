@@ -7,17 +7,20 @@ function Bar({ val, max, color }) {
 
 export default function Stats({ workouts, favorites }) {
   const stats = useMemo(() => {
-    const dated = workouts.filter(w => w.original_date)
-    const done = workouts.filter(w => w.original_date || (w.performance_log && w.performance_log.length > 0))
-    const queue = workouts.filter(w => !w.original_date && (!w.performance_log || w.performance_log.length === 0))
+    // Use performance log dates for user-specific stats
+    const logsWithDates = workouts
+      .filter(w => w.performance_log && w.performance_log.length > 0)
+      .flatMap(w => w.performance_log.map(p => p.completed_at).filter(Boolean))
+    const done = workouts.filter(w => w.performance_log && w.performance_log.length > 0)
+    const queue = workouts.filter(w => !w.performance_log || w.performance_log.length === 0)
 
     // Years
     const years = {}
-    dated.forEach(w => { const y = w.original_date.slice(0, 4); years[y] = (years[y] || 0) + 1 })
+    logsWithDates.forEach(d => { const y = d.slice(0, 4); years[y] = (years[y] || 0) + 1 })
 
     // Months (last 12)
     const months = {}
-    dated.forEach(w => { const m = w.original_date.slice(0, 7); months[m] = (months[m] || 0) + 1 })
+    logsWithDates.forEach(d => { const m = d.slice(0, 7); months[m] = (months[m] || 0) + 1 })
     const monthKeys = Object.keys(months).sort().slice(-12)
     const maxMonth = Math.max(...monthKeys.map(k => months[k]), 1)
 
@@ -37,13 +40,13 @@ export default function Stats({ workouts, favorites }) {
     const topWt = Object.entries(wtCount).sort((a, b) => b[1] - a[1])
 
     // Heatmap (last 180 days)
-    const dates = new Set(dated.map(w => w.original_date))
+    const dates = new Set(logsWithDates)
     const today = new Date()
     const calDays = []
     for (let i = 179; i >= 0; i--) {
       const d = new Date(today); d.setDate(d.getDate() - i)
       const ds = d.toISOString().slice(0, 10)
-      const count = dated.filter(w => w.original_date === ds).length
+      const count = logsWithDates.filter(ld => ld === ds).length
       calDays.push({ d: ds, n: count, label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) })
     }
 
