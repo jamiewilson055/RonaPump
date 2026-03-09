@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
 
-:root {
+:root, [data-theme="dark"] {
   --bg: #07070a; --s1: #101015; --s2: #18181f; --s3: #202028;
   --acc: #ff2d2d; --acc-d: rgba(255,45,45,.1);
   --tx: #ededf0; --tx2: #8e8e9a; --tx3: #4e4e58; --brd: #1e1e28;
@@ -9,6 +9,17 @@
   --prp: #a855f7; --prp-d: rgba(168,85,247,.1);
   --ylw: #eab308; --ylw-d: rgba(234,179,8,.1);
   --cyn: #06b6d4; --cyn-d: rgba(6,182,212,.1);
+}
+
+[data-theme="light"] {
+  --bg: #f5f5f7; --s1: #ffffff; --s2: #f0f0f2; --s3: #e5e5ea;
+  --acc: #e01e1e; --acc-d: rgba(224,30,30,.08);
+  --tx: #1a1a1e; --tx2: #5e5e6a; --tx3: #9e9ea8; --brd: #d8d8de;
+  --grn: #16a34a; --grn-d: rgba(22,163,74,.08);
+  --blu: #2563eb; --blu-d: rgba(37,99,235,.08);
+  --prp: #9333ea; --prp-d: rgba(147,51,234,.08);
+  --ylw: #ca8a04; --ylw-d: rgba(202,138,4,.08);
+  --cyn: #0891b2; --cyn-d: rgba(8,145,178,.08);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -40,14 +51,21 @@ input, select, textarea { font-family: inherit; }
 
 /* Header */
 .hdr { display: flex; align-items: center; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--brd); margin-bottom: 14px; }
-.logo { font-family: 'JetBrains Mono', monospace; font-size: 30px; font-weight: 700; letter-spacing: -1px; }
+.hdr-left { display: flex; flex-direction: column; }
+.logo { font-family: 'JetBrains Mono', monospace; font-size: 30px; font-weight: 700; letter-spacing: -1px; display: flex; align-items: center; gap: 6px; }
 .logo b { color: var(--acc); }
-.hdr-r { margin-left: auto; display: flex; gap: 18px; align-items: center; }
+.harambe { font-size: 28px; }
+.hdr-sub { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--tx3); margin-top: 1px; }
+.ig-link { color: var(--tx3); transition: color .15s; display: flex; align-items: center; }
+.ig-link:hover { color: var(--acc); }
+.hdr-r { margin-left: auto; display: flex; gap: 14px; align-items: center; }
 .hs { text-align: center; }
 .hs-n { font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 700; color: var(--acc); }
 .hs-l { font-size: 9px; color: var(--tx3); text-transform: uppercase; letter-spacing: 1.2px; }
 .user-btn { background: var(--s2); border: 1px solid var(--brd); border-radius: 6px; padding: 6px 12px; color: var(--tx2); font-size: 12px; transition: all .12s; }
 .user-btn:hover { border-color: var(--acc); color: var(--tx); }
+.theme-toggle { background: var(--s2); border: 1px solid var(--brd); border-radius: 6px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all .12s; cursor: pointer; }
+.theme-toggle:hover { border-color: var(--acc); }
 
 /* Quote Bar */
 .qwrap { position: relative; margin-bottom: 12px; }
@@ -294,8 +312,9 @@ input, select, textarea { font-family: inherit; }
 @media (max-width: 640px) {
   .app { padding: 10px 12px 30px; }
   .hdr { flex-direction: column; align-items: flex-start; gap: 10px; }
-  .hdr-r { margin-left: 0; width: 100%; justify-content: space-between; }
+  .hdr-r { margin-left: 0; width: 100%; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
   .logo { font-size: 24px; }
+  .harambe { font-size: 22px; }
   .tab { padding: 7px 6px; font-size: 11px; }
   .tab-full { display: none; }
   .tab-short { display: inline; }
