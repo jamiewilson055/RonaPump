@@ -7,6 +7,7 @@ import Tabs from './components/Tabs'
 import WorkoutList from './pages/WorkoutList'
 import PRTracker from './pages/PRTracker'
 import Stats from './pages/Stats'
+import Collections from './pages/Collections'
 import Profile from './pages/Profile'
 import Auth from './components/Auth'
 import UpdatePassword from './components/UpdatePassword'
@@ -22,6 +23,13 @@ function App() {
   const [counts, setCounts] = useState({ total: 0, done: 0, queue: 0, favs: 0 })
   const [loading, setLoading] = useState(true)
   const [showAuth, setShowAuth] = useState(false)
+  const [collections, setCollections] = useState([])
+
+  async function loadCollections(userId) {
+    if (!userId) { setCollections([]); return }
+    const { data } = await supabase.from('user_collections').select('*').eq('user_id', userId).order('created_at', { ascending: false })
+    if (data) setCollections(data)
+  }
 
   const [showUpdatePassword, setShowUpdatePassword] = useState(false)
 
@@ -46,6 +54,7 @@ function App() {
     const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
     setProfile(data)
     loadFavorites(userId)
+    loadCollections(userId)
   }
 
   async function loadFavorites(userId) {
@@ -133,12 +142,14 @@ function App() {
     <div className="app">
       <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} />
       <QuoteBar isAdmin={profile?.is_admin || false} />
-      {tab !== 'prs' && tab !== 'stats' && <WODCard workouts={workouts} />}
-      <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} />
+      {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && <WODCard workouts={workouts} />}
+      <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} collectionsCount={collections.length} />
       {tab === 'prs' ? (
         <PRTracker session={session} onAuthRequired={() => setShowAuth(true)} />
       ) : tab === 'stats' ? (
         <Stats workouts={workouts} favorites={favorites} />
+      ) : tab === 'collections' ? (
+        <Collections session={session} onAuthRequired={() => setShowAuth(true)} workouts={workouts} />
       ) : (
         <WorkoutList
           workouts={workouts}
@@ -149,8 +160,8 @@ function App() {
           isAdmin={profile?.is_admin || false}
           onAuthRequired={() => setShowAuth(true)}
           onWorkoutsChanged={loadWorkouts}
-          collections={[]}
-          onCollectionsChanged={() => {}}
+          collections={collections}
+          onCollectionsChanged={() => session && loadCollections(session.user.id)}
         />
       )}
       {showAuth && <Auth onClose={() => setShowAuth(false)} />}

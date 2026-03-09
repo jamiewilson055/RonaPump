@@ -379,3 +379,11 @@ input, select, textarea { font-family: inherit; }
 
 /* Body part tags */
 .tg.tb { background: var(--grn-d); color: var(--grn); }
+
+/* Collections */
+.coll-create { display: flex; gap: 6px; flex-wrap: wrap; background: var(--s1); border: 1px solid var(--brd); border-radius: 7px; padding: 10px; margin-bottom: 12px; }
+.coll-create input { background: var(--bg); border: 1px solid var(--brd); border-radius: 5px; padding: 8px 10px; color: var(--tx); font-size: 12px; outline: none; flex: 1; min-width: 120px; }
+.coll-create input:focus { border-color: var(--acc); }
+.coll-picker { padding: 8px 0; border-top: 1px solid var(--brd); margin-top: 6px; }
+.coll-opt { display: block; width: 100%; text-align: left; background: var(--bg); border: 1px solid var(--brd); border-radius: 5px; padding: 8px 12px; color: var(--tx2); font-size: 12px; margin-bottom: 4px; cursor: pointer; transition: all .12s; }
+.coll-opt:hover { border-color: var(--acc); color: var(--tx); }

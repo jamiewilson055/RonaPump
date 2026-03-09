@@ -303,11 +303,41 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
                 onWorkoutsChanged()
               }}>{quickLogged ? '✓ Done!' : '✓ I Did This'}</button>
             )}
+            <button className="ab" onClick={() => {
+              if (!session) { onAuthRequired(); return }
+              setShowCollections(!showCollections)
+            }}>{showCollections ? 'Hide' : '📁 Save'}</button>
             <button className="ab" onClick={shareWorkout}>{copied ? '✓ Copied!' : '↗ Share'}</button>
             <button className="ab" onClick={() => setShowSimilar(!showSimilar)}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
             {isAdmin && <button className="ab p" onClick={startEdit}>Edit</button>}
             {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}
           </div>
+
+          {showCollections && collections && (
+            <div className="coll-picker">
+              <div style={{ fontSize: '11px', color: 'var(--tx3)', marginBottom: '4px' }}>Add to collection:</div>
+              {collections.length === 0 ? (
+                <div style={{ fontSize: '11px', color: 'var(--tx3)' }}>No collections yet. Create one from the Collections tab.</div>
+              ) : (
+                collections.map(c => (
+                  <button key={c.id} className="coll-opt" onClick={async () => {
+                    const { supabase } = await import('../lib/supabase')
+                    const { error } = await supabase.from('collection_workouts').insert({
+                      collection_id: c.id, workout_id: w.id
+                    })
+                    if (error && error.code === '23505') {
+                      alert('Already in this collection!')
+                    } else if (error) {
+                      alert('Error: ' + error.message)
+                    } else {
+                      setShowCollections(false)
+                      if (onCollectionsChanged) onCollectionsChanged()
+                    }
+                  }}>📁 {c.name}</button>
+                ))
+              )}
+            </div>
+          )}
 
           {showSimilar && getSimilar && (
             <div className="similar-section">
