@@ -401,8 +401,11 @@ input, select, textarea { font-family: inherit; }
 
 /* Similar workouts */
 .similar-section { padding: 8px 0; border-top: 1px solid var(--brd); margin-top: 8px; }
-.similar-card { background: var(--bg); border: 1px solid var(--brd); border-radius: 5px; padding: 8px 12px; margin-bottom: 4px; cursor: pointer; transition: border-color .12s; }
-.similar-card:hover { border-color: var(--acc); }
+.similar-card { background: var(--bg); border: 1px solid var(--brd); border-radius: 5px; margin-bottom: 4px; overflow: hidden; transition: border-color .12s; }
+.similar-card:hover { border-color: var(--tx3); }
+.similar-card.open { border-color: var(--acc); }
+.similar-hd { display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; }
+.similar-body { padding: 0 12px 8px; border-top: 1px solid var(--brd); }
 
 /* Body part tags */
 .tg.tb { background: var(--grn-d); color: var(--grn); }

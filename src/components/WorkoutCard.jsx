@@ -32,6 +32,37 @@ function bestScore(w) {
   return pl.reduce((b, e) => (!b || (e.score && e.score > b)) ? e.score : b, null)
 }
 
+function SimilarCard({ workout: s }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className={`similar-card${open ? ' open' : ''}`}>
+      <div className="similar-hd" onClick={() => setOpen(!open)}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {s.name || 'Unnamed'}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--tx2)', marginTop: '2px' }}>
+            {s.equipment?.filter(e => e !== 'Bodyweight').slice(0, 3).join(', ')}
+            {s.estimated_duration_mins ? ` · ${s.estimated_duration_mins}m` : ''}
+            {s.score_type && s.score_type !== 'None' ? ` · ${s.score_type}` : ''}
+          </div>
+        </div>
+        <span style={{ color: 'var(--tx3)', fontSize: '10px', flexShrink: 0 }}>{open ? '▾' : '▸'}</span>
+      </div>
+      {open && (
+        <div className="similar-body">
+          <div className="dsc" style={{ fontSize: '12px', padding: '8px 0 4px' }}>{formatDesc(s.description || '')}</div>
+          <div className="wtg" style={{ padding: '4px 0' }}>
+            {s.equipment?.filter(q => q !== 'Bodyweight').map(q => <span key={q} className="tg te">{q}</span>)}
+            {s.movement_categories?.filter(m => !['General', 'Cardio'].includes(m)).slice(0, 4).map(m => <span key={m} className="tg tm">{m}</span>)}
+            {s.workout_types?.filter(t => t !== 'General').map(t => <span key={t} className="tg tw">{t}</span>)}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session, isAdmin, onAuthRequired, onWorkoutsChanged, getSimilar, collections, onCollectionsChanged }) {
   const [expanded, setExpanded] = useState(false)
   const [addingLog, setAddingLog] = useState(false)
@@ -346,16 +377,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
                 <div style={{ fontSize: '11px', color: 'var(--tx3)' }}>No similar workouts found.</div>
               ) : (
                 getSimilar(w).map(s => (
-                  <div key={s.id} className="similar-card" onClick={() => {
-                    const el = document.getElementById('wc-' + s.id)
-                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                  }}>
-                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', fontWeight: 600 }}>{s.name || 'Unnamed'}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--tx2)', marginTop: '2px' }}>
-                      {s.equipment?.filter(e => e !== 'Bodyweight').slice(0, 3).join(', ')}
-                      {s.estimated_duration_mins ? ` · ${s.estimated_duration_mins}m` : ''}
-                    </div>
-                  </div>
+                  <SimilarCard key={s.id} workout={s} />
                 ))
               )}
             </div>
