@@ -1,18 +1,20 @@
 export default function Tabs({ tab, setTab, counts, prsCount }) {
   const tabs = [
-    { key: 'all', label: 'All', count: counts.total },
-    { key: 'done', label: 'Completed', count: counts.done },
-    { key: 'queue', label: 'Queue', count: counts.queue },
-    { key: 'favs', label: 'Favorites', count: counts.favs },
-    { key: 'prs', label: 'PRs', count: prsCount },
-    { key: 'stats', label: 'Stats', count: null },
+    { key: 'all', label: 'All', short: 'All', count: counts.total },
+    { key: 'done', label: 'Completed', short: 'Done', count: counts.done },
+    { key: 'queue', label: 'Queue', short: 'Queue', count: counts.queue },
+    { key: 'favs', label: 'Favorites', short: 'Favs', count: counts.favs },
+    { key: 'prs', label: 'PRs', short: 'PRs', count: prsCount },
+    { key: 'stats', label: 'Stats', short: 'Stats', count: null },
   ]
 
   return (
     <div className="tabs">
       {tabs.map(t => (
         <button key={t.key} className={`tab${tab === t.key ? ' on' : ''}`} onClick={() => setTab(t.key)}>
-          {t.label}{t.count != null && <i>{t.count}</i>}
+          <span className="tab-full">{t.label}</span>
+          <span className="tab-short">{t.short}</span>
+          {t.count != null && <i>{t.count}</i>}
         </button>
       ))}
     </div>
