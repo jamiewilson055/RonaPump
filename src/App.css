@@ -52,12 +52,14 @@ input, select, textarea { font-family: inherit; }
 /* Header */
 .hdr { display: flex; align-items: center; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--brd); margin-bottom: 14px; }
 .hdr-left { display: flex; flex-direction: column; }
-.logo { font-family: 'JetBrains Mono', monospace; font-size: 30px; font-weight: 700; letter-spacing: -1px; display: flex; align-items: center; gap: 6px; }
+.logo-row { display: flex; align-items: center; gap: 12px; }
+.harambe-img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--acc); }
+.logo { font-family: 'JetBrains Mono', monospace; font-size: 30px; font-weight: 700; letter-spacing: -1px; }
 .logo b { color: var(--acc); }
-.harambe { font-size: 28px; }
-.hdr-sub { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--tx3); margin-top: 1px; }
-.ig-link { color: var(--tx3); transition: color .15s; display: flex; align-items: center; }
-.ig-link:hover { color: var(--acc); }
+.hdr-sub { display: flex; align-items: center; gap: 10px; font-size: 10px; color: var(--tx3); margin-top: 2px; }
+.ig-link { color: var(--acc); transition: opacity .15s; display: flex; align-items: center; gap: 4px; text-decoration: none; font-weight: 600; font-size: 11px; }
+.ig-link:hover { opacity: .7; }
+.ig-handle { color: var(--acc); }
 .hdr-r { margin-left: auto; display: flex; gap: 14px; align-items: center; }
 .hs { text-align: center; }
 .hs-n { font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 700; color: var(--acc); }
@@ -69,10 +71,14 @@ input, select, textarea { font-family: inherit; }
 
 /* Quote Bar */
 .qwrap { position: relative; margin-bottom: 12px; }
-.qbar { background: var(--s1); border: 1px solid var(--brd); border-radius: 7px; padding: 9px 14px; font-size: 12px; color: var(--tx2); font-style: italic; text-align: center; cursor: pointer; line-height: 1.4; min-height: 38px; transition: border-color .2s; }
+.qbar { background: var(--s1); border: 1px solid var(--brd); border-radius: 7px; padding: 9px 50px 9px 14px; font-size: 12px; color: var(--tx2); font-style: italic; text-align: center; cursor: pointer; line-height: 1.4; min-height: 38px; transition: border-color .2s; }
 .qbar:hover { border-color: var(--tx3); }
-.q-edit { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: var(--s2); border: 1px solid var(--brd); border-radius: 4px; color: var(--tx3); font-size: 14px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .12s; }
-.q-edit:hover { color: var(--acc); border-color: var(--acc); }
+.qbar-edit { display: flex; gap: 6px; align-items: center; background: var(--s1); border: 1px solid var(--acc); border-radius: 7px; padding: 6px 10px; }
+.qbar-edit input { flex: 1; background: var(--bg); border: 1px solid var(--brd); border-radius: 5px; padding: 6px 10px; color: var(--tx); font-size: 12px; font-style: italic; outline: none; }
+.qbar-edit input:focus { border-color: var(--acc); }
+.q-btns { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); display: flex; gap: 2px; }
+.q-btn { background: var(--s2); border: 1px solid var(--brd); border-radius: 4px; color: var(--tx3); font-size: 13px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .12s; }
+.q-btn:hover { color: var(--acc); border-color: var(--acc); }
 
 /* WOD Card */
 .wod-card { background: linear-gradient(135deg, var(--s2), var(--s1)); border: 1px solid var(--acc); border-radius: 8px; margin-bottom: 12px; padding: 12px 14px; overflow: hidden; }
@@ -314,7 +320,7 @@ input, select, textarea { font-family: inherit; }
   .hdr { flex-direction: column; align-items: flex-start; gap: 10px; }
   .hdr-r { margin-left: 0; width: 100%; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
   .logo { font-size: 24px; }
-  .harambe { font-size: 22px; }
+  .harambe-img { width: 40px; height: 40px; }
   .tab { padding: 7px 6px; font-size: 11px; }
   .tab-full { display: none; }
   .tab-short { display: inline; }
