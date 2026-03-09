@@ -1,23 +1,54 @@
 export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount }) {
-  const tabs = [
+  const mainTabs = [
     { key: 'all', label: 'All', short: 'All', count: counts.total },
     { key: 'done', label: 'Completed', short: 'Done', count: counts.done },
     { key: 'queue', label: 'Queue', short: 'Queue', count: counts.queue },
     { key: 'favs', label: 'Favorites', short: 'Favs', count: counts.favs },
-    { key: 'prs', label: 'PRs', short: 'PRs', count: prsCount },
-    { key: 'collections', label: 'Collections', short: '📁', count: collectionsCount || null },
-    { key: 'stats', label: 'Stats', short: 'Stats', count: null },
   ]
 
+  const secondaryTabs = [
+    { key: 'prs', label: 'PRs', icon: '🏆', count: prsCount },
+    { key: 'collections', label: 'Collections', icon: '📁', count: collectionsCount || null },
+    { key: 'stats', label: 'Stats', icon: '📊', count: null },
+  ]
+
+  const isSecondary = secondaryTabs.some(t => t.key === tab)
+
   return (
-    <div className="tabs">
-      {tabs.map(t => (
-        <button key={t.key} className={`tab${tab === t.key ? ' on' : ''}`} onClick={() => setTab(t.key)}>
-          <span className="tab-full">{t.label}</span>
-          <span className="tab-short">{t.short}</span>
-          {t.count != null && <i>{t.count}</i>}
+    <>
+      {/* Main tabs - always visible */}
+      <div className="tabs">
+        {mainTabs.map(t => (
+          <button key={t.key} className={`tab${tab === t.key ? ' on' : ''}`} onClick={() => setTab(t.key)}>
+            <span className="tab-full">{t.label}</span>
+            <span className="tab-short">{t.short}</span>
+            {t.count != null && <i>{t.count}</i>}
+          </button>
+        ))}
+      </div>
+
+      {/* Secondary tabs - inline on desktop, bottom nav on mobile */}
+      <div className="tabs-secondary">
+        {secondaryTabs.map(t => (
+          <button key={t.key} className={`tab-sec${tab === t.key ? ' on' : ''}`} onClick={() => setTab(t.key)}>
+            <span className="tab-sec-icon">{t.icon}</span>
+            <span className="tab-sec-label">{t.label}</span>
+            {t.count != null && t.count > 0 && <i>{t.count}</i>}
+          </button>
+        ))}
+      </div>
+
+      {/* Mobile bottom nav */}
+      <div className="bottom-nav">
+        <button className={`bnav${!isSecondary ? ' on' : ''}`} onClick={() => setTab('all')}>
+          <span>🏋</span><span>Workouts</span>
         </button>
-      ))}
-    </div>
+        {secondaryTabs.map(t => (
+          <button key={t.key} className={`bnav${tab === t.key ? ' on' : ''}`} onClick={() => setTab(t.key)}>
+            <span>{t.icon}</span><span>{t.label}</span>
+          </button>
+        ))}
+      </div>
+    </>
   )
 }
