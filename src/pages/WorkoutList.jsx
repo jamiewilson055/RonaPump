@@ -26,10 +26,17 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
     else if (tab === 'queue') w = w.filter(x => !x.performance_log || x.performance_log.length === 0)
     else if (tab === 'favs') w = w.filter(x => favorites.has(x.id))
 
-    // Search
+    // Search (name, description, equipment, movements, categories, workout types)
     if (query) {
       const q = query.toLowerCase()
-      w = w.filter(x => (x.name && x.name.toLowerCase().includes(q)) || x.description.toLowerCase().includes(q))
+      w = w.filter(x =>
+        (x.name && x.name.toLowerCase().includes(q)) ||
+        x.description.toLowerCase().includes(q) ||
+        x.equipment?.some(e => e.toLowerCase().includes(q)) ||
+        x.movement_categories?.some(m => m.toLowerCase().includes(q)) ||
+        x.categories?.some(c => c.toLowerCase().includes(q)) ||
+        x.workout_types?.some(t => t.toLowerCase().includes(q))
+      )
     }
 
     // Filters (AND logic)

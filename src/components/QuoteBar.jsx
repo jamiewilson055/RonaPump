@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import QuoteManager from './QuoteManager'
 
-export default function QuoteBar() {
+export default function QuoteBar({ isAdmin }) {
   const [quotes, setQuotes] = useState([])
   const [current, setCurrent] = useState('')
+  const [showManager, setShowManager] = useState(false)
 
   useEffect(() => {
     loadQuotes()
@@ -22,8 +24,14 @@ export default function QuoteBar() {
   }
 
   return (
-    <div className="qwrap">
-      <div className="qbar" onClick={shuffle}>{current || 'Loading...'}</div>
-    </div>
+    <>
+      <div className="qwrap">
+        <div className="qbar" onClick={shuffle}>{current || 'Loading...'}</div>
+        {isAdmin && (
+          <button className="q-edit" onClick={() => setShowManager(true)} title="Manage Quotes">✎</button>
+        )}
+      </div>
+      {showManager && <QuoteManager onClose={() => { setShowManager(false); loadQuotes() }} />}
+    </>
   )
 }

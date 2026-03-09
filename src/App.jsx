@@ -126,7 +126,7 @@ function App() {
   return (
     <div className="app">
       <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} />
-      <QuoteBar />
+      <QuoteBar isAdmin={profile?.is_admin || false} />
       {tab !== 'prs' && tab !== 'stats' && <WODCard workouts={workouts} />}
       <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} />
       {tab === 'prs' ? (

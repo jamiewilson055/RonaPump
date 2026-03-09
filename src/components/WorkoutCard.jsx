@@ -41,6 +41,21 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState(null)
 
+  const [copied, setCopied] = useState(false)
+
+  function shareWorkout() {
+    let text = ''
+    if (w.name) text += w.name + '\n\n'
+    text += w.description || ''
+    if (w.estimated_duration_mins) text += `\n\n⏱ ${w.estimated_duration_mins} min`
+    if (w.equipment?.filter(e => e !== 'Bodyweight').length) text += `\n🏋 ${w.equipment.filter(e => e !== 'Bodyweight').join(', ')}`
+    text += '\n\n— ronapump.com'
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
   const hasDone = w.performance_log && w.performance_log.length > 0
   const bs = bestScore(w)
   const pl = w.performance_log || []
@@ -189,6 +204,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
           </div>
           <div className="acts">
             <button className={`ab ${isFav ? '' : 'g'}`} onClick={() => toggleFavorite(w.id)}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>
+            <button className="ab" onClick={shareWorkout}>{copied ? '✓ Copied!' : '↗ Share'}</button>
             {isAdmin && <button className="ab p" onClick={startEdit}>Edit</button>}
             {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}
           </div>

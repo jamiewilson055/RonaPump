@@ -53,6 +53,8 @@ input, select, textarea { font-family: inherit; }
 .qwrap { position: relative; margin-bottom: 12px; }
 .qbar { background: var(--s1); border: 1px solid var(--brd); border-radius: 7px; padding: 9px 14px; font-size: 12px; color: var(--tx2); font-style: italic; text-align: center; cursor: pointer; line-height: 1.4; min-height: 38px; transition: border-color .2s; }
 .qbar:hover { border-color: var(--tx3); }
+.q-edit { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: var(--s2); border: 1px solid var(--brd); border-radius: 4px; color: var(--tx3); font-size: 14px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .12s; }
+.q-edit:hover { color: var(--acc); border-color: var(--acc); }
 
 /* WOD Card */
 .wod-card { background: linear-gradient(135deg, var(--s2), var(--s1)); border: 1px solid var(--acc); border-radius: 8px; margin-bottom: 12px; padding: 12px 14px; overflow: hidden; }

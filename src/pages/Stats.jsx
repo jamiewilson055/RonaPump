@@ -1,4 +1,5 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
 
 function Bar({ val, max, color }) {
   const pct = Math.round((val / max) * 100)
@@ -6,6 +7,55 @@ function Bar({ val, max, color }) {
 }
 
 export default function Stats({ workouts, favorites }) {
+  const [leaderboard, setLeaderboard] = useState([])
+
+  useEffect(() => {
+    loadLeaderboard()
+  }, [])
+
+  async function loadLeaderboard() {
+    // Get all performance logs with profiles and workout names
+    const { data } = await supabase
+      .from('performance_log')
+      .select('score, completed_at, workout_id, user_id, profiles(display_name), workouts(name, score_type)')
+      .not('score', 'is', null)
+      .order('completed_at', { ascending: false })
+      .limit(200)
+    if (data) {
+      // Group by workout, find best scores per user
+      const byWorkout = {}
+      data.forEach(entry => {
+        const wName = entry.workouts?.name || 'Unnamed'
+        const scoreType = entry.workouts?.score_type || 'None'
+        if (scoreType === 'None') return
+        if (!byWorkout[wName]) byWorkout[wName] = { name: wName, scoreType, entries: [] }
+        byWorkout[wName].entries.push({
+          user: entry.profiles?.display_name || 'Anonymous',
+          score: entry.score,
+          date: entry.completed_at,
+          userId: entry.user_id,
+        })
+      })
+      // Only show workouts with 1+ entries that have real scores
+      const boards = Object.values(byWorkout)
+        .filter(b => b.entries.length >= 1)
+        .map(b => {
+          // Best per user
+          const userBest = {}
+          b.entries.forEach(e => {
+            if (!userBest[e.userId] || (b.scoreType === 'Time' ? e.score < userBest[e.userId].score : e.score > userBest[e.userId].score)) {
+              userBest[e.userId] = e
+            }
+          })
+          const ranked = Object.values(userBest).sort((a, c) => b.scoreType === 'Time' ? a.score.localeCompare(c.score) : c.score.localeCompare(a.score))
+          return { ...b, ranked }
+        })
+        .filter(b => b.ranked.length >= 1)
+        .sort((a, b) => b.ranked.length - a.ranked.length)
+        .slice(0, 10)
+      setLeaderboard(boards)
+    }
+  }
   const stats = useMemo(() => {
     // Use performance log dates for user-specific stats
     const logsWithDates = workouts
@@ -149,6 +199,28 @@ export default function Stats({ workouts, favorites }) {
           ))}
         </div>
       </div>
+
+      {leaderboard.length > 0 && (
+        <div className="stat-panel">
+          <h4>Leaderboard <span>(top scores across users)</span></h4>
+          {leaderboard.map(b => (
+            <div key={b.name} style={{ marginBottom: '12px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 600, fontFamily: "'JetBrains Mono', monospace", marginBottom: '4px' }}>
+                {b.name} <span style={{ fontSize: '10px', color: 'var(--cyn)', fontWeight: 400 }}>{b.scoreType}</span>
+              </div>
+              {b.ranked.map((entry, i) => (
+                <div key={i} className="stat-row">
+                  <span style={{ width: '20px', color: i === 0 ? 'var(--ylw)' : 'var(--tx3)', fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', fontWeight: 600 }}>
+                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+                  </span>
+                  <span className="stat-key" style={{ flex: 1 }}>{entry.user}</span>
+                  <span className="stat-val" style={{ color: i === 0 ? 'var(--grn)' : 'var(--tx)' }}>{entry.score}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
