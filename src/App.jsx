@@ -9,6 +9,7 @@ import PRTracker from './pages/PRTracker'
 import Stats from './pages/Stats'
 import Profile from './pages/Profile'
 import Auth from './components/Auth'
+import UpdatePassword from './components/UpdatePassword'
 import './App.css'
 
 function App() {
@@ -22,16 +23,21 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [showAuth, setShowAuth] = useState(false)
 
+  const [showUpdatePassword, setShowUpdatePassword] = useState(false)
+
   // Auth
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       if (session) loadProfile(session.user.id)
     })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
       if (session) loadProfile(session.user.id)
       else { setProfile(null); setFavorites(new Set()); setShowProfile(false) }
+      if (event === 'PASSWORD_RECOVERY') {
+        setShowUpdatePassword(true)
+      }
     })
     return () => subscription.unsubscribe()
   }, [])
@@ -146,6 +152,7 @@ function App() {
         />
       )}
       {showAuth && <Auth onClose={() => setShowAuth(false)} />}
+      {showUpdatePassword && <UpdatePassword onClose={() => setShowUpdatePassword(false)} />}
     </div>
   )
 }

@@ -228,11 +228,22 @@ input, select, textarea { font-family: inherit; }
 .ch.on { background: var(--acc-d); border-color: var(--acc); color: var(--acc); }
 .mf { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 
-/* Auth Modal */
+/* Auth */
 .auth-form { display: flex; flex-direction: column; gap: 10px; }
-.auth-form input { background: var(--bg); border: 1px solid var(--brd); border-radius: 5px; padding: 10px 12px; color: var(--tx); font-size: 14px; outline: none; }
+.auth-form input { background: var(--bg); border: 1px solid var(--brd); border-radius: 5px; padding: 10px 12px; color: var(--tx); font-size: 14px; outline: none; width: 100%; }
 .auth-form input:focus { border-color: var(--acc); }
 .auth-toggle { color: var(--acc); cursor: pointer; font-size: 12px; text-align: center; margin-top: 8px; }
+.auth-toggle:hover { text-decoration: underline; }
+.auth-pw-wrap { position: relative; }
+.auth-pw-wrap input { padding-right: 44px; }
+.auth-pw-toggle { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 16px; cursor: pointer; padding: 4px; }
+.auth-options { display: flex; align-items: center; justify-content: space-between; }
+.auth-remember { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--tx2); cursor: pointer; }
+.auth-remember input { width: auto; accent-color: var(--acc); cursor: pointer; }
+.auth-forgot { font-size: 12px; color: var(--acc); cursor: pointer; }
+.auth-forgot:hover { text-decoration: underline; }
+.auth-error { color: var(--acc); font-size: 12px; padding: 4px 0; }
+.auth-success { color: var(--grn); font-size: 12px; padding: 4px 0; }
 
 /* PR Tracker */
 .pr-section { margin-top: 6px; }
