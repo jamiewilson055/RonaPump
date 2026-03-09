@@ -441,7 +441,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
           <label>Movement Type</label>
           <div className="cr">
-            {['Cardio', 'Core', 'Farmers Carry', 'General', 'Hinge', 'Jump', 'Lunge', 'Olympic Lifting', 'Plyometric', 'Pull', 'Pull-Up', 'Push', 'Push-Up', 'Run', 'Snatch', 'Squat'].map(m => (
+            {['Cardio', 'Core', 'DB Snatch', 'Farmers Carry', 'Hinge', 'Jump', 'Lunge', 'Olympic Lifting', 'Plyometric', 'Pull-Up', 'Push-Up', 'Run', 'Squat'].map(m => (
               <button key={m} className={`ch${editForm.movement_categories.includes(m) ? ' on' : ''}`}
                 onClick={() => toggleEditArray('movement_categories', m)}>{m}</button>
             ))}
