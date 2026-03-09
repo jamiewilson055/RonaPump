@@ -1,32 +1,46 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 export default function WODCard({ workouts }) {
   const [wod, setWod] = useState(null)
+  const [spinning, setSpinning] = useState(false)
 
-  useEffect(() => {
-    pick()
+  const pick = useCallback(() => {
+    const pool = workouts.filter(w => !w.original_date && (!w.performance_log || w.performance_log.length === 0) && w.description && w.description.length > 40)
+    if (pool.length) setWod(pool[Math.floor(Math.random() * pool.length)])
   }, [workouts])
 
-  function pick() {
-    const pool = workouts.filter(w => !w.original_date && (!w.performance_log || w.performance_log.length === 0) && w.description.length > 40)
-    if (pool.length) setWod(pool[Math.floor(Math.random() * pool.length)])
+  useEffect(() => {
+    if (workouts.length && !wod) pick()
+  }, [workouts, wod, pick])
+
+  function handleShuffle(e) {
+    e.stopPropagation()
+    e.preventDefault()
+    setSpinning(true)
+    pick()
+    setTimeout(() => setSpinning(false), 400)
   }
 
   if (!wod) return null
 
   return (
     <div className="wod-card">
-      <div className="wod-label">WORKOUT OF THE DAY</div>
-      <div className="wod-body" onClick={() => {}}>
+      <div className="wod-top">
+        <div className="wod-label-inline">WOD</div>
         <div className="wod-name">{wod.name || 'Unnamed Workout'}</div>
-        <div className="wod-desc">{wod.description?.slice(0, 140)}{wod.description?.length > 140 ? '...' : ''}</div>
-        <div className="wod-tags">
-          {wod.equipment?.filter(q => q !== 'Bodyweight').slice(0, 4).map(q => <span key={q} className="tg te">{q}</span>)}
-          {wod.workout_types?.filter(t => t !== 'General').slice(0, 3).map(t => <span key={t} className="tg tw">{t}</span>)}
-          {wod.estimated_duration_mins && <span className="wdr">{wod.estimated_duration_mins}m</span>}
-        </div>
+        <button
+          className={`wod-roll${spinning ? ' spin' : ''}`}
+          onClick={handleShuffle}
+          onTouchEnd={handleShuffle}
+          title="Shuffle"
+        >↻</button>
       </div>
-      <button className="wod-roll" onClick={(e) => { e.stopPropagation(); pick() }} title="Shuffle">↻</button>
+      <div className="wod-desc">{wod.description?.slice(0, 140)}{wod.description?.length > 140 ? '...' : ''}</div>
+      <div className="wod-tags">
+        {wod.equipment?.filter(q => q !== 'Bodyweight').slice(0, 4).map(q => <span key={q} className="tg te">{q}</span>)}
+        {wod.workout_types?.filter(t => t !== 'General').slice(0, 3).map(t => <span key={t} className="tg tw">{t}</span>)}
+        {wod.estimated_duration_mins && <span className="wdr">{wod.estimated_duration_mins}m</span>}
+      </div>
     </div>
   )
 }

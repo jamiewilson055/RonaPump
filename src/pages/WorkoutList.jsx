@@ -37,8 +37,15 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
     if (filters.mv.length) w = w.filter(x => filters.mv.every(f => x.movement_categories?.includes(f)))
     if (filters.cat.length) w = w.filter(x => filters.cat.every(f => x.categories?.includes(f)))
     if (filters.wt.length) w = w.filter(x => filters.wt.every(f => x.workout_types?.includes(f)))
-    if (filters.durMin != null) w = w.filter(x => x.estimated_duration_mins && x.estimated_duration_mins >= filters.durMin)
-    if (filters.durMax != null) w = w.filter(x => x.estimated_duration_mins && x.estimated_duration_mins <= filters.durMax)
+    if (filters.durMin != null || filters.durMax != null) {
+      const includeNoDur = filters.includeNoDur !== false
+      w = w.filter(x => {
+        if (!x.estimated_duration_mins) return includeNoDur
+        if (filters.durMin != null && x.estimated_duration_mins < filters.durMin) return false
+        if (filters.durMax != null && x.estimated_duration_mins > filters.durMax) return false
+        return true
+      })
+    }
 
     // Sort
     if (sort === 'newest') w.sort((a, b) => (b.original_date || '').localeCompare(a.original_date || ''))

@@ -48,7 +48,14 @@ export default function Filters({ filters, setFilters, allEquipment, allMovement
           value={filters.durMax ?? ''} onChange={e => setFilters(prev => ({ ...prev, durMax: e.target.value ? parseInt(e.target.value) : null }))} min="0" />
         <span className="dur-unit">min</span>
         {(filters.durMin != null || filters.durMax != null) && (
-          <button className="dur-clr" onClick={() => setFilters(prev => ({ ...prev, durMin: null, durMax: null }))}>✕</button>
+          <>
+            <label className="dur-check">
+              <input type="checkbox" checked={filters.includeNoDur !== false}
+                onChange={e => setFilters(prev => ({ ...prev, includeNoDur: e.target.checked }))} />
+              <span>Include unset</span>
+            </label>
+            <button className="dur-clr" onClick={() => setFilters(prev => ({ ...prev, durMin: null, durMax: null }))}>✕</button>
+          </>
         )}
       </div>
     </>
