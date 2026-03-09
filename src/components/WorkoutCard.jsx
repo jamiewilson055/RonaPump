@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 
+const SCORE_TYPES = ['Time', 'Rounds + Reps', 'Reps', 'Calories', 'Distance', 'Load', 'None']
+
 function cleanDesc(w) {
   let d = w.description || ''
   if (w.name) {
@@ -30,12 +32,14 @@ function bestScore(w) {
   return pl.reduce((b, e) => (!b || (e.score && e.score > b)) ? e.score : b, null)
 }
 
-export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session, onAuthRequired, onWorkoutsChanged }) {
+export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session, isAdmin, onAuthRequired, onWorkoutsChanged }) {
   const [expanded, setExpanded] = useState(false)
   const [addingLog, setAddingLog] = useState(false)
   const [logScore, setLogScore] = useState('')
   const [logDate, setLogDate] = useState(new Date().toISOString().slice(0, 10))
   const [logNotes, setLogNotes] = useState('')
+  const [editing, setEditing] = useState(false)
+  const [editForm, setEditForm] = useState(null)
 
   const hasDone = w.performance_log && w.performance_log.length > 0
   const bs = bestScore(w)
@@ -65,8 +69,61 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     onWorkoutsChanged()
   }
 
+  function startEdit() {
+    setEditForm({
+      name: w.name || '',
+      description: w.description || '',
+      score_type: w.score_type || 'None',
+      estimated_duration_mins: w.estimated_duration_mins || '',
+      equipment: [...(w.equipment || [])],
+      workout_types: [...(w.workout_types || [])],
+      categories: [...(w.categories || [])],
+      movement_categories: [...(w.movement_categories || [])],
+    })
+    setEditing(true)
+  }
+
+  function toggleEditArray(field, val) {
+    setEditForm(prev => {
+      const arr = [...prev[field]]
+      const idx = arr.indexOf(val)
+      if (idx >= 0) arr.splice(idx, 1); else arr.push(val)
+      return { ...prev, [field]: arr }
+    })
+  }
+
+  async function saveEdit() {
+    if (!editForm.description.trim()) { alert('Description is required.'); return }
+    const { error } = await supabase
+      .from('workouts')
+      .update({
+        name: editForm.name.trim() || null,
+        description: editForm.description.trim(),
+        score_type: editForm.score_type,
+        estimated_duration_mins: editForm.estimated_duration_mins ? parseInt(editForm.estimated_duration_mins) : null,
+        equipment: editForm.equipment.length ? editForm.equipment : ['Bodyweight'],
+        workout_types: editForm.workout_types.length ? editForm.workout_types : ['General'],
+        categories: editForm.categories,
+        movement_categories: editForm.movement_categories.length ? editForm.movement_categories : ['General'],
+        auto_named: false,
+      })
+      .eq('id', w.id)
+    if (error) { alert('Error saving: ' + error.message); return }
+    setEditing(false)
+    setEditForm(null)
+    onWorkoutsChanged()
+  }
+
+  async function deleteWorkout() {
+    const label = w.name ? `"${w.name}"` : 'this workout'
+    if (!confirm(`Permanently delete ${label}? This cannot be undone.`)) return
+    await supabase.from('workouts').delete().eq('id', w.id)
+    onWorkoutsChanged()
+  }
+
   return (
-    <div className={`wc${expanded ? ' exp' : ''}`}>
+    <>
+    <div className={`wc${expanded ? ' exp' : ''}`} id={`wc-${w.id}`}>
       <div className="wc-top" onClick={() => setExpanded(!expanded)}>
         <div className={`dot ${hasDone ? 'y' : 'n'}`}></div>
         <button className={`wf ${isFav ? 'y' : 'n'}`} onClick={(e) => { e.stopPropagation(); toggleFavorite(w.id) }}>
@@ -93,11 +150,10 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
         <div className="det">
           <div className="dsc">{formatDesc(cleanDesc(w))}</div>
 
-          {/* Performance Log */}
           <div className="plog">
             <div className="plog-hdr">
               <h4>Performance Log {w.score_type !== 'None' && <span className="st-badge">Scored by: {w.score_type}</span>}</h4>
-              <span className="plog-add" onClick={() => setAddingLog(!addingLog)}>{addingLog ? 'Cancel' : '+ Log Result'}</span>
+              <span className="plog-add" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }}>{addingLog ? 'Cancel' : '+ Log Result'}</span>
             </div>
             {pl.length > 0 && (
               <table className="plog-table">
@@ -133,9 +189,73 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
           </div>
           <div className="acts">
             <button className={`ab ${isFav ? '' : 'g'}`} onClick={() => toggleFavorite(w.id)}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>
+            {isAdmin && <button className="ab p" onClick={startEdit}>Edit</button>}
+            {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}
           </div>
         </div>
       )}
     </div>
+
+    {editing && editForm && (
+      <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) { setEditing(false); setEditForm(null) } }}>
+        <div className="mc">
+          <h2>Edit Workout</h2>
+          <label>Name</label>
+          <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="e.g. The Grind" />
+
+          <label>Description / Details</label>
+          <textarea value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} placeholder="Full workout details..." />
+
+          <label>Score Type</label>
+          <div className="st-sel">
+            {SCORE_TYPES.map(t => (
+              <button key={t} className={`st-opt${editForm.score_type === t ? ' on' : ''}`}
+                onClick={() => setEditForm({ ...editForm, score_type: t })}>{t}</button>
+            ))}
+          </div>
+
+          <label>Duration (minutes)</label>
+          <input type="number" value={editForm.estimated_duration_mins} onChange={e => setEditForm({ ...editForm, estimated_duration_mins: e.target.value })} placeholder="e.g. 30" />
+
+          <label>Equipment</label>
+          <div className="cr">
+            {['Barbell', 'Bench', 'Bike (Assault/Echo)', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Speed Rope', 'Weighted Vest'].map(eq => (
+              <button key={eq} className={`ch${editForm.equipment.includes(eq) ? ' on' : ''}`}
+                onClick={() => toggleEditArray('equipment', eq)}>{eq}</button>
+            ))}
+          </div>
+
+          <label>Workout Type</label>
+          <div className="cr">
+            {['AMRAP', 'Chipper', 'EMOM', 'For Calories', 'For Distance', 'For Time', 'General', 'Interval', 'Ladder', 'Rounds', 'Strength', 'Tabata'].map(t => (
+              <button key={t} className={`ch${editForm.workout_types.includes(t) ? ' on' : ''}`}
+                onClick={() => toggleEditArray('workout_types', t)}>{t}</button>
+            ))}
+          </div>
+
+          <label>Category</label>
+          <div className="cr">
+            {['Abs', 'Basement', 'Bedroom', 'HYROX', 'Hotel Workouts', 'Murph', 'Outdoor', 'Outdoor With Running', 'Top 10', 'Track Workouts'].map(c => (
+              <button key={c} className={`ch${editForm.categories.includes(c) ? ' on' : ''}`}
+                onClick={() => toggleEditArray('categories', c)}>{c}</button>
+            ))}
+          </div>
+
+          <label>Movement Type</label>
+          <div className="cr">
+            {['Cardio', 'Core', 'Farmers Carry', 'General', 'Hinge', 'Lunge', 'Olympic Lifting', 'Plyometric', 'Pull', 'Pull-Up', 'Push', 'Push-Up', 'Snatch', 'Squat'].map(m => (
+              <button key={m} className={`ch${editForm.movement_categories.includes(m) ? ' on' : ''}`}
+                onClick={() => toggleEditArray('movement_categories', m)}>{m}</button>
+            ))}
+          </div>
+
+          <div className="mf">
+            <button className="ab" onClick={() => { setEditing(false); setEditForm(null) }}>Cancel</button>
+            <button className="ab p" onClick={saveEdit}>Save</button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }

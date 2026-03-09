@@ -1,14 +1,16 @@
 import { useState, useMemo } from 'react'
 import Filters from '../components/Filters'
 import WorkoutCard from '../components/WorkoutCard'
+import NewWorkoutModal from '../components/NewWorkoutModal'
 
 const PP = 30 // per page
 
-export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, session, onAuthRequired, onWorkoutsChanged }) {
+export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, session, isAdmin, onAuthRequired, onWorkoutsChanged }) {
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState('newest')
   const [page, setPage] = useState(1)
   const [filters, setFilters] = useState({ eq: [], mv: [], cat: [], wt: [], durMin: null, durMax: null })
+  const [showNewModal, setShowNewModal] = useState(false)
 
   // Extract all unique filter values
   const allEquipment = useMemo(() => [...new Set(workouts.flatMap(w => w.equipment || []))].sort(), [workouts])
@@ -79,8 +81,10 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
             onChange={e => { setQuery(e.target.value); setPage(1) }} />
         </div>
         <button className="rbtn" onClick={randomWorkout} title="Random workout">🎲</button>
-        <button className="nbtn">+ New Workout</button>
+        {isAdmin && <button className="nbtn" onClick={() => setShowNewModal(true)}>+ New Workout</button>}
       </div>
+
+      {showNewModal && <NewWorkoutModal onClose={() => setShowNewModal(false)} onSaved={() => { setShowNewModal(false); onWorkoutsChanged() }} />}
 
       <Filters filters={filters} setFilters={(f) => { setFilters(typeof f === 'function' ? f(filters) : f); setPage(1) }}
         allEquipment={allEquipment} allMovements={allMovements} allCategories={allCategories} allWorkoutTypes={allWorkoutTypes} />
@@ -102,7 +106,7 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
       <div className="wl">
         {items.map(w => (
           <WorkoutCard key={w.id} workout={w} isFav={favorites.has(w.id)} toggleFavorite={toggleFavorite}
-            session={session} onAuthRequired={onAuthRequired} onWorkoutsChanged={onWorkoutsChanged} />
+            session={session} isAdmin={isAdmin} onAuthRequired={onAuthRequired} onWorkoutsChanged={onWorkoutsChanged} />
         ))}
       </div>
 

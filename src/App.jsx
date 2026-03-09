@@ -140,6 +140,7 @@ function App() {
           favorites={favorites}
           toggleFavorite={toggleFavorite}
           session={session}
+          isAdmin={profile?.is_admin || false}
           onAuthRequired={() => setShowAuth(true)}
           onWorkoutsChanged={loadWorkouts}
         />
