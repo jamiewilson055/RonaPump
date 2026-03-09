@@ -11,6 +11,7 @@ import Collections from './pages/Collections'
 import Profile from './pages/Profile'
 import Auth from './components/Auth'
 import UpdatePassword from './components/UpdatePassword'
+import Welcome from './components/Welcome'
 import './App.css'
 
 function App() {
@@ -141,6 +142,7 @@ function App() {
   return (
     <div className="app">
       <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} />
+      {!session && <Welcome onSignIn={() => setShowAuth(true)} />}
       <QuoteBar isAdmin={profile?.is_admin || false} />
       {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && <WODCard workouts={workouts} />}
       <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} collectionsCount={collections.length} />
