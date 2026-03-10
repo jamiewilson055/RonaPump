@@ -82,6 +82,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const [showCollections, setShowCollections] = useState(false)
   const [quickLogged, setQuickLogged] = useState(false)
   const [showTimer, setShowTimer] = useState(false)
+  const [remixing, setRemixing] = useState(false)
 
   function shareWorkout() {
     let text = ''
@@ -197,6 +198,25 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
       categories: [...(w.categories || [])],
       movement_categories: [...(w.movement_categories || [])],
     })
+    setRemixing(false)
+    setEditing(true)
+  }
+
+  function startRemix() {
+    if (!session) { onAuthRequired(); return }
+    setEditForm({
+      name: (w.name || 'Unnamed') + ' (My Version)',
+      description: w.description || '',
+      score_type: w.score_type || 'None',
+      estimated_duration_mins: w.estimated_duration_mins || '',
+      estimated_duration_min: w.estimated_duration_min || '',
+      estimated_duration_max: w.estimated_duration_max || '',
+      equipment: [...(w.equipment || [])],
+      workout_types: [...(w.workout_types || [])],
+      categories: [...(w.categories || [])],
+      movement_categories: [...(w.movement_categories || [])],
+    })
+    setRemixing(true)
     setEditing(true)
   }
 
@@ -211,9 +231,10 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
   async function saveEdit() {
     if (!editForm.description.trim()) { alert('Description is required.'); return }
-    const { error } = await supabase
-      .from('workouts')
-      .update({
+
+    if (remixing) {
+      // Create a new private copy
+      const { error } = await supabase.from('workouts').insert({
         name: editForm.name.trim() || null,
         description: editForm.description.trim(),
         score_type: editForm.score_type,
@@ -221,15 +242,38 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
         estimated_duration_min: editForm.estimated_duration_min ? parseInt(editForm.estimated_duration_min) : null,
         estimated_duration_max: editForm.estimated_duration_max ? parseInt(editForm.estimated_duration_max) : null,
         equipment: editForm.equipment.length ? editForm.equipment : ['Bodyweight'],
-        workout_types: editForm.workout_types.length ? editForm.workout_types : ['General'],
+        workout_types: editForm.workout_types.length ? editForm.workout_types : ['For Time'],
         categories: editForm.categories,
-        movement_categories: editForm.movement_categories.length ? editForm.movement_categories : ['General'],
-        auto_named: false,
+        movement_categories: editForm.movement_categories.length ? editForm.movement_categories : [],
+        created_by: session.user.id,
+        visibility: 'private',
+        source: 'remix-of-' + w.id,
       })
-      .eq('id', w.id)
-    if (error) { alert('Error saving: ' + error.message); return }
+      if (error) { alert('Error saving: ' + error.message); return }
+    } else {
+      // Normal edit (update in place)
+      const { error } = await supabase
+        .from('workouts')
+        .update({
+          name: editForm.name.trim() || null,
+          description: editForm.description.trim(),
+          score_type: editForm.score_type,
+          estimated_duration_mins: editForm.estimated_duration_mins ? parseInt(editForm.estimated_duration_mins) : null,
+          estimated_duration_min: editForm.estimated_duration_min ? parseInt(editForm.estimated_duration_min) : null,
+          estimated_duration_max: editForm.estimated_duration_max ? parseInt(editForm.estimated_duration_max) : null,
+          equipment: editForm.equipment.length ? editForm.equipment : ['Bodyweight'],
+          workout_types: editForm.workout_types.length ? editForm.workout_types : ['General'],
+          categories: editForm.categories,
+          movement_categories: editForm.movement_categories.length ? editForm.movement_categories : ['General'],
+          auto_named: false,
+        })
+        .eq('id', w.id)
+      if (error) { alert('Error saving: ' + error.message); return }
+    }
+
     setEditing(false)
     setEditForm(null)
+    setRemixing(false)
     onWorkoutsChanged()
   }
 
@@ -372,6 +416,9 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
             <button className="ab" onClick={shareWorkout}>{copied ? '✓ Copied!' : '↗ Share'}</button>
             <button className="ab" onClick={copyLink}>🔗 Link</button>
             <button className="ab" onClick={() => setShowSimilar(!showSimilar)}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
+            {session && w.created_by !== session?.user?.id && (
+              <button className="ab" onClick={startRemix}>🔀 Remix</button>
+            )}
             {isAdmin && <button className="ab p" onClick={startEdit}>Edit</button>}
             {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}
             {!isAdmin && w.visibility === 'private' && w.created_by === session?.user?.id && (
@@ -434,9 +481,14 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     </div>
 
     {editing && editForm && (
-      <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) { setEditing(false); setEditForm(null) } }}>
+      <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) { setEditing(false); setEditForm(null); setRemixing(false) } }}>
         <div className="mc">
-          <h2>Edit Workout</h2>
+          <h2>{remixing ? '🔀 Remix Workout' : 'Edit Workout'}</h2>
+          {remixing && (
+            <div style={{ fontSize: '12px', color: 'var(--tx3)', marginBottom: '10px', lineHeight: 1.5 }}>
+              Modify this workout to fit your equipment or preferences. It'll be saved as a private copy in My Workouts.
+            </div>
+          )}
           <label>Name</label>
           <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="e.g. The Grind" />
 
@@ -495,8 +547,8 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
           </div>
 
           <div className="mf">
-            <button className="ab" onClick={() => { setEditing(false); setEditForm(null) }}>Cancel</button>
-            <button className="ab p" onClick={saveEdit}>Save</button>
+            <button className="ab" onClick={() => { setEditing(false); setEditForm(null); setRemixing(false) }}>Cancel</button>
+            <button className="ab p" onClick={saveEdit}>{remixing ? '🔀 Save My Version' : 'Save'}</button>
           </div>
         </div>
       </div>
