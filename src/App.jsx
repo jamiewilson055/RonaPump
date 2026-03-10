@@ -27,6 +27,8 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [showAuth, setShowAuth] = useState(false)
   const [collections, setCollections] = useState([])
+  const [streak, setStreak] = useState(0)
+  const [totalCompleted, setTotalCompleted] = useState(0)
 
   async function loadCollections(userId) {
     if (!userId) { setCollections([]); return }
@@ -96,6 +98,35 @@ function App() {
       })
       setWorkouts(processed)
       updateCounts(processed)
+
+      // Calculate streak and total for current user
+      if (userId) {
+        const allDates = new Set()
+        let total = 0
+        processed.forEach(w => {
+          (w.performance_log || []).forEach(p => {
+            if (p.user_id === userId && p.completed_at) {
+              allDates.add(p.completed_at)
+              total++
+            }
+          })
+        })
+        setTotalCompleted(total)
+
+        // Calculate consecutive day streak
+        let s = 0
+        const today = new Date()
+        for (let i = 0; i < 365; i++) {
+          const d = new Date(today)
+          d.setDate(d.getDate() - i)
+          const ds = d.toISOString().slice(0, 10)
+          if (allDates.has(ds)) { s++ }
+          else if (i > 0) break
+          // Allow today to be missing (streak still counts from yesterday)
+          else if (i === 0) continue
+        }
+        setStreak(s)
+      }
     }
     setLoading(false)
   }
@@ -136,7 +167,7 @@ function App() {
   if (showProfile && session) {
     return (
       <div className="app">
-        <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} />
+        <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} />
         <Profile
           session={session}
           profile={profile}
@@ -149,7 +180,7 @@ function App() {
 
   return (
     <div className="app">
-      <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} />
+      <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} />
       {!session && <Welcome onSignIn={() => setShowAuth(true)} />}
       <QuoteBar isAdmin={profile?.is_admin || false} />
       {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && (

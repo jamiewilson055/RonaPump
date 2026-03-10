@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import WorkoutTimer from './WorkoutTimer'
+import WorkoutComments from './WorkoutComments'
+import PublicProfile from '../pages/PublicProfile'
 
 const SCORE_TYPES = ['Time', 'Rounds + Reps', 'Reps', 'Calories', 'Distance', 'Load', 'None']
 
@@ -83,6 +85,8 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const [quickLogged, setQuickLogged] = useState(false)
   const [showTimer, setShowTimer] = useState(false)
   const [remixing, setRemixing] = useState(false)
+  const [showComments, setShowComments] = useState(false)
+  const [viewingProfile, setViewingProfile] = useState(null)
 
   function shareWorkout() {
     let text = ''
@@ -363,7 +367,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
                           {rank && isBest && <span className="lb-medal">🥇</span>}
                           {rank === 2 && <span className="lb-medal">🥈</span>}
                           {rank === 3 && <span className="lb-medal">🥉</span>}
-                          <span style={{ fontWeight: e.is_mine ? 700 : 500 }}>{e.display_name}</span>
+                          <span className="lb-clickable" style={{ fontWeight: e.is_mine ? 700 : 500 }} onClick={(ev) => { ev.stopPropagation(); setViewingProfile(e.user_id) }}>{e.display_name}</span>
                         </td>
                         <td>{e.completed_at || '—'}</td>
                         <td className={isBest ? 'best' : ''}>{e.score}{isBest ? ' ★' : ''}</td>
@@ -393,6 +397,9 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
             <span>Movements: {w.movement_categories?.join(', ')}</span>
             {w.body_parts?.length > 0 && <span>Focus: {w.body_parts.join(', ')}</span>}
           </div>
+
+          <WorkoutComments workoutId={w.id} session={session} onAuthRequired={onAuthRequired} />
+
           <div className="acts">
             <button className="ab p" onClick={() => setShowTimer(true)} style={{ fontWeight: 600 }}>▶ Start Workout</button>
             <button className={`ab ${isFav ? '' : 'g'}`} onClick={() => toggleFavorite(w.id)}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>
@@ -556,6 +563,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     )}
 
     {showTimer && <WorkoutTimer workout={w} onClose={() => setShowTimer(false)} />}
+    {viewingProfile && <PublicProfile userId={viewingProfile} onClose={() => setViewingProfile(null)} />}
     </>
   )
 }

@@ -1,6 +1,32 @@
 import ThemeToggle from './ThemeToggle'
+import NotificationBell from './NotificationBell'
 
-export default function Header({ counts, session, profile, onAuthClick }) {
+const MILESTONES = [
+  { count: 10, label: '10 🔥', color: '#ff9500' },
+  { count: 25, label: '25 💪', color: '#ff6b00' },
+  { count: 50, label: '50 ⚡', color: '#ff2d2d' },
+  { count: 100, label: '100 🦍', color: '#ff2d2d' },
+  { count: 200, label: '200 👑', color: '#ffd700' },
+  { count: 365, label: '365 🏆', color: '#ffd700' },
+  { count: 500, label: '500 💎', color: '#00d4ff' },
+]
+
+function getNextMilestone(total) {
+  return MILESTONES.find(m => m.count > total) || null
+}
+
+function getCurrentMilestone(total) {
+  let current = null
+  for (const m of MILESTONES) {
+    if (total >= m.count) current = m
+  }
+  return current
+}
+
+export default function Header({ counts, session, profile, onAuthClick, streak, totalCompleted }) {
+  const currentMs = getCurrentMilestone(totalCompleted || 0)
+  const nextMs = getNextMilestone(totalCompleted || 0)
+
   return (
     <div className="hdr">
       <div className="hdr-left">
@@ -19,11 +45,22 @@ export default function Header({ counts, session, profile, onAuthClick }) {
         </div>
       </div>
       <div className="hdr-r">
+        {session && streak > 0 && (
+          <div className="streak-badge" title={`${streak} day streak!`}>
+            <span className="streak-fire">🔥</span>
+            <span className="streak-num">{streak}</span>
+          </div>
+        )}
+        {session && currentMs && (
+          <div className="milestone-badge" title={`${totalCompleted} workouts completed`} style={{ borderColor: currentMs.color }}>
+            <span>{currentMs.label}</span>
+          </div>
+        )}
         <div className="hs"><div className="hs-n">{counts.total}</div><div className="hs-l">Workouts</div></div>
         <div className="hs"><div className="hs-n">{counts.done}</div><div className="hs-l">Done</div></div>
         <div className="hs"><div className="hs-n">{counts.queue}</div><div className="hs-l">Queue</div></div>
-        <div className="hs"><div className="hs-n">{counts.favs}</div><div className="hs-l">Favs</div></div>
         <ThemeToggle />
+        {session && <NotificationBell session={session} />}
         {session ? (
           <button className="user-btn" onClick={onAuthClick}>
             {profile?.display_name || 'Profile'}
