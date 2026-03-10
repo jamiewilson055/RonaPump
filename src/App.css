@@ -440,12 +440,12 @@ input, select, textarea { font-family: inherit; }
 
 /* Workout Timer - Full Screen Overlay */
 .timer-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 200; display: flex; flex-direction: column; overflow-y: auto; }
-.timer-header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--brd); flex-shrink: 0; }
+.timer-header { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--brd); flex-shrink: 0; }
 .timer-close { background: var(--s2); border: 1px solid var(--brd); border-radius: 6px; padding: 6px 14px; color: var(--tx2); font-size: 13px; cursor: pointer; }
 .timer-close:hover { border-color: var(--acc); color: var(--tx); }
 .timer-workout-name { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700; color: var(--tx); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.timer-desc { padding: 16px 20px; font-size: 26px; line-height: 1.7; color: var(--tx); flex-shrink: 0; max-height: 40vh; overflow-y: auto; white-space: pre-line; }
+.timer-desc { padding: 16px 20px; font-size: 26px; line-height: 1.7; color: var(--tx); flex-shrink: 0; max-height: 50vh; overflow-y: auto; white-space: pre-line; }
 .timer-li { padding: 4px 0 4px 24px; position: relative; }
 .timer-li::before { content: '•'; position: absolute; left: 6px; color: var(--acc); }
 
@@ -467,7 +467,7 @@ input, select, textarea { font-family: inherit; }
 .timer-321-num { font-family: 'JetBrains Mono', monospace; font-size: 140px; font-weight: 700; color: var(--acc); animation: pulse321 1s ease-in-out; }
 @keyframes pulse321 { 0% { transform: scale(1.3); opacity: 0; } 30% { transform: scale(1); opacity: 1; } 100% { opacity: .5; } }
 
-.timer-display { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; gap: 8px; transition: background .3s; }
+.timer-display { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px 20px; gap: 4px; transition: background .3s; }
 .timer-display.rest { background: rgba(34,197,94,.08); }
 .timer-display.done { background: rgba(255,45,45,.05); }
 
@@ -489,10 +489,14 @@ input, select, textarea { font-family: inherit; }
 .timer-display.rest .timer-label { color: var(--grn); }
 
 @media (max-width: 640px) {
-  .timer-desc { font-size: 20px; padding: 12px 16px; }
-  .timer-time { font-size: 64px; }
-  .timer-start-btn { width: 100px; height: 100px; font-size: 18px; }
-  .timer-ctrl-btn { padding: 12px 24px; font-size: 14px; }
+  .timer-desc { font-size: 20px; padding: 10px 14px; max-height: 55vh; }
+  .timer-time { font-size: 52px; }
+  .timer-start-btn { width: 90px; height: 90px; font-size: 16px; }
+  .timer-ctrl-btn { padding: 10px 20px; font-size: 13px; }
+  .timer-controls { margin-top: 10px; }
+  .timer-label { font-size: 13px; letter-spacing: 2px; }
+  .timer-round { font-size: 12px; }
+  .timer-finished { font-size: 22px; margin-top: 8px; }
   .tmt { padding: 7px 12px; font-size: 12px; }
 }
 
