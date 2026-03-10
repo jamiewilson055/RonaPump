@@ -251,6 +251,10 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
         <div className={`wn${!w.name ? ' u' : ''}${w.auto_named ? ' auto' : ''}`}>
           {w.name || 'Unnamed Workout'}
           {w.auto_named && <span className="auto-tag">auto</span>}
+          {w.visibility === 'official' && <span className="vis-tag official">🦍</span>}
+          {w.visibility === 'community' && <span className="vis-tag community">👤</span>}
+          {w.visibility === 'private' && <span className="vis-tag private">🔒</span>}
+          {w.visibility === 'pending' && <span className="vis-tag pending">⏳</span>}
         </div>
         {durDisplay && <span className="wdr">{durDisplay}</span>}
         {w.score_type !== 'None' && <span className="wst">{w.score_type}</span>}
@@ -370,6 +374,21 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
             <button className="ab" onClick={() => setShowSimilar(!showSimilar)}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
             {isAdmin && <button className="ab p" onClick={startEdit}>Edit</button>}
             {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}
+            {!isAdmin && w.visibility === 'private' && w.created_by === session?.user?.id && (
+              <button className="ab p" onClick={async () => {
+                await supabase.from('workouts').update({ visibility: 'pending', submitted_at: new Date().toISOString() }).eq('id', w.id)
+                onWorkoutsChanged()
+              }}>📤 Submit to Community</button>
+            )}
+            {!isAdmin && w.visibility === 'pending' && w.created_by === session?.user?.id && (
+              <span style={{ fontSize: '11px', color: 'var(--ylw)', padding: '4px 0' }}>⏳ Pending review</span>
+            )}
+            {!isAdmin && w.created_by === session?.user?.id && w.visibility === 'private' && (
+              <>
+                <button className="ab" onClick={startEdit}>Edit</button>
+                <button className="ab del" onClick={deleteWorkout}>Delete</button>
+              </>
+            )}
           </div>
 
           {showCollections && collections && (

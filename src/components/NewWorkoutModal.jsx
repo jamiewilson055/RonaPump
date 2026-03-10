@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 
 const SCORE_TYPES = ['Time', 'Rounds + Reps', 'Reps', 'Calories', 'Distance', 'Load', 'None']
 
-export default function NewWorkoutModal({ onClose, onSaved }) {
+export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) {
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -24,7 +24,7 @@ export default function NewWorkoutModal({ onClose, onSaved }) {
     })
   }
 
-  async function handleSave() {
+  async function handleSave(submitForReview = false) {
     if (!form.description.trim()) { alert('Description is required.'); return }
     const { error } = await supabase.from('workouts').insert({
       name: form.name.trim() || null,
@@ -32,10 +32,13 @@ export default function NewWorkoutModal({ onClose, onSaved }) {
       score_type: form.score_type,
       estimated_duration_mins: form.estimated_duration_mins ? parseInt(form.estimated_duration_mins) : null,
       equipment: form.equipment.length ? form.equipment : ['Bodyweight'],
-      workout_types: form.workout_types.length ? form.workout_types : ['General'],
+      workout_types: form.workout_types.length ? form.workout_types : ['For Time'],
       categories: form.categories,
-      movement_categories: form.movement_categories.length ? form.movement_categories : ['General'],
+      movement_categories: form.movement_categories.length ? form.movement_categories : [],
       source: 'user-created',
+      created_by: session?.user?.id || null,
+      visibility: isAdmin ? 'official' : (submitForReview ? 'pending' : 'private'),
+      submitted_at: submitForReview ? new Date().toISOString() : null,
     })
     if (error) { alert('Error: ' + error.message); return }
     onSaved()
@@ -44,7 +47,13 @@ export default function NewWorkoutModal({ onClose, onSaved }) {
   return (
     <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="mc">
-        <h2>New Workout</h2>
+        <h2>{isAdmin ? 'New Official Workout' : 'Create Workout'}</h2>
+        {!isAdmin && (
+          <div style={{ fontSize: '12px', color: 'var(--tx3)', marginBottom: '12px', lineHeight: 1.5 }}>
+            Create a workout for yourself, or submit it for community review. Private workouts are only visible to you.
+          </div>
+        )}
+
         <label>Name</label>
         <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. The Grind" />
 
@@ -94,9 +103,16 @@ export default function NewWorkoutModal({ onClose, onSaved }) {
           ))}
         </div>
 
-        <div className="mf">
+        <div className="mf" style={{ gap: '8px' }}>
           <button className="ab" onClick={onClose}>Cancel</button>
-          <button className="ab p" onClick={handleSave}>Add Workout</button>
+          {isAdmin ? (
+            <button className="ab p" onClick={() => handleSave(false)}>Add Official Workout</button>
+          ) : (
+            <>
+              <button className="ab" onClick={() => handleSave(false)}>Save Private</button>
+              <button className="ab p" onClick={() => handleSave(true)}>Submit to Community</button>
+            </>
+          )}
         </div>
       </div>
     </div>

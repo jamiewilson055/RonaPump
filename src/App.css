@@ -553,3 +553,13 @@ input, select, textarea { font-family: inherit; }
 .lb-name { display: flex; align-items: center; gap: 4px; font-size: 12px; }
 .lb-medal { font-size: 13px; }
 .plog-table th:first-child, .plog-table td:first-child { min-width: 80px; }
+
+/* Visibility badges */
+.vis-tag { font-size: 11px; margin-left: 4px; vertical-align: middle; }
+
+/* Admin Queue */
+.admin-queue { background: var(--s1); border: 1px solid var(--acc); border-radius: 8px; padding: 14px; margin-bottom: 14px; }
+.aq-card { background: var(--bg); border: 1px solid var(--brd); border-radius: 6px; margin-bottom: 6px; overflow: hidden; }
+.aq-header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; }
+.aq-header:hover { background: var(--s2); }
+.aq-body { padding: 0 12px 12px; border-top: 1px solid var(--brd); }

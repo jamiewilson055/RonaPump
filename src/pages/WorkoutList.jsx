@@ -154,10 +154,10 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
             onChange={e => { setQuery(e.target.value); setPage(1) }} />
         </div>
         <button className="rbtn" onClick={randomWorkout} title="Random workout">🎲</button>
-        {isAdmin && <button className="nbtn" onClick={openNewWorkout}>+ New Workout</button>}
+        {session && <button className="nbtn" onClick={openNewWorkout}>+ New Workout</button>}
       </div>
 
-      {showNewModal && NewWorkoutModal && <NewWorkoutModal onClose={() => setShowNewModal(false)} onSaved={() => { setShowNewModal(false); onWorkoutsChanged() }} />}
+      {showNewModal && NewWorkoutModal && <NewWorkoutModal onClose={() => setShowNewModal(false)} onSaved={() => { setShowNewModal(false); onWorkoutsChanged() }} session={session} isAdmin={isAdmin} />}
 
       <Filters
         filters={filters}

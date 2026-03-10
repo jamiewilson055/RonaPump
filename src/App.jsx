@@ -13,6 +13,7 @@ import Auth from './components/Auth'
 import UpdatePassword from './components/UpdatePassword'
 import Welcome from './components/Welcome'
 import AddToHomeScreen from './components/AddToHomeScreen'
+import AdminQueue from './components/AdminQueue'
 import './App.css'
 
 function App() {
@@ -162,7 +163,9 @@ function App() {
       ) : tab === 'collections' ? (
         <Collections session={session} onAuthRequired={() => setShowAuth(true)} workouts={workouts} />
       ) : (
-        <WorkoutList
+        <>
+          {(profile?.is_admin) && tab === 'all' && <AdminQueue onWorkoutsChanged={loadWorkouts} />}
+          <WorkoutList
           workouts={workouts}
           tab={tab}
           favorites={favorites}
@@ -174,6 +177,7 @@ function App() {
           collections={collections}
           onCollectionsChanged={() => session && loadCollections(session.user.id)}
         />
+        </>
       )}
       {showAuth && <Auth onClose={() => setShowAuth(false)} />}
       {showUpdatePassword && <UpdatePassword onClose={() => setShowUpdatePassword(false)} />}
