@@ -12,6 +12,8 @@ function cleanDesc(w) {
     d = d.replace(p1, '')
     d = d.replace(/^\s*[\n\r]+/, '').replace(/^\s*[-:]\s*/, '')
   }
+  // Clean stray braces and trailing whitespace
+  d = d.replace(/[\{\}]/g, '').trim()
   return d
 }
 
@@ -107,11 +109,13 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const hasDone = w.my_log_count > 0
   const bs = bestScore(w)
   const pl = w.performance_log || []
-  const totalLoggers = new Set(pl.map(p => p.user_id)).size
+  // Leaderboard only shows entries with actual scores (not quick-logged)
+  const leaderboardPl = pl.filter(p => p.score && p.notes !== 'Quick logged')
+  const totalLoggers = new Set(leaderboardPl.map(p => p.user_id)).size
 
   // Sort performance logs: PR always on top, then by selected sort
   const sortedPl = useMemo(() => {
-    const sorted = [...pl]
+    const sorted = [...leaderboardPl]
     if (logSort === 'score') {
       if (w.score_type === 'Time') {
         sorted.sort((a, b) => (a.score || '').localeCompare(b.score || ''))
@@ -130,7 +134,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
       }
     }
     return sorted
-  }, [pl, logSort, bs, w.score_type])
+  }, [leaderboardPl, logSort, bs, w.score_type])
 
   const scoreLabel = w.score_type === 'Time' ? 'Time' : w.score_type === 'Rounds + Reps' ? 'Score' : w.score_type === 'Calories' ? 'Cals' : w.score_type === 'Reps' ? 'Reps' : w.score_type === 'Distance' ? 'Distance' : w.score_type === 'Load' ? 'Weight' : 'Result'
 
@@ -271,7 +275,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
                 {totalLoggers > 0 && <span className="st-badge" style={{ background: 'var(--grn-d)', color: 'var(--grn)' }}>{totalLoggers} athlete{totalLoggers !== 1 ? 's' : ''}</span>}
               </h4>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                {pl.length > 1 && (
+                {leaderboardPl.length > 1 && (
                   <select className="ssel" value={logSort} onChange={e => setLogSort(e.target.value)} style={{ width: 'auto', fontSize: '10px', padding: '3px 6px' }}>
                     <option value="date">By Date</option>
                     <option value="score">By {w.score_type === 'Time' ? 'Time' : 'Score'}</option>
@@ -285,7 +289,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
                 <thead><tr><th>Athlete</th><th>Date</th><th>{scoreLabel}</th><th>Notes</th><th></th></tr></thead>
                 <tbody>
                   {sortedPl.map((e, idx) => {
-                    const isBest = e.score === bs && pl.length > 1
+                    const isBest = e.score === bs && leaderboardPl.length > 1
                     const isEditingThis = editingLogId === e.id
                     const rank = logSort === 'score' ? idx + 1 : null
 
