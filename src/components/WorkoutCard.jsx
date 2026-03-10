@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase'
 import WorkoutTimer from './WorkoutTimer'
 import WorkoutComments from './WorkoutComments'
 import PublicProfile from '../pages/PublicProfile'
+import { trackWorkoutView } from './SignupGate'
+import ShareImage from './ShareImage'
 
 const SCORE_TYPES = ['Time', 'Rounds + Reps', 'Reps', 'Calories', 'Distance', 'Load', 'None']
 
@@ -88,6 +90,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const [showComments, setShowComments] = useState(false)
   const [viewingProfile, setViewingProfile] = useState(null)
   const [logRx, setLogRx] = useState(true)
+  const [showShareImage, setShowShareImage] = useState(false)
 
   function shareWorkout() {
     let text = ''
@@ -293,7 +296,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
   return (
     <>
-    <div className={`wc${expanded ? ' exp' : ''} wc-${w.visibility || 'official'}`} id={`wc-${w.id}`} onClick={() => setExpanded(!expanded)} style={{ cursor: 'pointer' }}>
+    <div className={`wc${expanded ? ' exp' : ''} wc-${w.visibility || 'official'}`} id={`wc-${w.id}`} onClick={() => { if (!expanded && !session) trackWorkoutView(); setExpanded(!expanded) }} style={{ cursor: 'pointer' }}>
       <div className="wc-top">
         <div className={`dot ${hasDone ? 'y' : 'n'}`}></div>
         <button className={`wf ${isFav ? 'y' : 'n'}`} onClick={(e) => { e.stopPropagation(); toggleFavorite(w.id) }}>
@@ -434,6 +437,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
             }}>{showCollections ? 'Hide' : '📁 Save'}</button>
             <button className="ab" onClick={shareWorkout}>{copied ? '✓ Copied!' : '↗ Share'}</button>
             <button className="ab" onClick={copyLink}>🔗 Link</button>
+            <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
             <button className="ab" onClick={() => setShowSimilar(!showSimilar)}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
             {session && w.created_by !== session?.user?.id && (
               <button className="ab" onClick={startRemix}>🔀 Remix</button>
@@ -575,6 +579,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
     {showTimer && <WorkoutTimer workout={w} onClose={() => setShowTimer(false)} />}
     {viewingProfile && <PublicProfile userId={viewingProfile} onClose={() => setViewingProfile(null)} />}
+    {showShareImage && <ShareImage workout={w} onClose={() => setShowShareImage(false)} />}
     </>
   )
 }

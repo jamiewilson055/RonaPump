@@ -658,3 +658,36 @@ input, select, textarea { font-family: inherit; }
 .rx-off { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: var(--tx3); }
 .rx-tag { font-size: 9px; font-weight: 700; color: var(--grn); background: var(--grn-d); padding: 1px 4px; border-radius: 3px; margin-left: 4px; vertical-align: middle; }
 .scaled-tag { font-size: 9px; font-weight: 700; color: var(--ylw); background: rgba(234,179,8,.12); padding: 1px 4px; border-radius: 3px; margin-left: 4px; vertical-align: middle; }
+
+/* Signup Gate */
+.gate-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 150; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+.gate-card { background: var(--s1); border: 1px solid var(--acc); border-radius: 14px; padding: 32px; max-width: 420px; width: 100%; text-align: center; position: relative; }
+.gate-close { position: absolute; top: 12px; right: 14px; color: var(--tx3); cursor: pointer; font-size: 16px; }
+.gate-emoji { font-size: 48px; margin-bottom: 8px; }
+.gate-title { font-family: 'JetBrains Mono', monospace; font-size: 22px; color: var(--tx); margin: 0 0 8px; }
+.gate-text { font-size: 14px; color: var(--tx2); line-height: 1.5; margin: 0 0 16px; }
+.gate-features { text-align: left; margin-bottom: 20px; }
+.gate-feat { font-size: 13px; color: var(--tx2); padding: 3px 0; }
+.gate-btn { background: var(--acc); color: #fff; border: none; border-radius: 8px; padding: 14px 32px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; margin-bottom: 10px; transition: opacity .12s; }
+.gate-btn:hover { opacity: .9; }
+.gate-dismiss { background: none; border: none; color: var(--tx3); font-size: 13px; cursor: pointer; }
+.gate-dismiss:hover { color: var(--tx2); }
+
+/* Admin Analytics */
+.admin-analytics { margin-bottom: 20px; }
+.aa-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+.aa-card { background: var(--s1); border: 1px solid var(--brd); border-radius: 8px; padding: 14px; text-align: center; }
+.aa-num { font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 700; color: var(--tx); }
+.aa-label { font-size: 10px; color: var(--tx3); text-transform: uppercase; letter-spacing: .5px; margin-top: 3px; }
+.aa-section { background: var(--s1); border: 1px solid var(--brd); border-radius: 8px; padding: 14px; margin-bottom: 10px; }
+.aa-section h4 { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--tx3); margin: 0 0 8px; }
+.aa-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--brd); font-size: 12px; }
+.aa-row:last-child { border-bottom: none; }
+.aa-rank { font-family: 'JetBrains Mono', monospace; color: var(--acc); font-weight: 600; width: 24px; }
+.aa-name { flex: 1; color: var(--tx); font-family: 'JetBrains Mono', monospace; }
+.aa-count { color: var(--tx3); font-family: 'JetBrains Mono', monospace; }
+
+@media (max-width: 640px) {
+  .aa-grid { grid-template-columns: repeat(2, 1fr); }
+  .aa-num { font-size: 20px; }
+}

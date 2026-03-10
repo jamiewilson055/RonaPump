@@ -14,6 +14,8 @@ import UpdatePassword from './components/UpdatePassword'
 import Welcome from './components/Welcome'
 import AddToHomeScreen from './components/AddToHomeScreen'
 import AdminQueue from './components/AdminQueue'
+import SignupGate from './components/SignupGate'
+import AdminAnalytics from './pages/AdminAnalytics'
 import './App.css'
 
 function App() {
@@ -190,7 +192,10 @@ function App() {
       {tab === 'prs' ? (
         <PRTracker session={session} onAuthRequired={() => setShowAuth(true)} />
       ) : tab === 'stats' ? (
-        <Stats workouts={workouts} favorites={favorites} />
+        <>
+          {profile?.is_admin && <AdminAnalytics />}
+          <Stats workouts={workouts} favorites={favorites} />
+        </>
       ) : tab === 'collections' ? (
         <Collections session={session} onAuthRequired={() => setShowAuth(true)} workouts={workouts} />
       ) : (
@@ -213,6 +218,7 @@ function App() {
       {showAuth && <Auth onClose={() => setShowAuth(false)} />}
       {showUpdatePassword && <UpdatePassword onClose={() => setShowUpdatePassword(false)} />}
       <AddToHomeScreen />
+      {!session && <SignupGate onSignIn={() => setShowAuth(true)} />}
     </div>
   )
 }
