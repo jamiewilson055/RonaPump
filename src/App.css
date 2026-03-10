@@ -575,3 +575,13 @@ input, select, textarea { font-family: inherit; }
 .sf-btn { background: var(--s1); border: 1px solid var(--brd); border-radius: 6px; padding: 6px 12px; font-size: 12px; color: var(--tx2); cursor: pointer; transition: all .12s; }
 .sf-btn:hover { border-color: var(--tx3); color: var(--tx); }
 .sf-btn.on { background: var(--acc-d); border-color: var(--acc); color: var(--acc); font-weight: 600; }
+
+/* PR Folders */
+.pr-folder { background: var(--s1); border: 1px solid var(--brd); border-radius: 7px; margin-bottom: 6px; overflow: hidden; }
+.pr-folder-hd { display: flex; align-items: center; gap: 6px; padding: 10px 14px; cursor: pointer; transition: background .1s; }
+.pr-folder-hd:hover { background: var(--s2); }
+.pr-folder-arrow { color: var(--tx3); font-size: 10px; transition: transform .15s; }
+.pr-folder-arrow.shut { transform: rotate(-90deg); }
+.pr-folder-body { padding: 0 6px 6px; }
+.pr-indent { margin-left: 12px; border-left: 2px solid var(--brd); }
+.pr-indent .pr-group-hd { padding-left: 10px; }
