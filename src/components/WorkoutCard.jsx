@@ -328,7 +328,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
                   })}
                 </tbody>
               </table>
-            )}}
+            )}
             {addingLog && (
               <div className="plog-form">
                 <input placeholder={scoreLabel} value={logScore} onChange={e => setLogScore(e.target.value)} />
