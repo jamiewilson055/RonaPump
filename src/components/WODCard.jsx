@@ -78,8 +78,8 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
 
   return (
     <>
-      <div className={`wod-card${expanded ? ' wod-exp' : ''}`}>
-        <div className="wod-top" onClick={() => setExpanded(!expanded)}>
+      <div className={`wod-card${expanded ? ' wod-exp' : ''}`} onClick={() => setExpanded(!expanded)} style={{ cursor: 'pointer' }}>
+        <div className="wod-top">
           <div className="wod-label-inline">WOD</div>
           <div className="wod-name">{wod.name || 'Unnamed Workout'}</div>
           {wod.estimated_duration_mins && <span className="wdr">{wod.estimated_duration_mins}m</span>}
@@ -102,7 +102,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
         )}
 
         {expanded && (
-          <div className="det">
+          <div className="det" onClick={e => e.stopPropagation()}>
             <div className="dsc">{formatDesc(wod.description)}</div>
 
             <div className="wtg" style={{ padding: '4px 0 8px' }}>

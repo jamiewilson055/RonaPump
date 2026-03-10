@@ -228,8 +228,8 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
   return (
     <>
-    <div className={`wc${expanded ? ' exp' : ''}`} id={`wc-${w.id}`}>
-      <div className="wc-top" onClick={() => setExpanded(!expanded)}>
+    <div className={`wc${expanded ? ' exp' : ''}`} id={`wc-${w.id}`} onClick={() => setExpanded(!expanded)} style={{ cursor: 'pointer' }}>
+      <div className="wc-top">
         <div className={`dot ${hasDone ? 'y' : 'n'}`}></div>
         <button className={`wf ${isFav ? 'y' : 'n'}`} onClick={(e) => { e.stopPropagation(); toggleFavorite(w.id) }}>
           {isFav ? '★' : '☆'}
@@ -252,7 +252,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
       </div>
 
       {expanded && (
-        <div className="det">
+        <div className="det" onClick={e => e.stopPropagation()}>
           <div className="dsc">{formatDesc(cleanDesc(w))}</div>
 
           <div className="plog">
