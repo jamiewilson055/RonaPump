@@ -12,6 +12,7 @@ import Profile from './pages/Profile'
 import Auth from './components/Auth'
 import UpdatePassword from './components/UpdatePassword'
 import Welcome from './components/Welcome'
+import AddToHomeScreen from './components/AddToHomeScreen'
 import './App.css'
 
 function App() {
@@ -168,6 +169,7 @@ function App() {
       )}
       {showAuth && <Auth onClose={() => setShowAuth(false)} />}
       {showUpdatePassword && <UpdatePassword onClose={() => setShowUpdatePassword(false)} />}
+      <AddToHomeScreen />
     </div>
   )
 }

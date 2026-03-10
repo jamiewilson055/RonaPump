@@ -435,3 +435,74 @@ input, select, textarea { font-family: inherit; }
   .welcome-text p { font-size: 13px; }
   .wf-item { padding: 5px 9px; font-size: 11px; }
 }
+
+/* Workout Timer - Full Screen Overlay */
+.timer-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 200; display: flex; flex-direction: column; overflow-y: auto; }
+.timer-header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--brd); flex-shrink: 0; }
+.timer-close { background: var(--s2); border: 1px solid var(--brd); border-radius: 6px; padding: 6px 14px; color: var(--tx2); font-size: 13px; cursor: pointer; }
+.timer-close:hover { border-color: var(--acc); color: var(--tx); }
+.timer-workout-name { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700; color: var(--tx); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.timer-desc { padding: 16px 20px; font-size: 18px; line-height: 1.6; color: var(--tx); flex-shrink: 0; max-height: 40vh; overflow-y: auto; white-space: pre-line; }
+.timer-li { padding: 3px 0 3px 20px; position: relative; }
+.timer-li::before { content: '•'; position: absolute; left: 4px; color: var(--acc); }
+
+.timer-setup { padding: 20px; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.timer-mode-tabs { display: flex; gap: 4px; background: var(--s1); border-radius: 8px; padding: 3px; border: 1px solid var(--brd); }
+.tmt { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; color: var(--tx2); cursor: pointer; transition: all .12s; background: none; border: none; }
+.tmt:hover { color: var(--tx); }
+.tmt.on { background: var(--acc); color: #fff; }
+
+.timer-config { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
+.timer-config label { font-size: 12px; color: var(--tx3); text-transform: uppercase; letter-spacing: .5px; }
+.timer-config input { background: var(--s1); border: 1px solid var(--brd); border-radius: 6px; padding: 10px 14px; color: var(--tx); font-size: 18px; font-family: 'JetBrains Mono', monospace; width: 80px; text-align: center; outline: none; }
+.timer-config input:focus { border-color: var(--acc); }
+
+.timer-start-btn { background: var(--acc); color: #fff; border: none; border-radius: 50%; width: 120px; height: 120px; font-size: 22px; font-weight: 700; font-family: 'JetBrains Mono', monospace; cursor: pointer; transition: all .15s; letter-spacing: 2px; margin-top: 10px; }
+.timer-start-btn:hover { transform: scale(1.05); opacity: .9; }
+
+.timer-321 { flex: 1; display: flex; align-items: center; justify-content: center; }
+.timer-321-num { font-family: 'JetBrains Mono', monospace; font-size: 140px; font-weight: 700; color: var(--acc); animation: pulse321 1s ease-in-out; }
+@keyframes pulse321 { 0% { transform: scale(1.3); opacity: 0; } 30% { transform: scale(1); opacity: 1; } 100% { opacity: .5; } }
+
+.timer-display { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; gap: 8px; transition: background .3s; }
+.timer-display.rest { background: rgba(34,197,94,.08); }
+.timer-display.done { background: rgba(255,45,45,.05); }
+
+.timer-progress { width: 100%; max-width: 400px; height: 6px; background: var(--s2); border-radius: 3px; overflow: hidden; margin-bottom: 10px; }
+.timer-progress-fill { height: 100%; background: var(--acc); border-radius: 3px; transition: width 1s linear; }
+
+.timer-time { font-family: 'JetBrains Mono', monospace; font-size: 90px; font-weight: 700; color: var(--tx); line-height: 1; }
+.timer-label { font-family: 'JetBrains Mono', monospace; font-size: 16px; color: var(--tx2); text-transform: uppercase; letter-spacing: 3px; }
+.timer-round { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--tx3); margin-top: 4px; }
+.timer-finished { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; color: var(--acc); margin-top: 12px; }
+
+.timer-controls { display: flex; gap: 12px; margin-top: 20px; }
+.timer-ctrl-btn { background: var(--acc); color: #fff; border: none; border-radius: 8px; padding: 14px 32px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all .12s; }
+.timer-ctrl-btn:hover { opacity: .85; }
+.timer-ctrl-btn.sec { background: var(--s2); color: var(--tx2); border: 1px solid var(--brd); }
+.timer-ctrl-btn.sec:hover { border-color: var(--tx3); color: var(--tx); }
+
+.timer-display.rest .timer-time { color: var(--grn); }
+.timer-display.rest .timer-label { color: var(--grn); }
+
+@media (max-width: 640px) {
+  .timer-desc { font-size: 15px; padding: 12px 16px; }
+  .timer-time { font-size: 64px; }
+  .timer-start-btn { width: 100px; height: 100px; font-size: 18px; }
+  .timer-ctrl-btn { padding: 12px 24px; font-size: 14px; }
+  .tmt { padding: 7px 12px; font-size: 12px; }
+}
+
+/* Add to Home Screen */
+.a2hs { position: fixed; bottom: 0; left: 0; right: 0; z-index: 95; padding: 10px; }
+.a2hs-inner { background: var(--s1); border: 1px solid var(--acc); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; max-width: 600px; margin: 0 auto; box-shadow: 0 -4px 20px rgba(0,0,0,.3); }
+.a2hs-icon { font-size: 28px; flex-shrink: 0; }
+.a2hs-text { flex: 1; min-width: 0; }
+.a2hs-text strong { display: block; font-size: 13px; color: var(--tx); }
+.a2hs-text span { font-size: 11px; color: var(--tx2); }
+.a2hs-btn { background: var(--acc); color: #fff; border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.a2hs-close { background: none; border: none; color: var(--tx3); font-size: 16px; cursor: pointer; padding: 4px; }
+
+@media (min-width: 641px) { .a2hs { bottom: 12px; } }
+@media (max-width: 640px) { .a2hs { bottom: 60px; } }

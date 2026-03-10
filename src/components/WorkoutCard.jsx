@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
+import WorkoutTimer from './WorkoutTimer'
 
 const SCORE_TYPES = ['Time', 'Rounds + Reps', 'Reps', 'Calories', 'Distance', 'Load', 'None']
 
@@ -78,6 +79,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const [showSimilar, setShowSimilar] = useState(false)
   const [showCollections, setShowCollections] = useState(false)
   const [quickLogged, setQuickLogged] = useState(false)
+  const [showTimer, setShowTimer] = useState(false)
 
   function shareWorkout() {
     let text = ''
@@ -319,6 +321,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
             {w.body_parts?.length > 0 && <span>Focus: {w.body_parts.join(', ')}</span>}
           </div>
           <div className="acts">
+            <button className="ab p" onClick={() => setShowTimer(true)} style={{ fontWeight: 600 }}>▶ Start Workout</button>
             <button className={`ab ${isFav ? '' : 'g'}`} onClick={() => toggleFavorite(w.id)}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>
             {!hasDone && (
               <button className={`ab${quickLogged ? ' g' : ''}`} onClick={async () => {
@@ -454,6 +457,8 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
         </div>
       </div>
     )}
+
+    {showTimer && <WorkoutTimer workout={w} onClose={() => setShowTimer(false)} />}
     </>
   )
 }
