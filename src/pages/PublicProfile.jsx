@@ -65,7 +65,11 @@ export default function PublicProfile({ userId, onClose }) {
     <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="mc" style={{ maxWidth: '480px' }}>
         <div className="prof-header">
-          <div className="prof-avatar">{initial}</div>
+          {profile.avatar_url ? (
+            <img src={profile.avatar_url} alt="Avatar" className="prof-avatar-img" />
+          ) : (
+            <div className="prof-avatar">{initial}</div>
+          )}
           <div className="prof-name-area">
             <h2 style={{ margin: 0, fontSize: '20px' }}>{profile.display_name || 'Athlete'}</h2>
             {profile.hometown && <div style={{ fontSize: '12px', color: 'var(--tx3)', marginTop: '2px' }}>📍 {profile.hometown}</div>}

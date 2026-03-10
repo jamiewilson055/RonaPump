@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
 export default function Profile({ session, profile, onClose, onProfileUpdated }) {
@@ -14,6 +14,8 @@ export default function Profile({ session, profile, onClose, onProfileUpdated })
   })
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef(null)
 
   useEffect(() => {
     if (profile) {
@@ -56,21 +58,61 @@ export default function Profile({ session, profile, onClose, onProfileUpdated })
     setSaving(false)
   }
 
+  async function uploadAvatar(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) { alert('Image must be under 2MB'); return }
+
+    setUploading(true)
+    const ext = file.name.split('.').pop()
+    const path = `${session.user.id}/avatar.${ext}`
+
+    // Upload to storage
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(path, file, { upsert: true })
+
+    if (uploadError) {
+      alert('Upload failed: ' + uploadError.message)
+      setUploading(false)
+      return
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
+    const avatarUrl = urlData.publicUrl + '?t=' + Date.now()
+
+    // Update profile
+    await supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', session.user.id)
+    setUploading(false)
+    onProfileUpdated()
+  }
+
   async function handleSignOut() {
     await supabase.auth.signOut()
     onClose()
   }
 
+  const avatarUrl = profile?.avatar_url
   const initial = (profile?.display_name || session?.user?.email || '?')[0].toUpperCase()
 
   return (
     <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="mc" style={{ maxWidth: '480px' }}>
         <div className="prof-header">
-          <div className="prof-avatar">{initial}</div>
+          <div className="prof-avatar-wrap" onClick={() => fileRef.current?.click()} title="Change profile picture">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Avatar" className="prof-avatar-img" />
+            ) : (
+              <div className="prof-avatar">{initial}</div>
+            )}
+            <div className="prof-avatar-overlay">📷</div>
+            <input type="file" ref={fileRef} accept="image/*" onChange={uploadAvatar} style={{ display: 'none' }} />
+          </div>
           <div className="prof-name-area">
             <h2 style={{ margin: 0, fontSize: '20px' }}>{profile?.display_name || 'Your Profile'}</h2>
             <div style={{ fontSize: '12px', color: 'var(--tx3)', marginTop: '2px' }}>{session?.user?.email}</div>
+            {uploading && <div style={{ fontSize: '11px', color: 'var(--acc)', marginTop: '2px' }}>Uploading...</div>}
           </div>
         </div>
 
@@ -100,10 +142,12 @@ export default function Profile({ session, profile, onClose, onProfileUpdated })
             <label>Bio</label>
             <textarea value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} placeholder="Tell us about yourself..." style={{ minHeight: '80px' }} />
 
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '8px' }}>
-              <input type="checkbox" checked={form.weekly_digest} onChange={e => setForm({ ...form, weekly_digest: e.target.checked })} />
-              <span>Receive weekly digest email</span>
-            </label>
+            <div className="prof-digest-toggle">
+              <label>
+                <input type="checkbox" checked={form.weekly_digest} onChange={e => setForm({ ...form, weekly_digest: e.target.checked })} />
+                <span>Receive weekly digest email</span>
+              </label>
+            </div>
 
             <div className="mf" style={{ marginTop: '12px' }}>
               <button className="ab" onClick={() => setEditing(false)}>Cancel</button>
@@ -134,7 +178,6 @@ export default function Profile({ session, profile, onClose, onProfileUpdated })
                 <p>{profile.bio}</p>
               </div>
             )}
-
             <div className="prof-row">
               <span className="prof-label">Weekly Digest</span>
               <span className="prof-value">{profile?.weekly_digest !== false ? '✅ Subscribed' : '❌ Not subscribed'}</span>

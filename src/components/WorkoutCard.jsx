@@ -87,6 +87,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const [remixing, setRemixing] = useState(false)
   const [showComments, setShowComments] = useState(false)
   const [viewingProfile, setViewingProfile] = useState(null)
+  const [logRx, setLogRx] = useState(true)
 
   function shareWorkout() {
     let text = ''
@@ -158,11 +159,13 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
       workout_id: w.id,
       completed_at: logDate,
       score: logScore.trim(),
-      notes: logNotes.trim() || null
+      notes: logNotes.trim() || null,
+      is_rx: logRx,
     })
     setAddingLog(false)
     setLogScore('')
     setLogNotes('')
+    setLogRx(true)
     onWorkoutsChanged()
   }
 
@@ -370,7 +373,11 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
                           <span className="lb-clickable" style={{ fontWeight: e.is_mine ? 700 : 500 }} onClick={(ev) => { ev.stopPropagation(); setViewingProfile(e.user_id) }}>{e.display_name}</span>
                         </td>
                         <td>{e.completed_at || '—'}</td>
-                        <td className={isBest ? 'best' : ''}>{e.score}{isBest ? ' ★' : ''}</td>
+                        <td className={isBest ? 'best' : ''}>
+                          {e.score}{isBest ? ' ★' : ''}
+                          {e.is_rx === false && <span className="scaled-tag">Scaled</span>}
+                          {e.is_rx === true && <span className="rx-tag">Rx</span>}
+                        </td>
                         <td style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
                         <td style={{ whiteSpace: 'nowrap' }}>
                           {e.is_mine && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); startEditLog(e) }} style={{ marginRight: '4px' }} title="Edit">✎</span>}
@@ -387,6 +394,10 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
                 <input placeholder={scoreLabel} value={logScore} onChange={e => setLogScore(e.target.value)} />
                 <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} />
                 <input placeholder="Notes (optional)" value={logNotes} onChange={e => setLogNotes(e.target.value)} />
+                <label className="rx-toggle" title="Rx = prescribed weights/movements">
+                  <input type="checkbox" checked={logRx} onChange={e => setLogRx(e.target.checked)} />
+                  <span className={logRx ? 'rx-on' : 'rx-off'}>Rx</span>
+                </label>
                 <button className="ab p" onClick={addLog}>Save</button>
               </div>
             )}
