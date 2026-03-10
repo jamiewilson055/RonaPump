@@ -200,7 +200,7 @@ export default function WorkoutTimer({ workout, onClose }) {
       </div>
 
       {/* Fixed clock area at bottom */}
-      <div className="timer-clock-area">
+      <div className="timer-clock-area" onTouchMove={e => e.stopPropagation()}>
         {/* Setup mode */}
         {isSetup && (
           <div className="timer-setup">
