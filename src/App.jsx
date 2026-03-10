@@ -16,6 +16,7 @@ import AddToHomeScreen from './components/AddToHomeScreen'
 import AdminQueue from './components/AdminQueue'
 import SignupGate from './components/SignupGate'
 import AdminAnalytics from './pages/AdminAnalytics'
+import ScrollToTop from './components/ScrollToTop'
 import './App.css'
 
 function App() {
@@ -169,7 +170,7 @@ function App() {
   if (showProfile && session) {
     return (
       <div className="app">
-        <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} />
+        <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} />
         <Profile
           session={session}
           profile={profile}
@@ -182,7 +183,7 @@ function App() {
 
   return (
     <div className="app">
-      <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} />
+      <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} />
       {!session && <Welcome onSignIn={() => setShowAuth(true)} />}
       <QuoteBar isAdmin={profile?.is_admin || false} />
       {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && (
@@ -219,6 +220,7 @@ function App() {
       {showUpdatePassword && <UpdatePassword onClose={() => setShowUpdatePassword(false)} />}
       <AddToHomeScreen />
       {!session && <SignupGate onSignIn={() => setShowAuth(true)} />}
+      <ScrollToTop />
     </div>
   )
 }

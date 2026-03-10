@@ -23,14 +23,14 @@ function getCurrentMilestone(total) {
   return current
 }
 
-export default function Header({ counts, session, profile, onAuthClick, streak, totalCompleted }) {
+export default function Header({ counts, session, profile, onAuthClick, streak, totalCompleted, onLogoClick }) {
   const currentMs = getCurrentMilestone(totalCompleted || 0)
   const nextMs = getNextMilestone(totalCompleted || 0)
 
   return (
     <div className="hdr">
       <div className="hdr-left">
-        <div className="logo-row">
+        <div className="logo-row" onClick={onLogoClick} style={{ cursor: 'pointer' }}>
           <img src="/harambe.png" alt="Harambe" className="harambe-img" />
           <div>
             <div className="logo"><b>RONA</b>PUMP</div>
