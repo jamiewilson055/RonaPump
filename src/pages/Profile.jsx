@@ -135,6 +135,11 @@ export default function Profile({ session, profile, onClose, onProfileUpdated })
               </div>
             )}
 
+            <div className="prof-row">
+              <span className="prof-label">Weekly Digest</span>
+              <span className="prof-value">{profile?.weekly_digest !== false ? '✅ Subscribed' : '❌ Not subscribed'}</span>
+            </div>
+
             <div className="prof-actions">
               <button className="ab p" onClick={() => setEditing(true)} style={{ flex: 1 }}>Edit Profile</button>
               <button className="ab del" onClick={handleSignOut} style={{ opacity: 1 }}>Sign Out</button>

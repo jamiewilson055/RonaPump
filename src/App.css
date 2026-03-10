@@ -532,3 +532,8 @@ input, select, textarea { font-family: inherit; }
   .wp-title { font-size: 18px; }
   .wp-desc { font-size: 14px; }
 }
+
+/* Profile digest toggle */
+.prof-digest-toggle { margin-top: 10px; }
+.prof-digest-toggle label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--tx2); }
+.prof-digest-toggle input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--acc); flex-shrink: 0; }
