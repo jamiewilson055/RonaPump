@@ -54,6 +54,41 @@ export default function WorkoutTimer({ workout, onClose }) {
   const [finished, setFinished] = useState(false)
   const [countdown321, setCountdown321] = useState(null)
   const intervalRef = useRef(null)
+  const wakeLockRef = useRef(null)
+
+  // Keep screen awake while timer is running
+  useEffect(() => {
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLockRef.current = await navigator.wakeLock.request('screen')
+        }
+      } catch (e) {}
+    }
+    if (running) {
+      requestWakeLock()
+    } else if (wakeLockRef.current) {
+      wakeLockRef.current.release()
+      wakeLockRef.current = null
+    }
+    return () => {
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release()
+        wakeLockRef.current = null
+      }
+    }
+  }, [running])
+
+  // Re-acquire wake lock if page becomes visible again (e.g. switching apps)
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === 'visible' && running && 'wakeLock' in navigator) {
+        navigator.wakeLock.request('screen').then(wl => { wakeLockRef.current = wl }).catch(() => {})
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [running])
 
   const [emomInterval, setEmomInterval] = useState(60)
   const [emomRounds, setEmomRounds] = useState(10)
