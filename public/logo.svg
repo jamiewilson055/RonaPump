@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a1f"/>
+      <stop offset="100%" style="stop-color:#07070a"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <!-- Red accent circle -->
+  <circle cx="256" cy="220" r="140" fill="#ff2d2d" opacity="0.12"/>
+  <!-- Gorilla silhouette (simplified powerful gorilla) -->
+  <g transform="translate(256,230)" fill="#ff2d2d">
+    <!-- Head -->
+    <ellipse cx="0" cy="-85" rx="48" ry="42"/>
+    <!-- Brow ridge -->
+    <rect x="-44" y="-105" width="88" height="16" rx="8" fill="#cc2020"/>
+    <!-- Eyes -->
+    <circle cx="-16" cy="-85" r="6" fill="#07070a"/>
+    <circle cx="16" cy="-85" r="6" fill="#07070a"/>
+    <!-- Eye glint -->
+    <circle cx="-14" cy="-87" r="2" fill="#ff6666"/>
+    <circle cx="18" cy="-87" r="2" fill="#ff6666"/>
+    <!-- Nose/mouth area -->
+    <ellipse cx="0" cy="-68" rx="18" ry="12" fill="#cc2020"/>
+    <ellipse cx="-6" cy="-71" rx="4" ry="3" fill="#07070a"/>
+    <ellipse cx="6" cy="-71" rx="4" ry="3" fill="#07070a"/>
+    <!-- Neck -->
+    <rect x="-28" y="-48" width="56" height="20" rx="6"/>
+    <!-- Torso -->
+    <ellipse cx="0" cy="-5" rx="65" ry="50"/>
+    <!-- Chest -->
+    <ellipse cx="0" cy="-15" rx="40" ry="30" fill="#cc2020" opacity="0.5"/>
+    <!-- Left arm (powerful) -->
+    <path d="M-60,-20 Q-95,-10 -105,30 Q-110,55 -90,60 Q-75,62 -70,45 Q-65,20 -55,10 Z" fill="#ff2d2d"/>
+    <!-- Left fist -->
+    <circle cx="-90" cy="58" r="16" fill="#cc2020"/>
+    <!-- Right arm (powerful) -->
+    <path d="M60,-20 Q95,-10 105,30 Q110,55 90,60 Q75,62 70,45 Q65,20 55,10 Z" fill="#ff2d2d"/>
+    <!-- Right fist -->
+    <circle cx="90" cy="58" r="16" fill="#cc2020"/>
+  </g>
+  <!-- "RP" text -->
+  <text x="256" y="420" text-anchor="middle" font-family="monospace" font-weight="900" font-size="88" fill="#ffffff" letter-spacing="-4">RP</text>
+  <!-- Subtle accent line -->
+  <rect x="176" y="432" width="160" height="3" rx="1.5" fill="#ff2d2d" opacity="0.6"/>
+</svg>
