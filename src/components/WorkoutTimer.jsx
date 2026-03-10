@@ -55,39 +55,79 @@ export default function WorkoutTimer({ workout, onClose }) {
   const [countdown321, setCountdown321] = useState(null)
   const intervalRef = useRef(null)
   const wakeLockRef = useRef(null)
+  const videoRef = useRef(null)
 
   // Keep screen awake while timer is running
   useEffect(() => {
-    async function requestWakeLock() {
+    if (!running) {
+      // Release wake lock
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release().catch(() => {})
+        wakeLockRef.current = null
+      }
+      // Stop video
+      if (videoRef.current) {
+        videoRef.current.pause()
+        videoRef.current.remove()
+        videoRef.current = null
+      }
+      return
+    }
+
+    // Try native Wake Lock API first (Android Chrome)
+    async function tryWakeLock() {
       try {
         if ('wakeLock' in navigator) {
           wakeLockRef.current = await navigator.wakeLock.request('screen')
+          return true
         }
       } catch (e) {}
+      return false
     }
-    if (running) {
-      requestWakeLock()
-    } else if (wakeLockRef.current) {
-      wakeLockRef.current.release()
-      wakeLockRef.current = null
-    }
-    return () => {
-      if (wakeLockRef.current) {
-        wakeLockRef.current.release()
-        wakeLockRef.current = null
-      }
-    }
-  }, [running])
 
-  // Re-acquire wake lock if page becomes visible again (e.g. switching apps)
-  useEffect(() => {
+    // iOS fallback: play a tiny silent video on loop
+    function startVideoKeepAwake() {
+      const video = document.createElement('video')
+      video.setAttribute('playsinline', '')
+      video.setAttribute('muted', '')
+      video.setAttribute('loop', '')
+      video.style.position = 'fixed'
+      video.style.top = '-1px'
+      video.style.left = '-1px'
+      video.style.width = '1px'
+      video.style.height = '1px'
+      video.style.opacity = '0.01'
+      // Tiny base64 mp4 (silent, 1 second)
+      video.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAA' +
+        'ABtZGF0AAACoAYF//+c3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE2NCByMzEwOCAzMWUxOW' +
+        'Y5IC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAyMyAtIGh0dHA6Ly9' +
+        '3d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMAAAAYZnR5' +
+        'cGlzb20AAAIAaXNvbWlzbzJhdmMxbXA0MQAAAAhmcmVlAAAAGG1kYXQAAAGzABAHAAABthBgUYI='
+      video.muted = true
+      document.body.appendChild(video)
+      video.play().catch(() => {})
+      videoRef.current = video
+    }
+
+    tryWakeLock().then(success => {
+      if (!success) startVideoKeepAwake()
+    })
+
+    // Re-acquire on visibility change
     function handleVisibility() {
-      if (document.visibilityState === 'visible' && running && 'wakeLock' in navigator) {
-        navigator.wakeLock.request('screen').then(wl => { wakeLockRef.current = wl }).catch(() => {})
+      if (document.visibilityState === 'visible' && running) {
+        tryWakeLock().then(success => {
+          if (!success && !videoRef.current) startVideoKeepAwake()
+        })
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)
-    return () => document.removeEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+      if (wakeLockRef.current) { wakeLockRef.current.release().catch(() => {}); wakeLockRef.current = null }
+      if (videoRef.current) { videoRef.current.pause(); videoRef.current.remove(); videoRef.current = null }
+    }
   }, [running])
 
   const [emomInterval, setEmomInterval] = useState(60)
