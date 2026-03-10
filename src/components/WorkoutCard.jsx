@@ -88,8 +88,17 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     if (w.estimated_duration_mins) text += `\n\n⏱ ${w.estimated_duration_mins} min`
     else if (w.estimated_duration_min && w.estimated_duration_max) text += `\n\n⏱ ${w.estimated_duration_min}-${w.estimated_duration_max} min`
     if (w.equipment?.filter(e => e !== 'Bodyweight').length) text += `\n🏋 ${w.equipment.filter(e => e !== 'Bodyweight').join(', ')}`
-    text += '\n\n🦍 — RonaPump | www.ronapump.com'
+    const slug = w.name ? w.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : w.id
+    text += `\n\n🦍 — RonaPump | www.ronapump.com/workout/${slug}`
     navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  function copyLink() {
+    const slug = w.name ? w.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : w.id
+    navigator.clipboard.writeText(`www.ronapump.com/workout/${slug}`).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })
@@ -342,6 +351,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
               setShowCollections(!showCollections)
             }}>{showCollections ? 'Hide' : '📁 Save'}</button>
             <button className="ab" onClick={shareWorkout}>{copied ? '✓ Copied!' : '↗ Share'}</button>
+            <button className="ab" onClick={copyLink}>🔗 Link</button>
             <button className="ab" onClick={() => setShowSimilar(!showSimilar)}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
             {isAdmin && <button className="ab p" onClick={startEdit}>Edit</button>}
             {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}
