@@ -703,3 +703,8 @@ input, select, textarea { font-family: inherit; }
 @media (max-width: 640px) {
   .scroll-top { bottom: 74px; right: 14px; width: 38px; height: 38px; font-size: 18px; }
 }
+
+/* Gate sign-in link */
+.gate-sub { font-size: 13px; color: var(--tx3); margin-top: 8px; }
+.gate-link { color: var(--acc); cursor: pointer; font-weight: 600; }
+.gate-link:hover { text-decoration: underline; }

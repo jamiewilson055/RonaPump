@@ -193,10 +193,20 @@ function App() {
       {tab === 'prs' ? (
         <PRTracker session={session} onAuthRequired={() => setShowAuth(true)} />
       ) : tab === 'stats' ? (
-        <>
-          {profile?.is_admin && <AdminAnalytics />}
-          <Stats workouts={workouts} favorites={favorites} />
-        </>
+        session ? (
+          <>
+            {profile?.is_admin && <AdminAnalytics />}
+            <Stats workouts={workouts} favorites={favorites} />
+          </>
+        ) : (
+          <div className="pr-section">
+            <div className="pr-empty">
+              <div style={{ fontSize: '32px', marginBottom: '8px' }}>📊</div>
+              <b>Sign in</b> to view your stats, streaks, and workout analytics.
+              <br /><button className="ab p" style={{ marginTop: '12px' }} onClick={() => setShowAuth(true)}>Sign In</button>
+            </div>
+          </div>
+        )
       ) : tab === 'collections' ? (
         <Collections session={session} onAuthRequired={() => setShowAuth(true)} workouts={workouts} />
       ) : (
