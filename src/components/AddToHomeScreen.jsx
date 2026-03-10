@@ -6,15 +6,12 @@ export default function AddToHomeScreen() {
   const [isIOS, setIsIOS] = useState(false)
 
   useEffect(() => {
-    // Don't show if already dismissed or already installed
     if (localStorage.getItem('rp_a2hs_dismissed')) return
     if (window.matchMedia('(display-mode: standalone)').matches) return
 
-    // Detect iOS
     const ios = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase()) && !window.MSStream
     setIsIOS(ios)
 
-    // Android/Chrome install prompt
     const handler = (e) => {
       e.preventDefault()
       setDeferredPrompt(e)
@@ -22,7 +19,6 @@ export default function AddToHomeScreen() {
     }
     window.addEventListener('beforeinstallprompt', handler)
 
-    // Show iOS prompt after 5 seconds
     if (ios) {
       const t = setTimeout(() => setShow(true), 5000)
       return () => { clearTimeout(t); window.removeEventListener('beforeinstallprompt', handler) }
@@ -55,7 +51,7 @@ export default function AddToHomeScreen() {
           {isIOS ? (
             <>
               <strong>Add RonaPump to Home Screen</strong>
-              <span>Tap <strong>Share</strong> then <strong>"Add to Home Screen"</strong></span>
+              <span>Tap the <strong>⬆ share icon</strong> at the bottom of Safari, then scroll down and tap <strong>"Add to Home Screen"</strong></span>
             </>
           ) : (
             <>

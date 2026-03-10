@@ -14,15 +14,52 @@ function parseMinutes(str) {
   return isNaN(n) ? null : n
 }
 
+// Reliable audio that works on mobile
+let audioCtx = null
+function getAudioCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+  }
+  // Resume if suspended (mobile browsers suspend until user gesture)
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume()
+  }
+  return audioCtx
+}
+
+function playBeep(freq = 880, duration = 0.15, vol = 0.4) {
+  try {
+    const ctx = getAudioCtx()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.frequency.value = freq
+    gain.gain.value = vol
+    osc.start(ctx.currentTime)
+    osc.stop(ctx.currentTime + duration)
+  } catch (e) {}
+}
+
+function playDoubleBeep() {
+  playBeep(880, 0.15, 0.4)
+  setTimeout(() => playBeep(1100, 0.2, 0.5), 250)
+}
+
+function playTripleBeep() {
+  playBeep(880, 0.12, 0.4)
+  setTimeout(() => playBeep(880, 0.12, 0.4), 200)
+  setTimeout(() => playBeep(1100, 0.25, 0.5), 400)
+}
+
 export default function WorkoutTimer({ workout, onClose }) {
-  const [mode, setMode] = useState(null) // 'stopwatch', 'countdown', 'emom', 'interval'
+  const [mode, setMode] = useState(null)
   const [totalSeconds, setTotalSeconds] = useState(0)
   const [elapsed, setElapsed] = useState(0)
   const [running, setRunning] = useState(false)
   const [finished, setFinished] = useState(false)
   const [countdown321, setCountdown321] = useState(null)
   const intervalRef = useRef(null)
-  const audioRef = useRef(null)
 
   // EMOM specific
   const [emomInterval, setEmomInterval] = useState(60)
@@ -61,26 +98,13 @@ export default function WorkoutTimer({ workout, onClose }) {
     }
   }, [])
 
-  const beep = useCallback(() => {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)()
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.connect(gain)
-      gain.connect(ctx.destination)
-      osc.frequency.value = 880
-      gain.gain.value = 0.3
-      osc.start()
-      osc.stop(ctx.currentTime + 0.15)
-    } catch (e) {}
-  }, [])
-
-  const doubleBeep = useCallback(() => {
-    beep()
-    setTimeout(beep, 200)
-  }, [beep])
+  // Initialize audio on first user tap (required for mobile)
+  function initAudio() {
+    getAudioCtx()
+  }
 
   function startTimer() {
+    initAudio()
     setCountdown321(3)
   }
 
@@ -92,15 +116,15 @@ export default function WorkoutTimer({ workout, onClose }) {
       setRunning(true)
       setElapsed(0)
       setFinished(false)
-      beep()
+      playBeep(1100, 0.3, 0.5)
       return
     }
+    playBeep(660, 0.12, 0.3)
     const t = setTimeout(() => {
-      beep()
       setCountdown321(countdown321 - 1)
     }, 1000)
     return () => clearTimeout(t)
-  }, [countdown321, beep])
+  }, [countdown321])
 
   // Main timer
   useEffect(() => {
@@ -112,8 +136,14 @@ export default function WorkoutTimer({ workout, onClose }) {
           if (mode === 'countdown' && next >= totalSeconds) {
             setRunning(false)
             setFinished(true)
-            doubleBeep()
+            playTripleBeep()
             return totalSeconds
+          }
+
+          // Countdown: beep at 3, 2, 1 seconds remaining
+          if (mode === 'countdown') {
+            const remaining = totalSeconds - next
+            if (remaining === 3 || remaining === 2 || remaining === 1) playBeep(660, 0.1, 0.3)
           }
 
           if (mode === 'emom') {
@@ -121,11 +151,15 @@ export default function WorkoutTimer({ workout, onClose }) {
             if (next >= totalEmom) {
               setRunning(false)
               setFinished(true)
-              doubleBeep()
+              playTripleBeep()
               return totalEmom
             }
-            // Beep at start of each round
-            if (next % emomInterval === 0) beep()
+            // Beep at start of each new round
+            if (next % emomInterval === 0) playDoubleBeep()
+            // Warning beeps at 3, 2, 1 seconds before round ends
+            const timeInRound = next % emomInterval
+            const timeLeft = emomInterval - timeInRound
+            if (timeLeft === 3 || timeLeft === 2 || timeLeft === 1) playBeep(660, 0.1, 0.3)
           }
 
           if (mode === 'interval') {
@@ -134,12 +168,19 @@ export default function WorkoutTimer({ workout, onClose }) {
             if (next >= totalInt) {
               setRunning(false)
               setFinished(true)
-              doubleBeep()
+              playTripleBeep()
               return totalInt
             }
             const posInRound = next % roundTime
-            if (posInRound === 0) beep() // start of work
-            if (posInRound === workTime) beep() // start of rest
+            if (posInRound === 0) playDoubleBeep() // start of work
+            if (posInRound === workTime) playBeep(440, 0.2, 0.3) // start of rest
+            // Warning beeps
+            if (posInRound === workTime - 3 || posInRound === workTime - 2 || posInRound === workTime - 1) playBeep(660, 0.1, 0.2)
+          }
+
+          if (mode === 'stopwatch') {
+            // Beep every minute
+            if (next > 0 && next % 60 === 0) playBeep(880, 0.15, 0.3)
           }
 
           return next
@@ -147,9 +188,10 @@ export default function WorkoutTimer({ workout, onClose }) {
       }, 1000)
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
-  }, [running, mode, totalSeconds, emomRounds, emomInterval, workTime, restTime, intervalRounds, beep, doubleBeep])
+  }, [running, mode, totalSeconds, emomRounds, emomInterval, workTime, restTime, intervalRounds])
 
   function togglePause() {
+    if (!running) initAudio()
     setRunning(!running)
   }
 
