@@ -6,7 +6,7 @@ const PP = 30
 
 export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, session, isAdmin, onAuthRequired, onWorkoutsChanged, collections, onCollectionsChanged }) {
   const [query, setQuery] = useState('')
-  const [sort, setSort] = useState('newest')
+  const [sort, setSort] = useState('added')
   const [page, setPage] = useState(1)
   const [filters, setFilters] = useState({
     eq: [], eqEx: [], mv: [], mvEx: [], cat: [], wt: [], bp: [],
@@ -89,7 +89,8 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
       })
     }
 
-    if (sort === 'newest') w.sort((a, b) => (b.original_date || '').localeCompare(a.original_date || ''))
+    if (sort === 'added') w.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+    else if (sort === 'newest') w.sort((a, b) => (b.original_date || '').localeCompare(a.original_date || ''))
     else if (sort === 'oldest') w.sort((a, b) => (a.original_date || '9999').localeCompare(b.original_date || '9999'))
     else if (sort === 'name') w.sort((a, b) => (a.name || 'zzz').localeCompare(b.name || 'zzz'))
     else if (sort === 'dur_s') w.sort((a, b) => (a.estimated_duration_mins || 999) - (b.estimated_duration_mins || 999))
@@ -188,8 +189,9 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
           {hasFilters && <span className="clr" onClick={clearFilters}>clear filters</span>}
         </span>
         <select className="ssel" value={sort} onChange={e => setSort(e.target.value)}>
-          <option value="newest">Newest first</option>
-          <option value="oldest">Oldest first</option>
+          <option value="added">Recently Added</option>
+          <option value="newest">Newest (by date)</option>
+          <option value="oldest">Oldest (by date)</option>
           <option value="name">By name</option>
           <option value="dur_s">Duration ↑</option>
           <option value="dur_l">Duration ↓</option>

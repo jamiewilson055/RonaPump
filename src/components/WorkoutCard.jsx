@@ -299,6 +299,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
           {w.visibility === 'community' && <span className="vis-tag community">👤</span>}
           {w.visibility === 'private' && <span className="vis-tag private">🔒</span>}
           {w.visibility === 'pending' && <span className="vis-tag pending">⏳</span>}
+          {w.created_at && (Date.now() - new Date(w.created_at).getTime()) < 7 * 24 * 60 * 60 * 1000 && <span className="new-tag">NEW</span>}
         </div>
         {durDisplay && <span className="wdr">{durDisplay}</span>}
         {w.score_type !== 'None' && <span className="wst">{w.score_type}</span>}
