@@ -81,7 +81,9 @@ input, select, textarea { font-family: inherit; }
 .q-btn:hover { color: var(--acc); border-color: var(--acc); }
 
 /* WOD Card */
-.wod-card { background: linear-gradient(135deg, var(--s2), var(--s1)); border: 1px solid var(--acc); border-radius: 8px; margin-bottom: 12px; padding: 12px 14px; overflow: hidden; }
+.wod-card { background: linear-gradient(135deg, var(--s2), var(--s1)); border: 1px solid var(--acc); border-radius: 8px; margin-bottom: 12px; padding: 12px 14px; overflow: hidden; transition: all .15s; }
+.wod-card.wod-exp { padding-bottom: 0; }
+.wod-card.wod-exp .det { padding: 0 0 12px; border-top: 1px solid var(--brd); margin-top: 8px; }
 .wod-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
 .wod-label-inline { background: var(--acc); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 1px; padding: 3px 8px; border-radius: 4px; flex-shrink: 0; }
 .wod-name { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600; color: var(--tx); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -90,8 +92,6 @@ input, select, textarea { font-family: inherit; }
 .wod-roll { background: var(--s3); border: 1px solid var(--brd); border-radius: 6px; color: var(--tx2); font-size: 18px; width: 36px; height: 36px; cursor: pointer; transition: all .2s; flex-shrink: 0; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; }
 .wod-roll:hover { color: var(--acc); border-color: var(--acc); }
 .wod-roll.spin { transform: rotate(360deg); color: var(--acc); }
-.wod-start { background: var(--acc); color: #fff; border: none; border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; transition: opacity .12s; }
-.wod-start:hover { opacity: .85; }
 
 /* Main Tabs */
 .tabs { display: flex; gap: 2px; margin-bottom: 6px; background: var(--s1); border-radius: 7px; padding: 3px; border: 1px solid var(--brd); }

@@ -145,7 +145,9 @@ function App() {
       <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} />
       {!session && <Welcome onSignIn={() => setShowAuth(true)} />}
       <QuoteBar isAdmin={profile?.is_admin || false} />
-      {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && <WODCard workouts={workouts} />}
+      {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && (
+        <WODCard workouts={workouts} session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} favorites={favorites} toggleFavorite={toggleFavorite} />
+      )}
       <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} collectionsCount={collections.length} />
       {tab === 'prs' ? (
         <PRTracker session={session} onAuthRequired={() => setShowAuth(true)} />
