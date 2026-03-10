@@ -10,6 +10,7 @@ export default function Profile({ session, profile, onClose, onProfileUpdated })
     age: '',
     hometown: '',
     bio: '',
+    weekly_digest: true,
   })
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
@@ -23,6 +24,7 @@ export default function Profile({ session, profile, onClose, onProfileUpdated })
         age: profile.age || '',
         hometown: profile.hometown || '',
         bio: profile.bio || '',
+        weekly_digest: profile.weekly_digest !== false,
       })
     }
   }, [profile])
@@ -39,6 +41,7 @@ export default function Profile({ session, profile, onClose, onProfileUpdated })
         age: form.age ? parseInt(form.age) : null,
         hometown: form.hometown || null,
         bio: form.bio || null,
+        weekly_digest: form.weekly_digest,
       })
       .eq('id', session.user.id)
 
@@ -96,6 +99,11 @@ export default function Profile({ session, profile, onClose, onProfileUpdated })
 
             <label>Bio</label>
             <textarea value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} placeholder="Tell us about yourself..." style={{ minHeight: '80px' }} />
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '8px' }}>
+              <input type="checkbox" checked={form.weekly_digest} onChange={e => setForm({ ...form, weekly_digest: e.target.checked })} />
+              <span>Receive weekly digest email</span>
+            </label>
 
             <div className="mf" style={{ marginTop: '12px' }}>
               <button className="ab" onClick={() => setEditing(false)}>Cancel</button>
