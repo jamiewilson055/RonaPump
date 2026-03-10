@@ -9,6 +9,8 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
     description: '',
     score_type: 'None',
     estimated_duration_mins: '',
+    estimated_duration_min: '',
+    estimated_duration_max: '',
     equipment: [],
     workout_types: [],
     categories: [],
@@ -31,6 +33,8 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
       description: form.description.trim(),
       score_type: form.score_type,
       estimated_duration_mins: form.estimated_duration_mins ? parseInt(form.estimated_duration_mins) : null,
+      estimated_duration_min: form.estimated_duration_min ? parseInt(form.estimated_duration_min) : null,
+      estimated_duration_max: form.estimated_duration_max ? parseInt(form.estimated_duration_max) : null,
       equipment: form.equipment.length ? form.equipment : ['Bodyweight'],
       workout_types: form.workout_types.length ? form.workout_types : ['For Time'],
       categories: form.categories,
@@ -68,8 +72,16 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
           ))}
         </div>
 
-        <label>Duration (minutes)</label>
+        <label>Duration (exact minutes, if known)</label>
         <input type="number" value={form.estimated_duration_mins} onChange={e => setForm({ ...form, estimated_duration_mins: e.target.value })} placeholder="e.g. 30" />
+
+        <label>Duration Range (if exact is unknown)</label>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <input type="number" value={form.estimated_duration_min} onChange={e => setForm({ ...form, estimated_duration_min: e.target.value })} placeholder="Min" style={{ width: '80px' }} />
+          <span style={{ color: 'var(--tx3)' }}>–</span>
+          <input type="number" value={form.estimated_duration_max} onChange={e => setForm({ ...form, estimated_duration_max: e.target.value })} placeholder="Max" style={{ width: '80px' }} />
+          <span style={{ color: 'var(--tx3)', fontSize: '12px' }}>minutes</span>
+        </div>
 
         <label>Equipment</label>
         <div className="cr">

@@ -557,9 +557,21 @@ input, select, textarea { font-family: inherit; }
 /* Visibility badges */
 .vis-tag { font-size: 11px; margin-left: 4px; vertical-align: middle; }
 
+/* Card left border by visibility */
+.wc.wc-official { border-left: 3px solid var(--acc); }
+.wc.wc-community { border-left: 3px solid var(--cyn); }
+.wc.wc-private { border-left: 3px solid var(--tx3); opacity: 0.85; }
+.wc.wc-pending { border-left: 3px solid var(--ylw); }
+
 /* Admin Queue */
 .admin-queue { background: var(--s1); border: 1px solid var(--acc); border-radius: 8px; padding: 14px; margin-bottom: 14px; }
 .aq-card { background: var(--bg); border: 1px solid var(--brd); border-radius: 6px; margin-bottom: 6px; overflow: hidden; }
 .aq-header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; }
 .aq-header:hover { background: var(--s2); }
 .aq-body { padding: 0 12px 12px; border-top: 1px solid var(--brd); }
+
+/* Source filter toggle */
+.source-filter { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
+.sf-btn { background: var(--s1); border: 1px solid var(--brd); border-radius: 6px; padding: 6px 12px; font-size: 12px; color: var(--tx2); cursor: pointer; transition: all .12s; }
+.sf-btn:hover { border-color: var(--tx3); color: var(--tx); }
+.sf-btn.on { background: var(--acc-d); border-color: var(--acc); color: var(--acc); font-weight: 600; }

@@ -12,6 +12,7 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
     eq: [], eqEx: [], mv: [], mvEx: [], cat: [], wt: [], bp: [],
     durMin: null, durMax: null, includeNoDur: true
   })
+  const [sourceFilter, setSourceFilter] = useState('all') // all, official, community, mine
   const [showNewModal, setShowNewModal] = useState(false)
 
   // Dynamic import for NewWorkoutModal (only admin needs it)
@@ -35,6 +36,11 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
     if (tab === 'done') w = w.filter(x => x.my_log_count > 0)
     else if (tab === 'queue') w = w.filter(x => !x.my_log_count || x.my_log_count === 0)
     else if (tab === 'favs') w = w.filter(x => favorites.has(x.id))
+
+    // Source filter
+    if (sourceFilter === 'official') w = w.filter(x => x.visibility === 'official')
+    else if (sourceFilter === 'community') w = w.filter(x => x.visibility === 'community')
+    else if (sourceFilter === 'mine') w = w.filter(x => x.created_by === session?.user?.id)
 
     if (query) {
       const q = query.toLowerCase()
@@ -90,7 +96,7 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
     else if (sort === 'dur_l') w.sort((a, b) => (b.estimated_duration_mins || 0) - (a.estimated_duration_mins || 0))
 
     return w
-  }, [workouts, tab, query, filters, sort, favorites])
+  }, [workouts, tab, query, filters, sort, favorites, sourceFilter, session])
 
   const totalPages = Math.ceil(filtered.length / PP)
   const items = filtered.slice((page - 1) * PP, page * PP)
@@ -168,6 +174,13 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
         allWorkoutTypes={allWorkoutTypes}
         allBodyParts={allBodyParts}
       />
+
+      <div className="source-filter">
+        <button className={`sf-btn${sourceFilter === 'all' ? ' on' : ''}`} onClick={() => { setSourceFilter('all'); setPage(1) }}>All</button>
+        <button className={`sf-btn${sourceFilter === 'official' ? ' on' : ''}`} onClick={() => { setSourceFilter('official'); setPage(1) }}>🦍 Official</button>
+        <button className={`sf-btn${sourceFilter === 'community' ? ' on' : ''}`} onClick={() => { setSourceFilter('community'); setPage(1) }}>👤 Community</button>
+        {session && <button className={`sf-btn${sourceFilter === 'mine' ? ' on' : ''}`} onClick={() => { setSourceFilter('mine'); setPage(1) }}>🔒 My Workouts</button>}
+      </div>
 
       <div className="rbar">
         <span className="rcnt">
