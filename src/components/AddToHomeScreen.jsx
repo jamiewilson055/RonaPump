@@ -51,12 +51,12 @@ export default function AddToHomeScreen() {
           {isIOS ? (
             <>
               <strong>Add RonaPump to Home Screen</strong>
-              <span>In Safari, tap the <strong>⬆ share icon</strong> (square with arrow, in the toolbar) → scroll down → tap <strong>"Add to Home Screen"</strong></span>
+              <span>Tap <strong>⋯</strong> (bottom bar) → <strong>⬆ Share</strong> → scroll down → <strong>"Add to Home Screen"</strong></span>
             </>
           ) : (
             <>
-              <strong>Install RonaPump</strong>
-              <span>Add to your home screen for quick access</span>
+              <strong>Add RonaPump to Home Screen</strong>
+              <span>Tap <strong>⋮</strong> (top right) → <strong>"Add to Home Screen"</strong> or <strong>"Install App"</strong></span>
             </>
           )}
         </div>
