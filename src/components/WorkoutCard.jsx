@@ -104,9 +104,10 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     })
   }
 
-  const hasDone = w.performance_log && w.performance_log.length > 0
+  const hasDone = w.my_log_count > 0
   const bs = bestScore(w)
   const pl = w.performance_log || []
+  const totalLoggers = new Set(pl.map(p => p.user_id)).size
 
   // Sort performance logs: PR always on top, then by selected sort
   const sortedPl = useMemo(() => {
@@ -266,7 +267,9 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
           <div className="plog">
             <div className="plog-hdr">
-              <h4>Performance Log {w.score_type !== 'None' && <span className="st-badge">Scored by: {w.score_type}</span>}</h4>
+              <h4>Leaderboard {w.score_type !== 'None' && <span className="st-badge">{w.score_type}</span>}
+                {totalLoggers > 0 && <span className="st-badge" style={{ background: 'var(--grn-d)', color: 'var(--grn)' }}>{totalLoggers} athlete{totalLoggers !== 1 ? 's' : ''}</span>}
+              </h4>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 {pl.length > 1 && (
                   <select className="ssel" value={logSort} onChange={e => setLogSort(e.target.value)} style={{ width: 'auto', fontSize: '10px', padding: '3px 6px' }}>
@@ -279,15 +282,17 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
             </div>
             {sortedPl.length > 0 && (
               <table className="plog-table">
-                <thead><tr><th>Date</th><th>{scoreLabel}</th><th>Notes</th><th></th></tr></thead>
+                <thead><tr><th>Athlete</th><th>Date</th><th>{scoreLabel}</th><th>Notes</th><th></th></tr></thead>
                 <tbody>
-                  {sortedPl.map((e) => {
+                  {sortedPl.map((e, idx) => {
                     const isBest = e.score === bs && pl.length > 1
                     const isEditingThis = editingLogId === e.id
+                    const rank = logSort === 'score' ? idx + 1 : null
 
                     if (isEditingThis && editLogForm) {
                       return (
                         <tr key={e.id}>
+                          <td style={{ fontWeight: 600, color: 'var(--tx2)', fontSize: '11px' }}>{e.display_name}</td>
                           <td><input type="date" value={editLogForm.completed_at} onChange={ev => setEditLogForm({ ...editLogForm, completed_at: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
                           <td><input value={editLogForm.score} onChange={ev => setEditLogForm({ ...editLogForm, score: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
                           <td><input value={editLogForm.notes} onChange={ev => setEditLogForm({ ...editLogForm, notes: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
@@ -300,20 +305,26 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
                     }
 
                     return (
-                      <tr key={e.id}>
+                      <tr key={e.id} className={e.is_mine ? 'my-log' : ''}>
+                        <td className="lb-name">
+                          {rank && isBest && <span className="lb-medal">🥇</span>}
+                          {rank === 2 && <span className="lb-medal">🥈</span>}
+                          {rank === 3 && <span className="lb-medal">🥉</span>}
+                          <span style={{ fontWeight: e.is_mine ? 700 : 500 }}>{e.display_name}</span>
+                        </td>
                         <td>{e.completed_at || '—'}</td>
                         <td className={isBest ? 'best' : ''}>{e.score}{isBest ? ' ★' : ''}</td>
                         <td style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
                         <td style={{ whiteSpace: 'nowrap' }}>
-                          <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); startEditLog(e) }} style={{ marginRight: '4px' }} title="Edit">✎</span>
-                          <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); deleteLog(e.id) }}>✕</span>
+                          {e.is_mine && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); startEditLog(e) }} style={{ marginRight: '4px' }} title="Edit">✎</span>}
+                          {e.is_mine && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); deleteLog(e.id) }}>✕</span>}
                         </td>
                       </tr>
                     )
                   })}
                 </tbody>
               </table>
-            )}
+            )}}
             {addingLog && (
               <div className="plog-form">
                 <input placeholder={scoreLabel} value={logScore} onChange={e => setLogScore(e.target.value)} />

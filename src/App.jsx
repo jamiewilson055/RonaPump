@@ -73,30 +73,36 @@ function App() {
     setLoading(true)
     let query = supabase
       .from('workouts')
-      .select('*, performance_log(*)')
+      .select('*, performance_log(*, profiles(display_name))')
       .order('original_date', { ascending: false, nullsFirst: false })
 
     const { data, error } = await query
 
     if (data) {
-      // Filter performance logs to current user only
+      // Attach display_name to each log entry, keep all logs (communal)
       const userId = session?.user?.id
-      const filtered = data.map(w => ({
-        ...w,
-        performance_log: userId
-          ? (w.performance_log || []).filter(p => p.user_id === userId)
-          : []
-      }))
-      setWorkouts(filtered)
-      updateCounts(filtered)
+      const processed = data.map(w => {
+        const allLogs = (w.performance_log || []).map(p => ({
+          ...p,
+          display_name: p.profiles?.display_name || 'Anonymous',
+          is_mine: p.user_id === userId,
+        }))
+        return {
+          ...w,
+          performance_log: allLogs,
+          my_log_count: userId ? allLogs.filter(p => p.user_id === userId).length : 0,
+        }
+      })
+      setWorkouts(processed)
+      updateCounts(processed)
     }
     setLoading(false)
   }
 
   const updateCounts = useCallback((wks, favs) => {
     const f = favs || favorites
-    const done = wks.filter(w => w.performance_log && w.performance_log.length > 0).length
-    const queue = wks.filter(w => !w.performance_log || w.performance_log.length === 0).length
+    const done = wks.filter(w => w.my_log_count > 0).length
+    const queue = wks.filter(w => !w.my_log_count || w.my_log_count === 0).length
     setCounts({ total: wks.length, done, queue, favs: f.size })
   }, [favorites])
 

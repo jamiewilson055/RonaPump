@@ -32,8 +32,8 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
   const filtered = useMemo(() => {
     let w = [...workouts]
 
-    if (tab === 'done') w = w.filter(x => x.performance_log && x.performance_log.length > 0)
-    else if (tab === 'queue') w = w.filter(x => !x.performance_log || x.performance_log.length === 0)
+    if (tab === 'done') w = w.filter(x => x.my_log_count > 0)
+    else if (tab === 'queue') w = w.filter(x => !x.my_log_count || x.my_log_count === 0)
     else if (tab === 'favs') w = w.filter(x => favorites.has(x.id))
 
     if (query) {
