@@ -84,7 +84,6 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const [editLogForm, setEditLogForm] = useState(null)
   const [showSimilar, setShowSimilar] = useState(false)
   const [showCollections, setShowCollections] = useState(false)
-  const [quickLogged, setQuickLogged] = useState(false)
   const [showTimer, setShowTimer] = useState(false)
   const [remixing, setRemixing] = useState(false)
   const [showComments, setShowComments] = useState(false)
@@ -118,8 +117,8 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const hasDone = w.my_log_count > 0
   const bs = bestScore(w)
   const pl = w.performance_log || []
-  // Leaderboard only shows entries with actual scores (not quick-logged)
-  const leaderboardPl = pl.filter(p => p.score && p.notes !== 'Quick logged')
+  // Leaderboard shows all completions
+  const leaderboardPl = pl.filter(p => p.notes !== 'Quick logged')
   const totalLoggers = new Set(leaderboardPl.map(p => p.user_id)).size
 
   // Sort performance logs: PR always on top, then by selected sort
@@ -156,12 +155,11 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
   async function addLog() {
     if (!session) { onAuthRequired(); return }
-    if (!logScore.trim()) return
     await supabase.from('performance_log').insert({
       user_id: session.user.id,
       workout_id: w.id,
       completed_at: logDate,
-      score: logScore.trim(),
+      score: logScore.trim() || null,
       notes: logNotes.trim() || null,
       is_rx: logRx,
     })
@@ -381,9 +379,9 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
                         </td>
                         <td>{e.completed_at || '—'}</td>
                         <td className={isBest ? 'best' : ''}>
-                          {e.score}{isBest ? ' ★' : ''}
+                          {e.score ? e.score : '✓'}{isBest ? ' ★' : ''}
                           {e.is_rx === false && <span className="scaled-tag">Scaled</span>}
-                          {e.is_rx === true && <span className="rx-tag">Rx</span>}
+                          {e.is_rx === true && e.score && <span className="rx-tag">Rx</span>}
                         </td>
                         <td style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
                         <td style={{ whiteSpace: 'nowrap' }}>
@@ -398,7 +396,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
             )}
             {addingLog && (
               <div className="plog-form">
-                <input placeholder={scoreLabel} value={logScore} onChange={e => setLogScore(e.target.value)} />
+                <input placeholder={`${scoreLabel} (optional)`} value={logScore} onChange={e => setLogScore(e.target.value)} />
                 <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} />
                 <input placeholder="Notes (optional)" value={logNotes} onChange={e => setLogNotes(e.target.value)} />
                 <label className="rx-toggle" title="Rx = prescribed weights/movements">
@@ -420,20 +418,8 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
           <div className="acts">
             <button className="ab p" onClick={() => setShowTimer(true)} style={{ fontWeight: 600 }}>▶ Start Workout</button>
+            <button className="ab p" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }} style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)' }}>{addingLog ? 'Cancel' : '✓ Complete Workout'}</button>
             <button className={`ab ${isFav ? '' : 'g'}`} onClick={() => toggleFavorite(w.id)}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>
-            <button className={`ab${quickLogged ? ' g' : ''}`} onClick={async () => {
-              if (!session) { onAuthRequired(); return }
-              if (quickLogged) return
-              const { supabase } = await import('../lib/supabase')
-              await supabase.from('performance_log').insert({
-                user_id: session.user.id, workout_id: w.id,
-                completed_at: new Date().toISOString().slice(0, 10),
-                score: null, notes: 'Quick logged'
-              })
-              setQuickLogged(true)
-              onWorkoutsChanged()
-            }}>{quickLogged ? '✓ Logged!' : '✓ I Did This'}</button>
-            <button className="ab p" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }} style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)' }}>{addingLog ? 'Cancel' : '🏆 Log Score'}</button>
             <button className="ab" onClick={() => {
               if (!session) { onAuthRequired(); return }
               setShowCollections(!showCollections)

@@ -45,11 +45,11 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
       .from('performance_log')
       .select('*, workouts(id, name, score_type), profiles(display_name, avatar_url)')
       .in('user_id', followIds)
-      .not('score', 'is', null)
+      .neq('notes', 'Quick logged')
       .order('created_at', { ascending: false })
       .limit(50)
 
-    if (logs) setActivities(logs.filter(l => l.notes !== 'Quick logged'))
+    if (logs) setActivities(logs)
     setLoading(false)
   }
 
