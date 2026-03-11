@@ -194,12 +194,17 @@ function App() {
       {tab === 'prs' ? (
         <PRTracker session={session} onAuthRequired={() => setShowAuth(true)} />
       ) : tab === 'activity' ? (
-        <ActivityFeed session={session} onAuthRequired={() => setShowAuth(true)} onNavigateToWorkout={(id) => {
-          setTab('all')
-          setTimeout(() => {
-            const el = document.getElementById('wc-' + id)
-            if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.click() }
-          }, 200)
+        <ActivityFeed session={session} onAuthRequired={() => setShowAuth(true)} onNavigateToWorkout={(id, name) => {
+          if (name) {
+            const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+            window.location.href = '/workout/' + slug
+          } else {
+            setTab('all')
+            setTimeout(() => {
+              const el = document.getElementById('wc-' + id)
+              if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.click() }
+            }, 200)
+          }
         }} />
       ) : tab === 'stats' ? (
         session ? (

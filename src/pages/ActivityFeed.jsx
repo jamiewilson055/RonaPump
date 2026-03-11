@@ -89,8 +89,8 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
     return new Date(date).toLocaleDateString()
   }
 
-  function navigateToWorkout(workoutId) {
-    if (onNavigateToWorkout) onNavigateToWorkout(workoutId)
+  function navigateToWorkout(workoutId, workoutName) {
+    if (onNavigateToWorkout) onNavigateToWorkout(workoutId, workoutName)
   }
 
   const filteredUsers = searchQuery.trim()
@@ -188,7 +188,7 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
                   ) : (
                     <> completed </>
                   )}
-                  <span className="activity-workout" onClick={() => navigateToWorkout(a.workouts?.id)}>{a.workouts?.name || 'a workout'}</span>
+                  <span className="activity-workout" onClick={() => navigateToWorkout(a.workouts?.id, a.workouts?.name)}>{a.workouts?.name || 'a workout'}</span>
                   {a.is_rx === false && <span className="scaled-tag">Scaled</span>}
                   {a.is_rx === true && a.score && <span className="rx-tag">Rx</span>}
                 </div>
