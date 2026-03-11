@@ -183,6 +183,9 @@ input, select, textarea { font-family: inherit; }
 .wc { background: var(--s1); border: 1px solid var(--brd); border-radius: 7px; overflow: hidden; transition: border-color .15s; }
 .wc:hover { border-color: var(--tx3); }
 .wc.exp { border-color: var(--acc); }
+.wc.wc-community.exp { border-color: var(--cyn); }
+.wc.wc-private.exp { border-color: var(--tx3); }
+.wc.wc-pending.exp { border-color: var(--ylw); }
 .wc-top { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; }
 .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .dot.y { background: var(--grn); }
