@@ -171,9 +171,9 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
 
       <div className="source-filter">
         <button className={`sf-btn${sourceFilter === 'all' ? ' on' : ''}`} onClick={() => { setSourceFilter('all'); setPage(1) }}>All</button>
-        <button className={`sf-btn${sourceFilter === 'official' ? ' on' : ''}`} onClick={() => { setSourceFilter('official'); setPage(1) }}>🦍 Official</button>
-        <button className={`sf-btn${sourceFilter === 'community' ? ' on' : ''}`} onClick={() => { setSourceFilter('community'); setPage(1) }}>👤 Community</button>
-        {session && <button className={`sf-btn${sourceFilter === 'mine' ? ' on' : ''}`} onClick={() => { setSourceFilter('mine'); setPage(1) }}>🔒 My Workouts</button>}
+        <button className={`sf-btn sf-official${sourceFilter === 'official' ? ' on' : ''}`} onClick={() => { setSourceFilter('official'); setPage(1) }}>🦍 Official</button>
+        <button className={`sf-btn sf-community${sourceFilter === 'community' ? ' on' : ''}`} onClick={() => { setSourceFilter('community'); setPage(1) }}>👤 Community</button>
+        {session && <button className={`sf-btn sf-mine${sourceFilter === 'mine' ? ' on' : ''}`} onClick={() => { setSourceFilter('mine'); setPage(1) }}>🔒 My Workouts</button>}
       </div>
 
       <div className="rbar">
