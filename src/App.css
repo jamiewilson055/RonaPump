@@ -378,7 +378,7 @@ input, select, textarea { font-family: inherit; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .stats-2col { grid-template-columns: 1fr; }
   .dur-filter { flex-wrap: wrap; }
-  .mc { padding: 18px; margin: 10px; }
+  .mc { padding: 18px; margin: 10px; max-height: 90vh; }
   .prof-avatar { width: 44px; height: 44px; font-size: 20px; }
 }
 
