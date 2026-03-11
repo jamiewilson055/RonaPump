@@ -737,3 +737,6 @@ input, select, textarea { font-family: inherit; }
 .discover-name { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: var(--tx); }
 .discover-name:hover { color: var(--acc); }
 .discover-meta { font-size: 11px; color: var(--tx3); }
+
+/* PR badge in activity feed */
+.pr-badge-sm { font-size: 9px; font-weight: 700; color: #ffd700; background: rgba(255,215,0,.15); padding: 1px 5px; border-radius: 3px; margin-left: 5px; vertical-align: middle; }

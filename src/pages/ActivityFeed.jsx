@@ -35,21 +35,33 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
 
     const followIds = followData?.map(f => f.following_id) || []
 
-    if (followIds.length === 0) {
-      setActivities([])
-      setLoading(false)
-      return
-    }
+    // Include yourself + people you follow
+    const feedUserIds = [...followIds, session.user.id]
 
+    // Get workout completions
     const { data: logs } = await supabase
       .from('performance_log')
       .select('*, workouts(id, name, score_type), profiles(display_name, avatar_url)')
-      .in('user_id', followIds)
+      .in('user_id', feedUserIds)
       .neq('notes', 'Quick logged')
       .order('created_at', { ascending: false })
-      .limit(50)
+      .limit(40)
 
-    if (logs) setActivities(logs)
+    // Get PR logs
+    const { data: prLogs } = await supabase
+      .from('personal_records')
+      .select('*, profiles(display_name, avatar_url)')
+      .in('user_id', feedUserIds)
+      .order('created_at', { ascending: false })
+      .limit(20)
+
+    // Combine and sort by created_at
+    const combined = [
+      ...(logs || []).map(l => ({ ...l, feed_type: 'workout' })),
+      ...(prLogs || []).map(p => ({ ...p, feed_type: 'pr' })),
+    ].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || '')).slice(0, 50)
+
+    setActivities(combined)
     setLoading(false)
   }
 
@@ -164,16 +176,12 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
         <div className="loading">Loading...</div>
       ) : activities.length === 0 ? (
         <div className="pr-empty">
-          {following.length === 0 ? (
-            <>No one followed yet. Tap <b>👥 Find Athletes</b> to discover people to follow.</>
-          ) : (
-            <>No recent activity from people you follow.</>
-          )}
+          No activity yet. Complete a workout or log a PR to see it here. Tap <b>👥 Find Athletes</b> to follow others.
         </div>
       ) : (
         <div className="activity-list">
           {activities.map(a => (
-            <div key={a.id} className="activity-item">
+            <div key={a.id + (a.feed_type || '')} className="activity-item">
               <div className="activity-avatar" onClick={() => setViewingProfile(a.user_id)}>
                 {a.profiles?.avatar_url ? (
                   <img src={a.profiles.avatar_url} alt="" className="activity-avatar-img" />
@@ -184,14 +192,23 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
               <div className="activity-content">
                 <div className="activity-text">
                   <span className="activity-name" onClick={() => setViewingProfile(a.user_id)}>{a.profiles?.display_name || 'Someone'}</span>
-                  {a.score ? (
-                    <> logged <b>{a.score}</b> on </>
+                  {a.feed_type === 'pr' ? (
+                    <>
+                      {' '}logged <b>{a.score}</b> on <span className="activity-workout">{a.movement}{a.weight ? ` @ ${a.weight}` : ''}{a.target ? ` — ${a.target}` : ''}</span>
+                      <span className="pr-badge-sm">PR</span>
+                    </>
                   ) : (
-                    <> completed </>
+                    <>
+                      {a.score ? (
+                        <> logged <b>{a.score}</b> on </>
+                      ) : (
+                        <> completed </>
+                      )}
+                      <span className="activity-workout" onClick={() => navigateToWorkout(a.workouts?.id, a.workouts?.name)}>{a.workouts?.name || 'a workout'}</span>
+                      {a.is_rx === false && <span className="scaled-tag">Scaled</span>}
+                      {a.is_rx === true && a.score && <span className="rx-tag">Rx</span>}
+                    </>
                   )}
-                  <span className="activity-workout" onClick={() => navigateToWorkout(a.workouts?.id, a.workouts?.name)}>{a.workouts?.name || 'a workout'}</span>
-                  {a.is_rx === false && <span className="scaled-tag">Scaled</span>}
-                  {a.is_rx === true && a.score && <span className="rx-tag">Rx</span>}
                 </div>
                 {a.notes && a.notes !== 'Quick logged' && (
                   <div className="activity-notes">"{a.notes}"</div>
