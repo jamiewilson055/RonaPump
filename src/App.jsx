@@ -194,7 +194,13 @@ function App() {
       {tab === 'prs' ? (
         <PRTracker session={session} onAuthRequired={() => setShowAuth(true)} />
       ) : tab === 'activity' ? (
-        <ActivityFeed session={session} onAuthRequired={() => setShowAuth(true)} />
+        <ActivityFeed session={session} onAuthRequired={() => setShowAuth(true)} onNavigateToWorkout={(id) => {
+          setTab('all')
+          setTimeout(() => {
+            const el = document.getElementById('wc-' + id)
+            if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.click() }
+          }, 200)
+        }} />
       ) : tab === 'stats' ? (
         session ? (
           <>

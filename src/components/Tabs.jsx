@@ -13,11 +13,17 @@ export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount }
     { key: 'stats', label: 'Stats', icon: '📊', count: null },
   ]
 
+  // Bottom nav: fewer items, no Collections
+  const bottomNavTabs = [
+    { key: 'prs', label: 'PRs', icon: '🏆' },
+    { key: 'activity', label: 'Activity', icon: '👥' },
+    { key: 'stats', label: 'Stats', icon: '📊' },
+  ]
+
   const isSecondary = secondaryTabs.some(t => t.key === tab)
 
   return (
     <>
-      {/* Main tabs - always visible */}
       <div className="tabs">
         {mainTabs.map(t => (
           <button key={t.key} className={`tab${tab === t.key ? ' on' : ''}`} onClick={() => setTab(t.key)}>
@@ -28,7 +34,6 @@ export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount }
         ))}
       </div>
 
-      {/* Secondary tabs - inline on desktop, bottom nav on mobile */}
       <div className="tabs-secondary">
         {secondaryTabs.map(t => (
           <button key={t.key} className={`tab-sec${tab === t.key ? ' on' : ''}`} onClick={() => setTab(t.key)}>
@@ -39,12 +44,11 @@ export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount }
         ))}
       </div>
 
-      {/* Mobile bottom nav */}
       <div className="bottom-nav">
         <button className={`bnav${!isSecondary ? ' on' : ''}`} onClick={() => setTab('all')}>
           <span>🏋</span><span>Workouts</span>
         </button>
-        {secondaryTabs.map(t => (
+        {bottomNavTabs.map(t => (
           <button key={t.key} className={`bnav${tab === t.key ? ' on' : ''}`} onClick={() => setTab(t.key)}>
             <span>{t.icon}</span><span>{t.label}</span>
           </button>

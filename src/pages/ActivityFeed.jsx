@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import PublicProfile from './PublicProfile'
 
-export default function ActivityFeed({ session, onAuthRequired }) {
+export default function ActivityFeed({ session, onAuthRequired, onNavigateToWorkout }) {
   const [activities, setActivities] = useState([])
   const [loading, setLoading] = useState(true)
   const [following, setFollowing] = useState([])
   const [allUsers, setAllUsers] = useState([])
   const [showDiscover, setShowDiscover] = useState(false)
   const [viewingProfile, setViewingProfile] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     if (session) {
@@ -27,7 +28,6 @@ export default function ActivityFeed({ session, onAuthRequired }) {
 
   async function loadActivity() {
     setLoading(true)
-    // Get who we follow
     const { data: followData } = await supabase
       .from('user_follows')
       .select('following_id')
@@ -41,10 +41,9 @@ export default function ActivityFeed({ session, onAuthRequired }) {
       return
     }
 
-    // Get recent performance logs from followed users
     const { data: logs } = await supabase
       .from('performance_log')
-      .select('*, workouts(name, score_type), profiles(display_name, avatar_url)')
+      .select('*, workouts(id, name, score_type), profiles(display_name, avatar_url)')
       .in('user_id', followIds)
       .order('created_at', { ascending: false })
       .limit(50)
@@ -78,7 +77,6 @@ export default function ActivityFeed({ session, onAuthRequired }) {
       })
       setFollowing(prev => [...prev, userId])
     }
-    // Refresh activity if we just followed someone
     if (!isFollowing) setTimeout(loadActivity, 500)
   }
 
@@ -90,6 +88,14 @@ export default function ActivityFeed({ session, onAuthRequired }) {
     if (s < 604800) return Math.floor(s / 86400) + 'd ago'
     return new Date(date).toLocaleDateString()
   }
+
+  function navigateToWorkout(workoutId) {
+    if (onNavigateToWorkout) onNavigateToWorkout(workoutId)
+  }
+
+  const filteredUsers = searchQuery.trim()
+    ? allUsers.filter(u => (u.display_name || '').toLowerCase().includes(searchQuery.toLowerCase()))
+    : allUsers
 
   if (!session) {
     return (
@@ -114,30 +120,42 @@ export default function ActivityFeed({ session, onAuthRequired }) {
 
       {showDiscover && (
         <div className="discover-section">
-          <h4 style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: 'var(--tx3)', marginBottom: '8px' }}>Athletes on RonaPump</h4>
-          {allUsers.map(u => (
-            <div key={u.id} className="discover-user">
-              <div className="discover-avatar" onClick={() => setViewingProfile(u.id)}>
-                {u.avatar_url ? (
-                  <img src={u.avatar_url} alt="" className="discover-avatar-img" />
-                ) : (
-                  <div className="discover-avatar-letter">{(u.display_name || '?')[0].toUpperCase()}</div>
-                )}
-              </div>
-              <div className="discover-info" onClick={() => setViewingProfile(u.id)}>
-                <div className="discover-name">{u.display_name || 'Anonymous'}</div>
-                <div className="discover-meta">{u.follower_count || 0} follower{u.follower_count !== 1 ? 's' : ''}</div>
-              </div>
-              <button
-                className={`ab${following.includes(u.id) ? '' : ' p'}`}
-                onClick={() => toggleFollow(u.id)}
-                style={{ padding: '5px 14px', fontSize: '11px', flexShrink: 0 }}
-              >
-                {following.includes(u.id) ? 'Following' : '+ Follow'}
-              </button>
+          <div className="sbox" style={{ marginBottom: '10px' }}>
+            <input
+              type="text"
+              placeholder="Search athletes by name..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
+          {filteredUsers.length === 0 ? (
+            <div style={{ fontSize: '12px', color: 'var(--tx3)', padding: '8px 0' }}>
+              {searchQuery ? 'No athletes found.' : 'No other users yet.'}
             </div>
-          ))}
-          {allUsers.length === 0 && <div style={{ fontSize: '12px', color: 'var(--tx3)' }}>No other users yet.</div>}
+          ) : (
+            filteredUsers.map(u => (
+              <div key={u.id} className="discover-user">
+                <div className="discover-avatar" onClick={() => setViewingProfile(u.id)}>
+                  {u.avatar_url ? (
+                    <img src={u.avatar_url} alt="" className="discover-avatar-img" />
+                  ) : (
+                    <div className="discover-avatar-letter">{(u.display_name || '?')[0].toUpperCase()}</div>
+                  )}
+                </div>
+                <div className="discover-info" onClick={() => setViewingProfile(u.id)}>
+                  <div className="discover-name">{u.display_name || 'Anonymous'}</div>
+                  <div className="discover-meta">{u.follower_count || 0} follower{u.follower_count !== 1 ? 's' : ''}</div>
+                </div>
+                <button
+                  className={`ab${following.includes(u.id) ? '' : ' p'}`}
+                  onClick={() => toggleFollow(u.id)}
+                  style={{ padding: '5px 14px', fontSize: '11px', flexShrink: 0 }}
+                >
+                  {following.includes(u.id) ? 'Following' : '+ Follow'}
+                </button>
+              </div>
+            ))
+          )}
         </div>
       )}
 
@@ -170,7 +188,7 @@ export default function ActivityFeed({ session, onAuthRequired }) {
                   ) : (
                     <> completed </>
                   )}
-                  <span className="activity-workout">{a.workouts?.name || 'a workout'}</span>
+                  <span className="activity-workout" onClick={() => navigateToWorkout(a.workouts?.id)}>{a.workouts?.name || 'a workout'}</span>
                   {a.is_rx === false && <span className="scaled-tag">Scaled</span>}
                   {a.is_rx === true && a.score && <span className="rx-tag">Rx</span>}
                 </div>
@@ -184,7 +202,7 @@ export default function ActivityFeed({ session, onAuthRequired }) {
         </div>
       )}
 
-      {viewingProfile && <PublicProfile userId={viewingProfile} onClose={() => setViewingProfile(null)} />}
+      {viewingProfile && <PublicProfile userId={viewingProfile} onClose={() => setViewingProfile(null)} session={session} />}
     </div>
   )
 }
