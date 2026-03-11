@@ -7,6 +7,7 @@ export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount }
   ]
 
   const secondaryTabs = [
+    { key: 'deck', label: 'Deck', icon: '🃏', count: null },
     { key: 'prs', label: 'PRs', icon: '🏆', count: prsCount },
     { key: 'activity', label: 'Activity', icon: '👥', count: null },
     { key: 'collections', label: 'Collections', icon: '📁', count: collectionsCount || null },
@@ -15,6 +16,7 @@ export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount }
 
   // Bottom nav: fewer items, no Collections
   const bottomNavTabs = [
+    { key: 'deck', label: 'Deck', icon: '🃏' },
     { key: 'prs', label: 'PRs', icon: '🏆' },
     { key: 'activity', label: 'Activity', icon: '👥' },
     { key: 'stats', label: 'Stats', icon: '📊' },

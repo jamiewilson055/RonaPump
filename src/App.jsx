@@ -17,6 +17,7 @@ import AdminQueue from './components/AdminQueue'
 import SignupGate from './components/SignupGate'
 import AdminAnalytics from './pages/AdminAnalytics'
 import ActivityFeed from './pages/ActivityFeed'
+import DeckOfCards from './components/DeckOfCards'
 import ScrollToTop from './components/ScrollToTop'
 import './App.css'
 
@@ -187,11 +188,13 @@ function App() {
       <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} />
       {!session && <Welcome onSignIn={() => setShowAuth(true)} />}
       <QuoteBar isAdmin={profile?.is_admin || false} />
-      {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && tab !== 'activity' && (
+      {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && tab !== 'activity' && tab !== 'deck' && (
         <WODCard workouts={workouts} session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} favorites={favorites} toggleFavorite={toggleFavorite} />
       )}
       <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} collectionsCount={collections.length} />
-      {tab === 'prs' ? (
+      {tab === 'deck' ? (
+        <DeckOfCards session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} />
+      ) : tab === 'prs' ? (
         <PRTracker session={session} onAuthRequired={() => setShowAuth(true)} />
       ) : tab === 'activity' ? (
         <ActivityFeed session={session} onAuthRequired={() => setShowAuth(true)} onNavigateToWorkout={(id, name) => {
