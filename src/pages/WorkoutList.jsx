@@ -65,28 +65,35 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
         const exact = x.estimated_duration_mins
         const rangeMin = x.estimated_duration_min
         const rangeMax = x.estimated_duration_max
-        const hasAnyDur = exact || (rangeMin && rangeMax)
+        const hasAnyDur = exact || rangeMin || rangeMax
         if (!hasAnyDur) return includeNoDur
-        if (exact) {
-          if (filters.durMin != null && exact < filters.durMin) return false
-          if (filters.durMax != null && exact > filters.durMax) return false
-          return true
-        }
-        if (rangeMin && rangeMax) {
-          if (filters.durMax != null && rangeMin > filters.durMax) return false
-          if (filters.durMin != null && rangeMax < filters.durMin) return false
-          return true
-        }
-        return includeNoDur
+
+        // Build the effective min/max for this workout
+        const effMin = rangeMin || exact || null
+        const effMax = rangeMax || exact || null
+
+        if (effMin == null && effMax == null) return includeNoDur
+        // Workout's range overlaps with filter range
+        if (filters.durMax != null && effMin > filters.durMax) return false
+        if (filters.durMin != null && effMax < filters.durMin) return false
+        return true
       })
+    }
+
+    // Effective duration for sorting (use exact, or midpoint of range, or min)
+    function effDur(w) {
+      if (w.estimated_duration_mins) return w.estimated_duration_mins
+      if (w.estimated_duration_min && w.estimated_duration_max) return (w.estimated_duration_min + w.estimated_duration_max) / 2
+      if (w.estimated_duration_min) return w.estimated_duration_min
+      return null
     }
 
     if (sort === 'added') w.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
     else if (sort === 'newest') w.sort((a, b) => (b.original_date || '').localeCompare(a.original_date || ''))
     else if (sort === 'oldest') w.sort((a, b) => (a.original_date || '9999').localeCompare(b.original_date || '9999'))
     else if (sort === 'name') w.sort((a, b) => (a.name || 'zzz').localeCompare(b.name || 'zzz'))
-    else if (sort === 'dur_s') w.sort((a, b) => (a.estimated_duration_mins || 999) - (b.estimated_duration_mins || 999))
-    else if (sort === 'dur_l') w.sort((a, b) => (b.estimated_duration_mins || 0) - (a.estimated_duration_mins || 0))
+    else if (sort === 'dur_s') w.sort((a, b) => (effDur(a) || 999) - (effDur(b) || 999))
+    else if (sort === 'dur_l') w.sort((a, b) => (effDur(b) || 0) - (effDur(a) || 0))
 
     return w
   }, [workouts, tab, query, filters, sort, favorites, sourceFilter, session])
