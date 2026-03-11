@@ -54,20 +54,13 @@ export default async function handler(req, res) {
   <meta charset="UTF-8" />
   <link rel="icon" type="image/png" href="/logo-192.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${esc(name)} — RonaPump</title>
+  <title>${esc(name)} — RonaPump 🦍</title>
   <meta name="description" content="${esc(desc)}" />
   <meta property="og:type" content="article" />
   <meta property="og:url" content="${pageUrl}" />
-  <meta property="og:title" content="${esc(name)}" />
+  <meta property="og:title" content="🦍 ${esc(name)}" />
   <meta property="og:description" content="${esc(desc)}" />
-  <meta property="og:site_name" content="RonaPump 🦍" />
-  <meta property="og:image" content="https://www.ronapump.com/logo-512.png" />
-  <meta property="og:image:width" content="512" />
-  <meta property="og:image:height" content="512" />
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="${esc(name)}" />
-  <meta name="twitter:description" content="${esc(desc)}" />
-  <meta name="twitter:image" content="https://www.ronapump.com/logo-512.png" />
+  <meta property="og:site_name" content="RonaPump" />
 </head>
 <body>
   <div id="root"></div>
@@ -94,6 +87,6 @@ export default async function handler(req, res) {
 </html>`
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8')
-  res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate')
+  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate')
   res.status(200).send(html)
 }
