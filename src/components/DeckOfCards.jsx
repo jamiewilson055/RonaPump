@@ -327,7 +327,7 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
             <div key={suit} className="doc-suit-row">
               <span className="doc-suit-icon" style={{ color: SUIT_COLORS[suit] }}>{suit}</span>
               <span className="doc-suit-name">{SUIT_NAMES[suit]}</span>
-              <input className="doc-suit-input" value={suitMovements[suit]} onChange={e => { setSuitMovements({ ...suitMovements, [suit]: e.target.value }); setActivePresetName(null) }} placeholder="e.g. Push-Ups" />
+              <input className="doc-suit-input" value={suitMovements[suit]} onChange={e => { setSuitMovements({ ...suitMovements, [suit]: e.target.value }); setActivePresetName(null) }} placeholder={{ '♠': 'e.g. Push-Ups', '♥': 'e.g. Air Squats', '♦': 'e.g. Burpees', '♣': 'e.g. Sit-Ups' }[suit]} />
             </div>
           ))}
           <div className="doc-joker-row">

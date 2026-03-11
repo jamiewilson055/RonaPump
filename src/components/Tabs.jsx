@@ -14,12 +14,11 @@ export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount }
     { key: 'stats', label: 'Stats', icon: '📊', count: null },
   ]
 
-  // Bottom nav: fewer items, no Collections
+  // Bottom nav: 4 items only
   const bottomNavTabs = [
     { key: 'deck', label: 'Deck', icon: '🃏' },
     { key: 'prs', label: 'PRs', icon: '🏆' },
     { key: 'activity', label: 'Activity', icon: '👥' },
-    { key: 'stats', label: 'Stats', icon: '📊' },
   ]
 
   const isSecondary = secondaryTabs.some(t => t.key === tab)

@@ -906,3 +906,8 @@ input, select, textarea { font-family: inherit; }
   .doc-pause-text { font-size: 38px; }
   .doc-pause-stats { font-size: 16px; }
 }
+
+/* Stats button in header */
+.stats-btn { background: var(--s2); border: 1px solid var(--brd); border-radius: 6px; padding: 5px 10px; font-size: 16px; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all .12s; }
+.stats-btn:hover { border-color: var(--tx3); background: var(--s3); }
+.stats-streak { font-size: 11px; font-family: 'JetBrains Mono', monospace; font-weight: 700; }

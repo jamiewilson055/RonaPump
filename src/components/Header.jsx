@@ -23,7 +23,7 @@ function getCurrentMilestone(total) {
   return current
 }
 
-export default function Header({ counts, session, profile, onAuthClick, streak, totalCompleted, onLogoClick }) {
+export default function Header({ counts, session, profile, onAuthClick, streak, totalCompleted, onLogoClick, onStatsClick }) {
   const currentMs = getCurrentMilestone(totalCompleted || 0)
   const nextMs = getNextMilestone(totalCompleted || 0)
 
@@ -45,20 +45,13 @@ export default function Header({ counts, session, profile, onAuthClick, streak, 
         </div>
       </div>
       <div className="hdr-r">
-        {session && streak > 0 && (
-          <div className="streak-badge" title={`${streak} day streak!`}>
-            <span className="streak-fire">🔥</span>
-            <span className="streak-num">{streak}</span>
-          </div>
-        )}
-        {session && currentMs && (
-          <div className="milestone-badge" title={`${totalCompleted} workouts completed`} style={{ borderColor: currentMs.color }}>
-            <span>{currentMs.label}</span>
-          </div>
+        {session && (
+          <button className="stats-btn" onClick={onStatsClick} title="Stats & Streaks">
+            📊{streak > 0 && <span className="stats-streak">🔥{streak}</span>}
+          </button>
         )}
         <div className="hs"><div className="hs-n">{counts.total}</div><div className="hs-l">Workouts</div></div>
         <div className="hs"><div className="hs-n">{counts.done}</div><div className="hs-l">Done</div></div>
-        <div className="hs"><div className="hs-n">{counts.queue}</div><div className="hs-l">Queue</div></div>
         <ThemeToggle />
         {session && <NotificationBell session={session} />}
         {session ? (
