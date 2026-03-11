@@ -46,9 +46,6 @@ export default async function handler(req, res) {
   const pageUrl = 'https://www.ronapump.com/workout/' + slug
   const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-  // Serve meta tags for crawlers.
-  // For real browsers, a small script loads the actual SPA by fetching the built index.html
-  // and injecting it into the page.
   const html = `<!doctype html>
 <html lang="en">
 <head>
@@ -59,43 +56,34 @@ export default async function handler(req, res) {
   <meta name="description" content="${esc(desc)}" />
   <meta property="og:type" content="article" />
   <meta property="og:url" content="${pageUrl}" />
-  <meta property="og:title" content="${esc(name)} — RonaPump 🦍" />
-  <meta property="og:description" content="${esc(desc)}" />
+  <meta property="og:title" content="${esc(name)}" />
+  <meta property="og:description" content="🦍 ${esc(desc)}" />
   <meta property="og:site_name" content="RonaPump" />
-  <meta property="og:image" content="https://www.ronapump.com/logo-512.png" />
-  <meta property="og:image:width" content="512" />
-  <meta property="og:image:height" content="512" />
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="${esc(name)} — RonaPump 🦍" />
-  <meta name="twitter:description" content="${esc(desc)}" />
-  <meta name="twitter:image" content="https://www.ronapump.com/logo-512.png" />
+  <meta property="og:image" content="https://www.ronapump.com/og-banner.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${esc(name)}" />
+  <meta name="twitter:description" content="🦍 ${esc(desc)}" />
+  <meta name="twitter:image" content="https://www.ronapump.com/og-banner.png" />
 </head>
 <body>
   <div id="root"></div>
   <script>
-    // Load the real SPA
     fetch('/?_spa=1').then(r => r.text()).then(html => {
-      // Extract script tags from the built index.html
       const parser = new DOMParser()
       const doc = parser.parseFromString(html, 'text/html')
-      const scripts = doc.querySelectorAll('script')
-      const links = doc.querySelectorAll('link[rel="stylesheet"], link[rel="modulepreload"]')
-      // Add stylesheets
-      links.forEach(link => {
+      doc.querySelectorAll('link[rel="stylesheet"], link[rel="modulepreload"]').forEach(link => {
         const el = document.createElement('link')
-        el.rel = link.rel
-        el.href = link.href
+        el.rel = link.rel; el.href = link.href
         if (link.as) el.as = link.as
-        if (link.crossOrigin) el.crossOrigin = link.crossOrigin
         document.head.appendChild(el)
       })
-      // Add scripts
-      scripts.forEach(s => {
+      doc.querySelectorAll('script').forEach(s => {
         const el = document.createElement('script')
         if (s.type) el.type = s.type
         if (s.src) el.src = s.src
         else el.textContent = s.textContent
-        if (s.crossOrigin) el.crossOrigin = s.crossOrigin
         document.body.appendChild(el)
       })
     })
