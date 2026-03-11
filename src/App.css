@@ -885,7 +885,7 @@ input, select, textarea { font-family: inherit; }
 
 /* MOBILE */
 @media (max-width: 640px) {
-  .doc-preset-grid { grid-template-columns: 1fr; }
+  .doc-preset-grid { grid-template-columns: repeat(2, 1fr); }
   .doc-card { width: calc(100vw - 40px); height: calc((100vw - 40px) * 1.4); max-height: 58vh; }
   .doc-card-rank { font-size: 120px; }
   .doc-card-suit { font-size: 68px; }
