@@ -12,7 +12,6 @@ import Profile from './pages/Profile'
 import Auth from './components/Auth'
 import UpdatePassword from './components/UpdatePassword'
 import Welcome from './components/Welcome'
-import AddToHomeScreen from './components/AddToHomeScreen'
 import AdminQueue from './components/AdminQueue'
 import SignupGate from './components/SignupGate'
 import AdminAnalytics from './pages/AdminAnalytics'
@@ -242,7 +241,6 @@ function App() {
       )}
       {showAuth && <Auth onClose={() => setShowAuth(false)} />}
       {showUpdatePassword && <UpdatePassword onClose={() => setShowUpdatePassword(false)} />}
-      <AddToHomeScreen />
       {!session && <SignupGate onSignIn={() => setShowAuth(true)} />}
       <ScrollToTop />
     </div>
