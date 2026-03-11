@@ -740,3 +740,8 @@ input, select, textarea { font-family: inherit; }
 
 /* PR badge in activity feed */
 .pr-badge-sm { font-size: 9px; font-weight: 700; color: #ffd700; background: rgba(255,215,0,.15); padding: 1px 5px; border-radius: 3px; margin-left: 5px; vertical-align: middle; }
+
+/* Search clear button */
+.sbox { position: relative; }
+.sbox-clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: var(--s3); border: none; color: var(--tx3); font-size: 12px; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.sbox-clear:hover { color: var(--tx); background: var(--acc); }

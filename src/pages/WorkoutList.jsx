@@ -151,6 +151,7 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
         <div className="sbox">
           <input type="text" placeholder="Search by name, movement, equipment, keyword..." value={query}
             onChange={e => { setQuery(e.target.value); setPage(1) }} />
+          {query && <button className="sbox-clear" onClick={() => { setQuery(''); setPage(1) }}>✕</button>}
         </div>
         <button className="rbtn" onClick={randomWorkout} title="Random workout">🎲</button>
         {session && <button className="nbtn" onClick={() => setShowNewModal(true)}>+ New Workout</button>}
