@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import Filters from '../components/Filters'
 import WorkoutCard from '../components/WorkoutCard'
+import NewWorkoutModal from '../components/NewWorkoutModal'
 
 const PP = 30
 
@@ -14,15 +15,6 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
   })
   const [sourceFilter, setSourceFilter] = useState('all') // all, official, community, mine
   const [showNewModal, setShowNewModal] = useState(false)
-
-  // Dynamic import for NewWorkoutModal (only admin needs it)
-  const [NewWorkoutModal, setNewWorkoutModal] = useState(null)
-  function openNewWorkout() {
-    import('../components/NewWorkoutModal').then(mod => {
-      setNewWorkoutModal(() => mod.default)
-      setShowNewModal(true)
-    })
-  }
 
   const allEquipment = useMemo(() => [...new Set(workouts.flatMap(w => w.equipment || []))].sort(), [workouts])
   const allMovements = useMemo(() => [...new Set(workouts.flatMap(w => w.movement_categories || []))].sort(), [workouts])
@@ -161,10 +153,10 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
             onChange={e => { setQuery(e.target.value); setPage(1) }} />
         </div>
         <button className="rbtn" onClick={randomWorkout} title="Random workout">🎲</button>
-        {session && <button className="nbtn" onClick={openNewWorkout}>+ New Workout</button>}
+        {session && <button className="nbtn" onClick={() => setShowNewModal(true)}>+ New Workout</button>}
       </div>
 
-      {showNewModal && NewWorkoutModal && <NewWorkoutModal onClose={() => setShowNewModal(false)} onSaved={() => { setShowNewModal(false); onWorkoutsChanged() }} session={session} isAdmin={isAdmin} />}
+      {showNewModal && <NewWorkoutModal onClose={() => setShowNewModal(false)} onSaved={() => { setShowNewModal(false); onWorkoutsChanged() }} session={session} isAdmin={isAdmin} />}
 
       <Filters
         filters={filters}
