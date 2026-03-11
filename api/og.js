@@ -27,19 +27,21 @@ export default async function handler(req, res) {
   }
 
   const name = workout?.name || 'Workout'
-  const type = (workout?.workout_types || []).filter(t => t !== 'General')[0] || ''
-  const dur = workout?.estimated_duration_mins ? workout.estimated_duration_mins + 'min' : ''
+  const parts = []
+  const type = (workout?.workout_types || []).filter(t => t !== 'General')[0]
+  const dur = workout?.estimated_duration_mins ? workout.estimated_duration_mins + ' min' : null
   const equip = (workout?.equipment || []).filter(e => e !== 'Bodyweight').slice(0, 3).join(', ')
-  const scoreType = workout?.score_type && workout.score_type !== 'None' ? workout.score_type : ''
+  const scoreType = workout?.score_type && workout.score_type !== 'None' ? workout.score_type : null
 
-  let desc = ''
-  if (type) desc += type
-  if (dur) desc += (desc ? ' · ' : '') + dur
-  if (equip) desc += (desc ? ' · ' : '') + equip
-  if (scoreType) desc += (desc ? ' · ' : '') + scoreType
+  if (type) parts.push(type)
+  if (dur) parts.push(dur)
+  if (equip) parts.push(equip)
+  if (scoreType) parts.push(scoreType)
+
+  let desc = parts.length ? parts.join(' · ') : ''
   if (!desc && workout?.description) {
-    desc = workout.description.replace(/\n/g, ' ').slice(0, 120)
-    if (workout.description.length > 120) desc += '...'
+    desc = workout.description.replace(/\n/g, ' ').slice(0, 100)
+    if (workout.description.length > 100) desc += '...'
   }
   if (!desc) desc = 'Free workout on RonaPump'
 
@@ -52,20 +54,20 @@ export default async function handler(req, res) {
   <meta charset="UTF-8" />
   <link rel="icon" type="image/png" href="/logo-192.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${esc(name)} — RonaPump 🦍</title>
+  <title>${esc(name)} — RonaPump</title>
   <meta name="description" content="${esc(desc)}" />
   <meta property="og:type" content="article" />
   <meta property="og:url" content="${pageUrl}" />
   <meta property="og:title" content="${esc(name)}" />
-  <meta property="og:description" content="🦍 ${esc(desc)}" />
-  <meta property="og:site_name" content="RonaPump" />
-  <meta property="og:image" content="https://www.ronapump.com/og-banner.png" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta name="twitter:card" content="summary_large_image" />
+  <meta property="og:description" content="${esc(desc)}" />
+  <meta property="og:site_name" content="RonaPump 🦍" />
+  <meta property="og:image" content="https://www.ronapump.com/logo-512.png" />
+  <meta property="og:image:width" content="512" />
+  <meta property="og:image:height" content="512" />
+  <meta name="twitter:card" content="summary" />
   <meta name="twitter:title" content="${esc(name)}" />
-  <meta name="twitter:description" content="🦍 ${esc(desc)}" />
-  <meta name="twitter:image" content="https://www.ronapump.com/og-banner.png" />
+  <meta name="twitter:description" content="${esc(desc)}" />
+  <meta name="twitter:image" content="https://www.ronapump.com/logo-512.png" />
 </head>
 <body>
   <div id="root"></div>
