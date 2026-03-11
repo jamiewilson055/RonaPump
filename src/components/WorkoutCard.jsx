@@ -207,6 +207,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
       workout_types: [...(w.workout_types || [])],
       categories: [...(w.categories || [])],
       movement_categories: [...(w.movement_categories || [])],
+      body_parts: [...(w.body_parts || [])],
     })
     setRemixing(false)
     setEditing(true)
@@ -225,6 +226,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
       workout_types: [...(w.workout_types || [])],
       categories: [...(w.categories || [])],
       movement_categories: [...(w.movement_categories || [])],
+      body_parts: [...(w.body_parts || [])],
     })
     setRemixing(true)
     setEditing(true)
@@ -255,6 +257,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
         workout_types: editForm.workout_types.length ? editForm.workout_types : ['For Time'],
         categories: editForm.categories,
         movement_categories: editForm.movement_categories.length ? editForm.movement_categories : [],
+        body_parts: editForm.body_parts || [],
         created_by: session.user.id,
         visibility: 'private',
         source: 'remix-of-' + w.id,
@@ -274,7 +277,8 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
           equipment: editForm.equipment.length ? editForm.equipment : ['Bodyweight'],
           workout_types: editForm.workout_types.length ? editForm.workout_types : ['General'],
           categories: editForm.categories,
-          movement_categories: editForm.movement_categories.length ? editForm.movement_categories : ['General'],
+          movement_categories: editForm.movement_categories.length ? editForm.movement_categories : [],
+          body_parts: editForm.body_parts || [],
           auto_named: false,
         })
         .eq('id', w.id)
@@ -566,6 +570,14 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
             {['Bench Press', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat'].map(m => (
               <button key={m} className={`ch${editForm.movement_categories.includes(m) ? ' on' : ''}`}
                 onClick={() => toggleEditArray('movement_categories', m)}>{m}</button>
+            ))}
+          </div>
+
+          <label>Body Part</label>
+          <div className="cr">
+            {['Upper Body', 'Lower Body', 'Full Body'].map(b => (
+              <button key={b} className={`ch${editForm.body_parts.includes(b) ? ' on' : ''}`}
+                onClick={() => toggleEditArray('body_parts', b)}>{b}</button>
             ))}
           </div>
 

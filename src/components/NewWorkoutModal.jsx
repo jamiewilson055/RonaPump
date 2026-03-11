@@ -15,6 +15,7 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
     workout_types: [],
     categories: [],
     movement_categories: [],
+    body_parts: [],
   })
 
   function toggleArray(field, val) {
@@ -39,6 +40,7 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
       workout_types: form.workout_types.length ? form.workout_types : ['For Time'],
       categories: form.categories,
       movement_categories: form.movement_categories.length ? form.movement_categories : [],
+      body_parts: form.body_parts.length ? form.body_parts : [],
       source: 'user-created',
       created_by: session?.user?.id || null,
       visibility: isAdmin ? 'official' : (submitForReview ? 'pending' : 'private'),
@@ -112,6 +114,14 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
           {['Bench Press', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat'].map(m => (
             <button key={m} className={`ch${form.movement_categories.includes(m) ? ' on' : ''}`}
               onClick={() => toggleArray('movement_categories', m)}>{m}</button>
+          ))}
+        </div>
+
+        <label>Body Part</label>
+        <div className="cr">
+          {['Upper Body', 'Lower Body', 'Full Body'].map(b => (
+            <button key={b} className={`ch${form.body_parts.includes(b) ? ' on' : ''}`}
+              onClick={() => toggleArray('body_parts', b)}>{b}</button>
           ))}
         </div>
 
