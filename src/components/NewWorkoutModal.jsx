@@ -69,7 +69,53 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
         <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. The Grind" />
 
         <label>Description / Details</label>
-        <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Full workout details..." />
+        <div className="fmt-bar">
+          <button type="button" className="fmt-btn" title="Add bullet point" onClick={() => {
+            const ta = document.getElementById('wk-desc')
+            if (!ta) return
+            const start = ta.selectionStart
+            const before = form.description.slice(0, start)
+            const after = form.description.slice(start)
+            const needsNewline = before.length > 0 && !before.endsWith('\n')
+            const insert = (needsNewline ? '\n' : '') + '• '
+            setForm({ ...form, description: before + insert + after })
+            setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + insert.length }, 0)
+          }}>• Bullet</button>
+          <button type="button" className="fmt-btn" title="Add sub-bullet" onClick={() => {
+            const ta = document.getElementById('wk-desc')
+            if (!ta) return
+            const start = ta.selectionStart
+            const before = form.description.slice(0, start)
+            const after = form.description.slice(start)
+            const needsNewline = before.length > 0 && !before.endsWith('\n')
+            const insert = (needsNewline ? '\n' : '') + '  • '
+            setForm({ ...form, description: before + insert + after })
+            setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + insert.length }, 0)
+          }}>  ◦ Sub-bullet</button>
+          <button type="button" className="fmt-btn" title="Add separator line" onClick={() => {
+            const ta = document.getElementById('wk-desc')
+            if (!ta) return
+            const start = ta.selectionStart
+            const before = form.description.slice(0, start)
+            const after = form.description.slice(start)
+            const needsNewline = before.length > 0 && !before.endsWith('\n')
+            const insert = (needsNewline ? '\n' : '') + '\n'
+            setForm({ ...form, description: before + insert + after })
+            setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + insert.length }, 0)
+          }}>↵ Line Break</button>
+          <button type="button" className="fmt-btn" title="Add section header" onClick={() => {
+            const ta = document.getElementById('wk-desc')
+            if (!ta) return
+            const start = ta.selectionStart
+            const before = form.description.slice(0, start)
+            const after = form.description.slice(start)
+            const needsNewline = before.length > 0 && !before.endsWith('\n')
+            const insert = (needsNewline ? '\n' : '') + '--- '
+            setForm({ ...form, description: before + insert + after })
+            setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + insert.length }, 0)
+          }}>— Section</button>
+        </div>
+        <textarea id="wk-desc" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Full workout details...&#10;&#10;Use the toolbar above to add bullet points" style={{ minHeight: '140px' }} />
 
         <label>Score Type</label>
         <div className="st-sel">

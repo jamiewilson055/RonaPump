@@ -5,8 +5,9 @@ import WorkoutTimer from '../components/WorkoutTimer'
 
 function formatDesc(text) {
   return (text || '').split('\n').map((line, i) => {
-    if (line.startsWith('• ')) return <div key={i} className="desc-li">{line.slice(2)}</div>
     if (line.startsWith('  • ')) return <div key={i} className="desc-li sub">{line.slice(4)}</div>
+    if (line.startsWith('• ')) return <div key={i} className="desc-li">{line.slice(2)}</div>
+    if (line.startsWith('--- ')) return <div key={i} className="desc-section">{line.slice(4)}</div>
     if (line.trim() === '') return <br key={i} />
     return <div key={i}>{line}</div>
   })

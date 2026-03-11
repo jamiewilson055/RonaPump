@@ -23,8 +23,9 @@ function cleanDesc(w) {
 
 function formatDesc(text) {
   return text.split('\n').map((line, i) => {
-    if (line.startsWith('• ')) return <div key={i} className="desc-li">{line.slice(2)}</div>
     if (line.startsWith('  • ')) return <div key={i} className="desc-li sub">{line.slice(4)}</div>
+    if (line.startsWith('• ')) return <div key={i} className="desc-li">{line.slice(2)}</div>
+    if (line.startsWith('--- ')) return <div key={i} className="desc-section">{line.slice(4)}</div>
     if (line.trim() === '') return <br key={i} />
     return <div key={i}>{line}</div>
   })
@@ -515,7 +516,49 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
           <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="e.g. The Grind" />
 
           <label>Description / Details</label>
-          <textarea value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} placeholder="Full workout details..." />
+          <div className="fmt-bar">
+            <button type="button" className="fmt-btn" onClick={() => {
+              const ta = document.getElementById('wk-edit-desc')
+              if (!ta) return
+              const start = ta.selectionStart
+              const before = editForm.description.slice(0, start)
+              const after = editForm.description.slice(start)
+              const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
+              setEditForm({ ...editForm, description: before + nl + '• ' + after })
+              setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 2 }, 0)
+            }}>• Bullet</button>
+            <button type="button" className="fmt-btn" onClick={() => {
+              const ta = document.getElementById('wk-edit-desc')
+              if (!ta) return
+              const start = ta.selectionStart
+              const before = editForm.description.slice(0, start)
+              const after = editForm.description.slice(start)
+              const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
+              setEditForm({ ...editForm, description: before + nl + '  • ' + after })
+              setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 4 }, 0)
+            }}>  ◦ Sub-bullet</button>
+            <button type="button" className="fmt-btn" onClick={() => {
+              const ta = document.getElementById('wk-edit-desc')
+              if (!ta) return
+              const start = ta.selectionStart
+              const before = editForm.description.slice(0, start)
+              const after = editForm.description.slice(start)
+              const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
+              setEditForm({ ...editForm, description: before + nl + '\n' + after })
+              setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 1 }, 0)
+            }}>↵ Line Break</button>
+            <button type="button" className="fmt-btn" onClick={() => {
+              const ta = document.getElementById('wk-edit-desc')
+              if (!ta) return
+              const start = ta.selectionStart
+              const before = editForm.description.slice(0, start)
+              const after = editForm.description.slice(start)
+              const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
+              setEditForm({ ...editForm, description: before + nl + '--- ' + after })
+              setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 4 }, 0)
+            }}>— Section</button>
+          </div>
+          <textarea id="wk-edit-desc" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} placeholder="Full workout details..." style={{ minHeight: '140px' }} />
 
           <label>Score Type</label>
           <div className="st-sel">

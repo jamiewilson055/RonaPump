@@ -757,3 +757,11 @@ input, select, textarea { font-family: inherit; }
 
 /* Timer log prompt */
 .timer-log-prompt { margin-top: 12px; padding: 14px; background: rgba(255,255,255,.06); border-radius: 8px; }
+
+/* Formatting toolbar */
+.fmt-bar { display: flex; gap: 4px; margin-bottom: 4px; flex-wrap: wrap; }
+.fmt-btn { background: var(--s2); border: 1px solid var(--brd); border-radius: 4px; padding: 4px 10px; font-size: 11px; color: var(--tx2); cursor: pointer; font-family: 'JetBrains Mono', monospace; transition: all .1s; }
+.fmt-btn:hover { background: var(--s3); color: var(--tx); border-color: var(--acc); }
+
+/* Section header in description */
+.desc-section { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; color: var(--acc); text-transform: uppercase; letter-spacing: .5px; margin-top: 8px; margin-bottom: 4px; padding-top: 6px; border-top: 1px solid var(--brd); }
