@@ -421,20 +421,19 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
           <div className="acts">
             <button className="ab p" onClick={() => setShowTimer(true)} style={{ fontWeight: 600 }}>▶ Start Workout</button>
             <button className={`ab ${isFav ? '' : 'g'}`} onClick={() => toggleFavorite(w.id)}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>
-            {!hasDone && (
-              <button className={`ab${quickLogged ? ' g' : ''}`} onClick={async () => {
-                if (!session) { onAuthRequired(); return }
-                if (quickLogged) return
-                const { supabase } = await import('../lib/supabase')
-                await supabase.from('performance_log').insert({
-                  user_id: session.user.id, workout_id: w.id,
-                  completed_at: new Date().toISOString().slice(0, 10),
-                  score: null, notes: 'Quick logged'
-                })
-                setQuickLogged(true)
-                onWorkoutsChanged()
-              }}>{quickLogged ? '✓ Done!' : '✓ I Did This'}</button>
-            )}
+            <button className={`ab${quickLogged ? ' g' : ''}`} onClick={async () => {
+              if (!session) { onAuthRequired(); return }
+              if (quickLogged) return
+              const { supabase } = await import('../lib/supabase')
+              await supabase.from('performance_log').insert({
+                user_id: session.user.id, workout_id: w.id,
+                completed_at: new Date().toISOString().slice(0, 10),
+                score: null, notes: 'Quick logged'
+              })
+              setQuickLogged(true)
+              onWorkoutsChanged()
+            }}>{quickLogged ? '✓ Logged!' : '✓ I Did This'}</button>
+            <button className="ab p" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }} style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)' }}>{addingLog ? 'Cancel' : '🏆 Log Score'}</button>
             <button className="ab" onClick={() => {
               if (!session) { onAuthRequired(); return }
               setShowCollections(!showCollections)
