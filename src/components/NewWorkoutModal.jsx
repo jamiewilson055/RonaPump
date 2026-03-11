@@ -101,7 +101,7 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
 
         <label>Category</label>
         <div className="cr">
-          {['RonaAbs', 'Harambe Favorites', 'Home', 'Hotel Workouts', 'HYROX', 'Murph', 'Outdoor', 'Track Workouts'].map(c => (
+          {['Cardio Only', 'RonaAbs', 'Harambe Favorites', 'Home', 'Hotel Workouts', 'HYROX', 'Murph', 'Outdoor', 'Track Workouts'].map(c => (
             <button key={c} className={`ch${form.categories.includes(c) ? ' on' : ''}`}
               onClick={() => toggleArray('categories', c)}>{c}</button>
           ))}
@@ -109,7 +109,7 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
 
         <label>Movement Type</label>
         <div className="cr">
-          {['Bench Press', 'Cardio', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'Lunge', 'Olympic Lifting', 'Plyometric', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat'].map(m => (
+          {['Bench Press', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'Lunge', 'Olympic Lifting', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat'].map(m => (
             <button key={m} className={`ch${form.movement_categories.includes(m) ? ' on' : ''}`}
               onClick={() => toggleArray('movement_categories', m)}>{m}</button>
           ))}
