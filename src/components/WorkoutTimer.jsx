@@ -271,9 +271,16 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
       <div className="timer-desc-scroll">
         <div className="timer-desc">
           {w.description?.split('\n').map((line, i) => {
-            if (line.startsWith('• ')) return <div key={i} className="timer-li">{line.slice(2)}</div>
+            function renderBold(str) {
+              const parts = str.split(/\*\*(.*?)\*\*/)
+              if (parts.length === 1) return str
+              return parts.map((part, j) => j % 2 === 1 ? <b key={j}>{part}</b> : part)
+            }
+            if (line.startsWith('  • ')) return <div key={i} className="timer-li sub">{renderBold(line.slice(4))}</div>
+            if (line.startsWith('• ')) return <div key={i} className="timer-li">{renderBold(line.slice(2))}</div>
+            if (line.startsWith('--- ')) return <div key={i} style={{ color: '#ff2d2d', fontWeight: 700, fontSize: '14px', marginTop: '10px', textTransform: 'uppercase', letterSpacing: '.5px' }}>{renderBold(line.slice(4))}</div>
             if (line.trim() === '') return <br key={i} />
-            return <div key={i}>{line}</div>
+            return <div key={i}>{renderBold(line)}</div>
           })}
         </div>
       </div>
