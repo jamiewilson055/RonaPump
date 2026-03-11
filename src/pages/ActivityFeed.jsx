@@ -43,7 +43,7 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
       .from('performance_log')
       .select('*, workouts(id, name, score_type), profiles(display_name, avatar_url)')
       .in('user_id', feedUserIds)
-      .neq('notes', 'Quick logged')
+      .or('notes.is.null,notes.neq.Quick logged')
       .order('created_at', { ascending: false })
       .limit(40)
 
@@ -126,9 +126,12 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
     <div className="pr-section">
       <div className="pr-header">
         <h3>Activity Feed</h3>
-        <button className="nbtn" onClick={() => { setShowDiscover(!showDiscover); if (!showDiscover) loadAllUsers() }} style={{ padding: '7px 14px', fontSize: '12px' }}>
-          {showDiscover ? 'Hide' : '👥 Find Athletes'}
-        </button>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <button className="nbtn" onClick={() => loadActivity()} style={{ padding: '7px 12px', fontSize: '12px' }}>↻ Refresh</button>
+          <button className="nbtn" onClick={() => { setShowDiscover(!showDiscover); if (!showDiscover) loadAllUsers() }} style={{ padding: '7px 14px', fontSize: '12px' }}>
+            {showDiscover ? 'Hide' : '👥 Find Athletes'}
+          </button>
+        </div>
       </div>
 
       {showDiscover && (
