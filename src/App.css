@@ -24,6 +24,32 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: var(--bg); color: var(--tx); font-family: 'DM Sans', sans-serif; min-height: 100vh; -webkit-font-smoothing: antialiased; font-size: 14px; }
+@media (min-width: 641px) {
+  body { font-size: 16px; }
+  .wc .dsc { font-size: 15px; }
+  .wn { font-size: 16px; }
+  .tg { font-size: 11px; }
+  .wdr, .wst, .wbs, .wdt { font-size: 12px; }
+  .tab { font-size: 15px; }
+  .tab-sec { font-size: 14px; }
+  .sbox input { font-size: 15px; }
+  .ssel { font-size: 14px; }
+  .plog-table { font-size: 13px; }
+  .pr-mv { font-size: 15px; }
+  .pr-group-hd { font-size: 14px; }
+  .doc-header h3 { font-size: 22px; }
+  .doc-suit-input { font-size: 15px; }
+  .doc-preset-name { font-size: 14px; }
+  .doc-preset-desc { font-size: 12px; }
+  .mc label { font-size: 12px; }
+  .mc input, .mc textarea { font-size: 15px; }
+  .ab { font-size: 13px; }
+  .nbtn { font-size: 14px; }
+  .inf { font-size: 13px; }
+  .desc-li { font-size: 15px; }
+  .wc-comment-body { font-size: 15px; }
+  .activity-text { font-size: 15px; }
+}
 .app { max-width: 1060px; margin: 0 auto; padding: 14px 18px 40px; padding-top: calc(14px + env(safe-area-inset-top, 0px)); }
 
 /* Desktop font bump */
