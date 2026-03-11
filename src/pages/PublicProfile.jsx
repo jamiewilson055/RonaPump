@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
-export default function PublicProfile({ userId, onClose }) {
+export default function PublicProfile({ userId, onClose, session }) {
   const [profile, setProfile] = useState(null)
   const [stats, setStats] = useState(null)
   const [recentLogs, setRecentLogs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [isFollowing, setIsFollowing] = useState(false)
+  const [followLoading, setFollowLoading] = useState(false)
 
   useEffect(() => { loadProfile() }, [userId])
 
@@ -14,7 +16,17 @@ export default function PublicProfile({ userId, onClose }) {
     const { data: prof } = await supabase.from('profiles').select('*').eq('id', userId).single()
     setProfile(prof)
 
-    // Get their performance logs with workout names
+    // Check if we follow this user
+    if (session && session.user.id !== userId) {
+      const { data: followData } = await supabase
+        .from('user_follows')
+        .select('follower_id')
+        .eq('follower_id', session.user.id)
+        .eq('following_id', userId)
+        .limit(1)
+      setIsFollowing(followData && followData.length > 0)
+    }
+
     const { data: logs } = await supabase
       .from('performance_log')
       .select('*, workouts(name, score_type)')
@@ -24,12 +36,9 @@ export default function PublicProfile({ userId, onClose }) {
 
     if (logs) {
       setRecentLogs(logs)
-
-      // Calculate stats
       const uniqueWorkouts = new Set(logs.map(l => l.workout_id)).size
       const totalLogs = logs.length
 
-      // Streak
       const dates = new Set(logs.map(l => l.completed_at).filter(Boolean))
       let streak = 0
       const today = new Date()
@@ -47,6 +56,26 @@ export default function PublicProfile({ userId, onClose }) {
     setLoading(false)
   }
 
+  async function toggleFollow() {
+    if (!session) return
+    setFollowLoading(true)
+    if (isFollowing) {
+      await supabase.from('user_follows').delete()
+        .eq('follower_id', session.user.id)
+        .eq('following_id', userId)
+      setIsFollowing(false)
+      if (profile) setProfile({ ...profile, follower_count: Math.max((profile.follower_count || 1) - 1, 0) })
+    } else {
+      await supabase.from('user_follows').insert({
+        follower_id: session.user.id,
+        following_id: userId,
+      })
+      setIsFollowing(true)
+      if (profile) setProfile({ ...profile, follower_count: (profile.follower_count || 0) + 1 })
+    }
+    setFollowLoading(false)
+  }
+
   if (loading) return (
     <div className="mo" onClick={onClose}>
       <div className="mc" style={{ maxWidth: '480px' }}><div className="loading">Loading...</div></div>
@@ -60,6 +89,7 @@ export default function PublicProfile({ userId, onClose }) {
   )
 
   const initial = (profile.display_name || '?')[0].toUpperCase()
+  const isOwnProfile = session && session.user.id === userId
 
   return (
     <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
@@ -73,8 +103,23 @@ export default function PublicProfile({ userId, onClose }) {
           <div className="prof-name-area">
             <h2 style={{ margin: 0, fontSize: '20px' }}>{profile.display_name || 'Athlete'}</h2>
             {profile.hometown && <div style={{ fontSize: '12px', color: 'var(--tx3)', marginTop: '2px' }}>📍 {profile.hometown}</div>}
+            <div style={{ fontSize: '11px', color: 'var(--tx3)', marginTop: '4px', display: 'flex', gap: '10px' }}>
+              <span><b style={{ color: 'var(--tx)' }}>{profile.follower_count || 0}</b> followers</span>
+              <span><b style={{ color: 'var(--tx)' }}>{profile.following_count || 0}</b> following</span>
+            </div>
           </div>
         </div>
+
+        {!isOwnProfile && session && (
+          <button
+            className={`ab${isFollowing ? '' : ' p'}`}
+            onClick={toggleFollow}
+            disabled={followLoading}
+            style={{ width: '100%', marginTop: '10px', padding: '10px' }}
+          >
+            {isFollowing ? 'Following ✓' : '+ Follow'}
+          </button>
+        )}
 
         {profile.bio && (
           <div style={{ fontSize: '13px', color: 'var(--tx2)', lineHeight: 1.5, margin: '12px 0', padding: '10px', background: 'var(--bg)', borderRadius: '6px' }}>
@@ -109,7 +154,11 @@ export default function PublicProfile({ userId, onClose }) {
                   <tr key={l.id}>
                     <td style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px' }}>{l.workouts?.name || 'Unnamed'}</td>
                     <td>{l.completed_at || '—'}</td>
-                    <td>{l.score || (l.notes === 'Quick logged' ? '✓' : '—')}</td>
+                    <td>
+                      {l.score || (l.notes === 'Quick logged' ? '✓' : '—')}
+                      {l.is_rx === false && <span className="scaled-tag">Scaled</span>}
+                      {l.is_rx === true && l.score && <span className="rx-tag">Rx</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>

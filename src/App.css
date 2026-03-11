@@ -708,3 +708,29 @@ input, select, textarea { font-family: inherit; }
 .gate-sub { font-size: 13px; color: var(--tx3); margin-top: 8px; }
 .gate-link { color: var(--acc); cursor: pointer; font-weight: 600; }
 .gate-link:hover { text-decoration: underline; }
+
+/* Activity Feed */
+.activity-list { display: flex; flex-direction: column; gap: 2px; }
+.activity-item { display: flex; gap: 10px; padding: 10px; background: var(--s1); border: 1px solid var(--brd); border-radius: 7px; }
+.activity-avatar { width: 36px; height: 36px; flex-shrink: 0; cursor: pointer; }
+.activity-avatar-img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+.activity-avatar-letter { width: 36px; height: 36px; border-radius: 50%; background: var(--s3); display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700; color: var(--tx2); }
+.activity-content { flex: 1; min-width: 0; }
+.activity-text { font-size: 13px; color: var(--tx2); line-height: 1.4; }
+.activity-name { font-weight: 600; color: var(--tx); cursor: pointer; }
+.activity-name:hover { color: var(--acc); }
+.activity-workout { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--tx); }
+.activity-notes { font-size: 12px; color: var(--tx3); margin-top: 3px; font-style: italic; }
+.activity-time { font-size: 10px; color: var(--tx3); margin-top: 3px; }
+
+/* Discover users */
+.discover-section { background: var(--s1); border: 1px solid var(--brd); border-radius: 8px; padding: 12px; margin-bottom: 14px; }
+.discover-user { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--brd); }
+.discover-user:last-child { border-bottom: none; }
+.discover-avatar { width: 32px; height: 32px; flex-shrink: 0; cursor: pointer; }
+.discover-avatar-img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+.discover-avatar-letter { width: 32px; height: 32px; border-radius: 50%; background: var(--s3); display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: var(--tx2); }
+.discover-info { flex: 1; min-width: 0; cursor: pointer; }
+.discover-name { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: var(--tx); }
+.discover-name:hover { color: var(--acc); }
+.discover-meta { font-size: 11px; color: var(--tx3); }
