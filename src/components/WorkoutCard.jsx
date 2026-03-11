@@ -298,7 +298,17 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
   return (
     <>
-    <div className={`wc${expanded ? ' exp' : ''} wc-${w.visibility || 'official'}`} id={`wc-${w.id}`} onClick={() => { if (!expanded && !session) trackWorkoutView(); setExpanded(!expanded) }} style={{ cursor: 'pointer' }}>
+    <div className={`wc${expanded ? ' exp' : ''} wc-${w.visibility || 'official'}`} id={`wc-${w.id}`} onClick={(e) => {
+      // Don't toggle if editing or any modal is open
+      if (editing || addingLog || editingLogId || showCollections || showShareImage) return
+      // Don't toggle if text is selected
+      const sel = window.getSelection()
+      if (sel && sel.toString().length > 0) return
+      // Don't toggle if click was on an interactive element inside expanded area
+      if (expanded && e.target.closest('.det')) return
+      if (!expanded && !session) trackWorkoutView()
+      setExpanded(!expanded)
+    }} style={{ cursor: 'pointer' }}>
       <div className="wc-top">
         <div className={`dot ${hasDone ? 'y' : 'n'}`}></div>
         <button className={`wf ${isFav ? 'y' : 'n'}`} onClick={(e) => { e.stopPropagation(); toggleFavorite(w.id) }}>

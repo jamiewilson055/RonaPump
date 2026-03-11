@@ -78,7 +78,12 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
 
   return (
     <>
-      <div className={`wod-card${expanded ? ' wod-exp' : ''}`} onClick={() => setExpanded(!expanded)} style={{ cursor: 'pointer' }}>
+      <div className={`wod-card${expanded ? ' wod-exp' : ''}`} onMouseDown={(e) => { e._clickX = e.clientX; e._clickY = e.clientY }} onClick={(e) => {
+        if (e._clickX !== undefined && (Math.abs(e.clientX - e._clickX) > 5 || Math.abs(e.clientY - e._clickY) > 5)) return
+        const sel = window.getSelection()
+        if (sel && sel.toString().length > 0) return
+        setExpanded(!expanded)
+      }} style={{ cursor: 'pointer' }}>
         <div className="wod-top">
           <div className="wod-label-inline">WOD</div>
           <div className="wod-name">{wod.name || 'Unnamed Workout'}</div>
