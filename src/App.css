@@ -13,13 +13,13 @@
 
 [data-theme="light"] {
   --bg: #f5f5f7; --s1: #ffffff; --s2: #f0f0f2; --s3: #e5e5ea;
-  --acc: #e01e1e; --acc-d: rgba(224,30,30,.08);
-  --tx: #1a1a1e; --tx2: #5e5e6a; --tx3: #9e9ea8; --brd: #d8d8de;
-  --grn: #16a34a; --grn-d: rgba(22,163,74,.08);
-  --blu: #2563eb; --blu-d: rgba(37,99,235,.08);
-  --prp: #9333ea; --prp-d: rgba(147,51,234,.08);
-  --ylw: #ca8a04; --ylw-d: rgba(202,138,4,.08);
-  --cyn: #0891b2; --cyn-d: rgba(8,145,178,.08);
+  --acc: #cc1a1a; --acc-d: rgba(204,26,26,.08);
+  --tx: #111114; --tx2: #3a3a45; --tx3: #6e6e7a; --brd: #d0d0d8;
+  --grn: #15803d; --grn-d: rgba(21,128,61,.08);
+  --blu: #1d4ed8; --blu-d: rgba(29,78,216,.08);
+  --prp: #7e22ce; --prp-d: rgba(126,34,206,.08);
+  --ylw: #a16207; --ylw-d: rgba(161,98,7,.08);
+  --cyn: #0e7490; --cyn-d: rgba(14,116,144,.08);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
