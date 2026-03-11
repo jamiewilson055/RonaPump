@@ -46,13 +46,17 @@ function playTripleBeep() {
   setTimeout(() => playBeep(1100, 0.25, 0.5), 400)
 }
 
-export default function WorkoutTimer({ workout, onClose }) {
+export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChanged }) {
   const [mode, setMode] = useState(null)
   const [totalSeconds, setTotalSeconds] = useState(0)
   const [elapsed, setElapsed] = useState(0)
   const [running, setRunning] = useState(false)
   const [finished, setFinished] = useState(false)
   const [countdown321, setCountdown321] = useState(null)
+  const [timerLogScore, setTimerLogScore] = useState('')
+  const [timerLogNotes, setTimerLogNotes] = useState('')
+  const [timerLogRx, setTimerLogRx] = useState(true)
+  const [timerLogged, setTimerLogged] = useState(false)
   const intervalRef = useRef(null)
   const wakeLockRef = useRef(null)
   const videoRef = useRef(null)
@@ -334,6 +338,39 @@ export default function WorkoutTimer({ workout, onClose }) {
             <div className="timer-label">{displayLabel}</div>
             {displayRound && <div className="timer-round">{displayRound}</div>}
             {finished && <div className="timer-finished">COMPLETE 🦍</div>}
+            {finished && session && !timerLogged && (
+              <div className="timer-log-prompt" onClick={e => e.stopPropagation()}>
+                <div style={{ fontSize: '13px', color: 'var(--tx2)', marginBottom: '6px' }}>Log your result?</div>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <input placeholder="Score (optional)" value={timerLogScore} onChange={e => setTimerLogScore(e.target.value)}
+                    style={{ background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.2)', borderRadius: '5px', padding: '7px 10px', color: '#fff', fontSize: '13px', width: '120px', outline: 'none' }} />
+                  <input placeholder="Notes (optional)" value={timerLogNotes} onChange={e => setTimerLogNotes(e.target.value)}
+                    style={{ background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.2)', borderRadius: '5px', padding: '7px 10px', color: '#fff', fontSize: '13px', width: '120px', outline: 'none' }} />
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#fff', fontSize: '12px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={timerLogRx} onChange={e => setTimerLogRx(e.target.checked)} style={{ accentColor: '#22c55e' }} />
+                    <span style={{ fontWeight: 700, color: timerLogRx ? '#22c55e' : '#888' }}>Rx</span>
+                  </label>
+                </div>
+                <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginTop: '8px' }}>
+                  <button className="timer-ctrl-btn" onClick={async () => {
+                    const { supabase } = await import('../lib/supabase')
+                    await supabase.from('performance_log').insert({
+                      user_id: session.user.id, workout_id: workout.id,
+                      completed_at: new Date().toISOString().slice(0, 10),
+                      score: timerLogScore.trim() || null,
+                      notes: timerLogNotes.trim() || null,
+                      is_rx: timerLogRx,
+                    })
+                    setTimerLogged(true)
+                    if (onWorkoutsChanged) onWorkoutsChanged()
+                  }}>✓ Save</button>
+                  <button className="timer-ctrl-btn sec" onClick={() => setTimerLogged(true)}>Skip</button>
+                </div>
+              </div>
+            )}
+            {finished && timerLogged && (
+              <div style={{ color: '#22c55e', fontSize: '14px', fontWeight: 600, marginTop: '8px' }}>✓ Logged!</div>
+            )}
             <div className="timer-controls">
               {!finished && (
                 <button className="timer-ctrl-btn" onClick={togglePause}>

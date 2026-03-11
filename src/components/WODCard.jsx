@@ -23,7 +23,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
   const [logNotes, setLogNotes] = useState('')
 
   const pick = useCallback(() => {
-    const pool = workouts.filter(w => !w.original_date && (!w.performance_log || w.performance_log.length === 0) && w.description && w.description.length > 40)
+    const pool = workouts.filter(w => w.description && w.description.length > 40 && w.visibility !== 'private')
     if (pool.length) setWod(pool[Math.floor(Math.random() * pool.length)])
   }, [workouts])
 
@@ -155,7 +155,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
           </div>
         )}
       </div>
-      {showTimer && <WorkoutTimer workout={wod} onClose={() => setShowTimer(false)} />}
+      {showTimer && <WorkoutTimer workout={wod} onClose={() => setShowTimer(false)} session={session} onWorkoutsChanged={onWorkoutsChanged} />}
     </>
   )
 }

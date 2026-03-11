@@ -751,3 +751,6 @@ input, select, textarea { font-family: inherit; }
 .sbox { position: relative; }
 .sbox-clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: var(--s3); border: none; color: var(--tx3); font-size: 12px; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .sbox-clear:hover { color: var(--tx); background: var(--acc); }
+
+/* Timer log prompt */
+.timer-log-prompt { margin-top: 12px; padding: 14px; background: rgba(255,255,255,.06); border-radius: 8px; }

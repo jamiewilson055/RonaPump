@@ -19,29 +19,36 @@ export default function WorkoutPage() {
   const [notFound, setNotFound] = useState(false)
   const [showTimer, setShowTimer] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [session, setSession] = useState(null)
+  const [addingLog, setAddingLog] = useState(false)
+  const [logScore, setLogScore] = useState('')
+  const [logDate, setLogDate] = useState(new Date().toISOString().slice(0, 10))
+  const [logNotes, setLogNotes] = useState('')
+  const [logRx, setLogRx] = useState(true)
+  const [logged, setLogged] = useState(false)
 
   useEffect(() => {
-    loadWorkout()
-  }, [slug])
+    supabase.auth.getSession().then(({ data: { session: s } }) => setSession(s))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
+    return () => subscription.unsubscribe()
+  }, [])
+
+  useEffect(() => { loadWorkout() }, [slug])
 
   async function loadWorkout() {
     setLoading(true)
-    // Try to find by slug (name converted to URL-friendly format)
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('workouts')
       .select('*')
       .order('original_date', { ascending: false, nullsFirst: false })
 
     if (data) {
-      // Find workout by matching slug to name
       const match = data.find(w => {
         if (!w.name) return false
         const wSlug = w.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
         return wSlug === slug
       })
-      // Also try matching by legacy_id
       const idMatch = !match ? data.find(w => w.legacy_id?.toString() === slug || w.id === slug) : null
-
       if (match) setWorkout(match)
       else if (idMatch) setWorkout(idMatch)
       else setNotFound(true)
@@ -49,6 +56,22 @@ export default function WorkoutPage() {
       setNotFound(true)
     }
     setLoading(false)
+  }
+
+  async function saveLog() {
+    if (!session) return
+    await supabase.from('performance_log').insert({
+      user_id: session.user.id,
+      workout_id: workout.id,
+      completed_at: logDate,
+      score: logScore.trim() || null,
+      notes: logNotes.trim() || null,
+      is_rx: logRx,
+    })
+    setLogged(true)
+    setAddingLog(false)
+    setLogScore('')
+    setLogNotes('')
   }
 
   function shareWorkout() {
@@ -72,20 +95,12 @@ export default function WorkoutPage() {
     })
   }
 
-  if (loading) {
-    return (
-      <div className="app">
-        <div className="loading">Loading workout...</div>
-      </div>
-    )
-  }
+  if (loading) return <div className="app"><div className="loading">Loading workout...</div></div>
 
   if (notFound) {
     return (
       <div className="app">
-        <div className="wp-header">
-          <Link to="/" className="wp-back">← Back to RonaPump</Link>
-        </div>
+        <div className="wp-header"><Link to="/" className="wp-back">← Back to RonaPump</Link></div>
         <div className="pr-empty" style={{ marginTop: '20px' }}>
           <h3>Workout not found 🦍</h3>
           <p style={{ marginTop: '8px' }}>This workout may have been removed or the link is incorrect.</p>
@@ -106,7 +121,7 @@ export default function WorkoutPage() {
     <div className="app">
       <div className="wp-header">
         <Link to="/" className="wp-back">← Back to RonaPump</Link>
-        <div className="logo"><b>RONA</b>PUMP</div>
+        <div className="logo" style={{ cursor: 'pointer' }} onClick={() => window.location.href = '/'}><b>RONA</b>PUMP</div>
       </div>
 
       <div className="wp-card">
@@ -137,14 +152,35 @@ export default function WorkoutPage() {
 
         <div className="wp-actions">
           <button className="ab p" onClick={() => setShowTimer(true)} style={{ fontSize: '14px', padding: '10px 20px' }}>▶ Start Workout</button>
+          {session && (
+            <button className="ab p" onClick={() => setAddingLog(!addingLog)}
+              style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)', fontSize: '14px', padding: '10px 20px' }}>
+              {logged ? '✓ Logged!' : addingLog ? 'Cancel' : '✓ Complete Workout'}
+            </button>
+          )}
           <button className="ab" onClick={shareWorkout}>{copied ? '✓ Copied!' : '↗ Share Text'}</button>
           <button className="ab" onClick={copyLink}>{copied ? '✓ Copied!' : '🔗 Copy Link'}</button>
         </div>
 
-        <div className="wp-cta">
-          <p>Want to track your scores, build collections, and compete on the leaderboard?</p>
-          <Link to="/" className="ab p" style={{ textDecoration: 'none', display: 'inline-block' }}>Join RonaPump 🦍</Link>
-        </div>
+        {addingLog && session && (
+          <div className="plog-form" style={{ marginTop: '10px' }}>
+            <input placeholder="Score (optional)" value={logScore} onChange={e => setLogScore(e.target.value)} />
+            <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} />
+            <input placeholder="Notes (optional)" value={logNotes} onChange={e => setLogNotes(e.target.value)} />
+            <label className="rx-toggle" title="Rx = prescribed weights/movements">
+              <input type="checkbox" checked={logRx} onChange={e => setLogRx(e.target.checked)} />
+              <span className={logRx ? 'rx-on' : 'rx-off'}>Rx</span>
+            </label>
+            <button className="ab p" onClick={saveLog}>Save</button>
+          </div>
+        )}
+
+        {!session && (
+          <div className="wp-cta">
+            <p>Want to track your scores, build collections, and compete on the leaderboard?</p>
+            <Link to="/" className="ab p" style={{ textDecoration: 'none', display: 'inline-block' }}>Join RonaPump 🦍</Link>
+          </div>
+        )}
       </div>
 
       <div className="wp-footer">
@@ -153,7 +189,7 @@ export default function WorkoutPage() {
         <Link to="/">www.ronapump.com</Link>
       </div>
 
-      {showTimer && <WorkoutTimer workout={w} onClose={() => setShowTimer(false)} />}
+      {showTimer && <WorkoutTimer workout={w} onClose={() => setShowTimer(false)} session={session} onWorkoutsChanged={() => { setLogged(true) }} />}
     </div>
   )
 }

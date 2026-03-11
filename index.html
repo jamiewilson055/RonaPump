@@ -3,17 +3,70 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/logo-192.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RonaPump</title>
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#ff2d2d">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="/logo-192.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- SEO Meta Tags -->
+    <title>RonaPump — 800+ Functional Fitness Workouts | Free Workout Explorer</title>
+    <meta name="description" content="Browse 800+ curated functional fitness workouts. Track scores, compete on leaderboards, build collections, and train smarter. AMRAP, EMOM, For Time, HYROX and more. 100% free." />
+    <meta name="keywords" content="functional fitness, workouts, WOD, AMRAP, EMOM, CrossFit, HYROX, workout tracker, fitness app, free workouts" />
+    <meta name="author" content="RonaPump" />
+
+    <!-- Open Graph / Social Sharing -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.ronapump.com/" />
+    <meta property="og:title" content="RonaPump — 800+ Functional Fitness Workouts" />
+    <meta property="og:description" content="Browse 800+ curated functional fitness workouts. Track scores, compete on leaderboards, and train smarter. 100% free." />
+    <meta property="og:image" content="https://www.ronapump.com/harambe.png" />
+    <meta property="og:site_name" content="RonaPump" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="RonaPump — 800+ Functional Fitness Workouts" />
+    <meta name="twitter:description" content="Browse 800+ curated functional fitness workouts. Track scores, compete on leaderboards, and train smarter." />
+    <meta name="twitter:image" content="https://www.ronapump.com/harambe.png" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#07070a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="RonaPump" />
+    <link rel="apple-touch-icon" href="/logo-192.png" />
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://www.ronapump.com/" />
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "RonaPump",
+      "description": "Browse 800+ curated functional fitness workouts. Track scores, compete on leaderboards, build collections, and train smarter.",
+      "url": "https://www.ronapump.com",
+      "applicationCategory": "HealthApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "RonaPump",
+        "url": "https://www.instagram.com/ronapump/"
+      }
+    }
+    </script>
   </head>
   <body>
+    <noscript>
+      <div style="font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 20px;">
+        <h1>RonaPump — 800+ Functional Fitness Workouts</h1>
+        <p>Browse 800+ curated functional fitness workouts including AMRAP, EMOM, For Time, HYROX, and more. Track your scores, compete on leaderboards, build custom collections, and train smarter. 100% free.</p>
+      </div>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
-```

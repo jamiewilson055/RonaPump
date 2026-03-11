@@ -584,7 +584,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
       </div>
     )}
 
-    {showTimer && <WorkoutTimer workout={w} onClose={() => setShowTimer(false)} />}
+    {showTimer && <WorkoutTimer workout={w} onClose={() => setShowTimer(false)} session={session} onWorkoutsChanged={onWorkoutsChanged} />}
     {viewingProfile && <PublicProfile userId={viewingProfile} onClose={() => setViewingProfile(null)} session={session} />}
     {showShareImage && <ShareImage workout={w} onClose={() => setShowShareImage(false)} />}
     </>
