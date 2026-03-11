@@ -161,7 +161,7 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
 
         <label>Category</label>
         <div className="cr">
-          {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home', 'Hotel Workouts', 'HYROX', 'Murph', 'Outdoor', 'Track Workouts'].map(c => (
+          {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Outdoor', 'Track Workouts'].map(c => (
             <button key={c} className={`ch${form.categories.includes(c) ? ' on' : ''}`}
               onClick={() => toggleArray('categories', c)}>{c}</button>
           ))}
