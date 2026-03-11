@@ -3,9 +3,18 @@ import { supabase } from '../lib/supabase'
 
 const SUITS = ['♠', '♥', '♦', '♣']
 const SUIT_NAMES = { '♠': 'Spades', '♥': 'Hearts', '♦': 'Diamonds', '♣': 'Clubs' }
-const SUIT_COLORS = { '♠': '#ededf0', '♥': '#ff2d2d', '♦': '#ff2d2d', '♣': '#ededf0' }
+const SUIT_COLORS = { '♠': '#1a1a2e', '♥': '#cc0000', '♦': '#cc0000', '♣': '#1a1a2e' }
 const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
 const RANK_VALUES = { 'A': 11, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 10, 'Q': 10, 'K': 10 }
+
+const PRESET_WORKOUT_MAP = {
+  '🦍 Harambe Classic': 'Deck of Cards - Harambe Classic',
+  '💪 DB Destroyer': 'Deck of Cards - DB Destroyer',
+  '🏃 HYROX Prep': 'Deck of Cards - HYROX Prep',
+  '🔥 Upper Body Blitz': 'Deck of Cards - Upper Body Blitz',
+  '🦵 Leg Day': 'Deck of Cards - Leg Day',
+  '⚡ Bodyweight Only': 'Deck of Cards - Bodyweight Only',
+}
 
 function buildDeck(includeJokers) {
   const cards = []
@@ -32,10 +41,11 @@ function formatTime(s) {
 }
 
 export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged, isAdmin }) {
-  const [phase, setPhase] = useState('setup')
+  const [phase, setPhase] = useState('setup') // setup, playing, complete
   const [suitMovements, setSuitMovements] = useState({ '♠': '', '♥': '', '♦': '', '♣': '' })
   const [jokerMovement, setJokerMovement] = useState('')
   const [includeJokers, setIncludeJokers] = useState(true)
+  const [activePresetName, setActivePresetName] = useState(null)
   const [deck, setDeck] = useState([])
   const [currentIdx, setCurrentIdx] = useState(-1)
   const [flipping, setFlipping] = useState(false)
@@ -43,16 +53,16 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
   const [running, setRunning] = useState(false)
   const [totalReps, setTotalReps] = useState(0)
   const [suitReps, setSuitReps] = useState({ '♠': 0, '♥': 0, '♦': 0, '♣': 0, '🃏': 0 })
-  const [savedSchemes, setSavedSchemes] = useState([])
   const [presets, setPresets] = useState([])
+  const [savedSchemes, setSavedSchemes] = useState([])
   const [schemeName, setSchemeName] = useState('')
   const [showSave, setShowSave] = useState(false)
   const [logged, setLogged] = useState(false)
   const [paused, setPaused] = useState(false)
-  // Admin preset editing
   const [editingPreset, setEditingPreset] = useState(null)
   const [presetForm, setPresetForm] = useState(null)
   const [addingPreset, setAddingPreset] = useState(false)
+  const [showMyDecks, setShowMyDecks] = useState(false)
 
   const timerRef = useRef(null)
   const wakeLockRef = useRef(null)
@@ -64,44 +74,30 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
   }, [session])
 
   async function loadPresets() {
-    const { data } = await supabase
-      .from('deck_presets')
-      .select('*')
-      .order('sort_order', { ascending: true })
+    const { data } = await supabase.from('deck_presets').select('*').order('sort_order', { ascending: true })
     if (data) setPresets(data)
   }
 
   async function loadSchemes() {
-    const { data } = await supabase
-      .from('personal_records')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .eq('type', 'deck-scheme')
-      .order('created_at', { ascending: false })
+    const { data } = await supabase.from('personal_records').select('*')
+      .eq('user_id', session.user.id).eq('type', 'deck-scheme').order('created_at', { ascending: false })
     if (data) setSavedSchemes(data)
   }
 
-  // Timer
   useEffect(() => {
     if (running && !paused) {
       timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000)
-    } else {
-      clearInterval(timerRef.current)
-    }
+    } else { clearInterval(timerRef.current) }
     return () => clearInterval(timerRef.current)
   }, [running, paused])
 
-  // Wake lock
   const requestWakeLock = useCallback(async () => {
     if (!videoRef.current) {
       const v = document.createElement('video')
-      v.setAttribute('playsinline', '')
-      v.setAttribute('muted', '')
-      v.setAttribute('loop', '')
+      v.setAttribute('playsinline', ''); v.setAttribute('muted', ''); v.setAttribute('loop', '')
       v.style.cssText = 'position:fixed;opacity:0;width:1px;height:1px'
       v.src = 'data:video/mp4;base64,AAAAIGZ0eXBtcDQyAAAAAG1wNDJpc29tYXZjMQAAAM1tb292AAAAbG12aGQAAAAA0OfR59Dn0ecAAAPoAAAA+gABAAABAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAGGlvZHMAAAAAEICAgAcAT////v7/AAAAT3RyYWsAAABcdGtoZAAAAAPQ59Hn0OfR5wAAAAEAAAAAAAAA+gAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAACAAAAAgAAAAAACRlZHRzAAAAHGVsc3QAAAAAAAEAAAD6AAAAAAABAAAAAAHHbWRpYQAAACBtZGhkAAAAANDn0efQ59HnAAAAGAAAABgVxwAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABcm1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAADJzdGJsAAAAJnN0c2QAAAAAAAAAAQAAABZtcDR2AAAAAAAAAAEAAAAAAAAAAAAYc3R0cwAAAAAAAAAAAAAUc3RzYwAAAAAAAAAAAAAUc3RzegAAAAAAAAAAAAAACHN0Y28AAAAAAAAAA'
-      v.play().catch(() => {})
-      videoRef.current = v
+      v.play().catch(() => {}); videoRef.current = v
     }
     try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen') } catch {}
   }, [])
@@ -111,13 +107,14 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
     if (wakeLockRef.current) { wakeLockRef.current.release(); wakeLockRef.current = null }
   }, [])
 
-  useEffect(() => { return releaseWakeLock }, [])
+  useEffect(() => () => releaseWakeLock(), [])
 
   function loadPreset(preset) {
     const suits = typeof preset.suits === 'string' ? JSON.parse(preset.suits) : preset.suits
     setSuitMovements({ ...suits })
     setJokerMovement(preset.joker || '')
     setIncludeJokers(preset.include_jokers !== false)
+    setActivePresetName(preset.name)
   }
 
   function loadSavedScheme(scheme) {
@@ -126,29 +123,25 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
       setSuitMovements(data.suits)
       setJokerMovement(data.joker || '')
       setIncludeJokers(data.includeJokers !== false)
+      setActivePresetName(null) // Custom
     } catch {}
   }
 
   async function saveScheme() {
     if (!session || !schemeName.trim()) return
-    const data = { suits: suitMovements, joker: jokerMovement, includeJokers }
     await supabase.from('personal_records').insert({
-      user_id: session.user.id, type: 'deck-scheme',
-      movement: schemeName.trim(), score: 'scheme',
-      notes: JSON.stringify(data), completed_at: new Date().toISOString().slice(0, 10)
+      user_id: session.user.id, type: 'deck-scheme', movement: schemeName.trim(), score: 'scheme',
+      notes: JSON.stringify({ suits: suitMovements, joker: jokerMovement, includeJokers }),
+      completed_at: new Date().toISOString().slice(0, 10)
     })
-    setSchemeName('')
-    setShowSave(false)
-    loadSchemes()
+    setSchemeName(''); setShowSave(false); loadSchemes()
   }
 
   async function deleteSavedScheme(id) {
     if (!confirm('Delete this saved scheme?')) return
-    await supabase.from('personal_records').delete().eq('id', id)
-    loadSchemes()
+    await supabase.from('personal_records').delete().eq('id', id); loadSchemes()
   }
 
-  // Admin preset functions
   function startEditPreset(p) {
     const suits = typeof p.suits === 'string' ? JSON.parse(p.suits) : p.suits
     setEditingPreset(p.id)
@@ -162,29 +155,15 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
 
   async function savePresetEdit() {
     if (!presetForm || !presetForm.name.trim()) { alert('Name is required.'); return }
-    const payload = {
-      name: presetForm.name.trim(),
-      description: presetForm.description.trim() || null,
-      suits: presetForm.suits,
-      joker: presetForm.joker.trim() || null,
-      include_jokers: presetForm.include_jokers,
-      sort_order: presetForm.sort_order,
-    }
-    if (addingPreset) {
-      await supabase.from('deck_presets').insert(payload)
-    } else {
-      await supabase.from('deck_presets').update(payload).eq('id', editingPreset)
-    }
-    setEditingPreset(null)
-    setAddingPreset(false)
-    setPresetForm(null)
-    loadPresets()
+    const payload = { name: presetForm.name.trim(), description: presetForm.description.trim() || null, suits: presetForm.suits, joker: presetForm.joker.trim() || null, include_jokers: presetForm.include_jokers, sort_order: presetForm.sort_order }
+    if (addingPreset) await supabase.from('deck_presets').insert(payload)
+    else await supabase.from('deck_presets').update(payload).eq('id', editingPreset)
+    setEditingPreset(null); setAddingPreset(false); setPresetForm(null); loadPresets()
   }
 
   async function deletePreset(id) {
     if (!confirm('Delete this preset?')) return
-    await supabase.from('deck_presets').delete().eq('id', id)
-    loadPresets()
+    await supabase.from('deck_presets').delete().eq('id', id); loadPresets()
   }
 
   function startGame() {
@@ -192,27 +171,16 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
     if (empty) { alert('Please assign a movement to each suit.'); return }
     if (includeJokers && !jokerMovement.trim()) { alert('Please assign a Joker movement or disable Jokers.'); return }
     const d = buildDeck(includeJokers)
-    setDeck(d)
-    setCurrentIdx(-1)
-    setElapsed(0)
-    setTotalReps(0)
+    setDeck(d); setCurrentIdx(-1); setElapsed(0); setTotalReps(0)
     setSuitReps({ '♠': 0, '♥': 0, '♦': 0, '♣': 0, '🃏': 0 })
-    setLogged(false)
-    setPaused(false)
-    setPhase('playing')
-    setRunning(true)
+    setLogged(false); setPaused(false); setPhase('playing'); setRunning(true)
     requestWakeLock()
     setTimeout(() => flipNext(d, -1), 400)
   }
 
   function flipNext(d = deck, idx = currentIdx) {
     const nextIdx = idx + 1
-    if (nextIdx >= d.length) {
-      setRunning(false)
-      setPhase('complete')
-      releaseWakeLock()
-      return
-    }
+    if (nextIdx >= d.length) { setRunning(false); setPhase('complete'); releaseWakeLock(); return }
     setFlipping(true)
     setTimeout(() => {
       setCurrentIdx(nextIdx)
@@ -225,45 +193,37 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
     }, 200)
   }
 
-  function togglePause() { setPaused(!paused) }
-
-  function resetToSetup() {
-    setPhase('setup')
-    setRunning(false)
-    setPaused(false)
-    setCurrentIdx(-1)
-    setElapsed(0)
-    releaseWakeLock()
-  }
-
   async function logToActivity() {
     if (!session) { onAuthRequired(); return }
+
+    // Find the matching workout
+    const workoutName = activePresetName && PRESET_WORKOUT_MAP[activePresetName]
+      ? PRESET_WORKOUT_MAP[activePresetName]
+      : 'Deck of Cards - Custom'
+
+    const { data: workouts } = await supabase.from('workouts').select('id, name')
+      .eq('name', workoutName).eq('visibility', 'official').limit(1)
+
+    let workoutId = workouts?.[0]?.id
+    if (!workoutId) {
+      // Fallback: try generic custom
+      const { data: fallback } = await supabase.from('workouts').select('id')
+        .eq('name', 'Deck of Cards - Custom').eq('visibility', 'official').limit(1)
+      workoutId = fallback?.[0]?.id
+    }
+
+    if (!workoutId) return
+
     const movementList = SUITS.map(s => `${SUIT_NAMES[s]}: ${suitMovements[s]}`).join(', ')
-    const desc = `Deck of Cards — ${movementList}${includeJokers ? ', Joker: ' + jokerMovement : ''}`
+    const desc = activePresetName
+      ? `${activePresetName}`
+      : `Custom — ${movementList}${includeJokers ? ', Joker: ' + jokerMovement : ''}`
 
-    let { data: existing } = await supabase
-      .from('workouts').select('id').eq('name', 'Deck of Cards').eq('visibility', 'official').limit(1)
-
-    let workoutId
-    if (existing && existing.length > 0) {
-      workoutId = existing[0].id
-    } else {
-      const { data: newW } = await supabase.from('workouts').insert({
-        name: 'Deck of Cards',
-        description: 'Assign a movement to each suit. Flip cards. The number = your reps. Get through the entire deck.',
-        score_type: 'Time', equipment: ['Bodyweight'], workout_types: ['For Time'],
-        categories: [], movement_categories: [], visibility: 'official', created_by: session.user.id,
-      }).select('id').single()
-      if (newW) workoutId = newW.id
-    }
-
-    if (workoutId) {
-      await supabase.from('performance_log').insert({
-        user_id: session.user.id, workout_id: workoutId,
-        completed_at: new Date().toISOString().slice(0, 10),
-        score: formatTime(elapsed), notes: desc, is_rx: true,
-      })
-    }
+    await supabase.from('performance_log').insert({
+      user_id: session.user.id, workout_id: workoutId,
+      completed_at: new Date().toISOString().slice(0, 10),
+      score: formatTime(elapsed), notes: desc, is_rx: true,
+    })
     setLogged(true)
     if (onWorkoutsChanged) onWorkoutsChanged()
   }
@@ -283,7 +243,6 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
           </div>
         </div>
 
-        {/* Presets */}
         <div className="doc-presets">
           <div className="doc-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>Quick Start</span>
@@ -307,7 +266,6 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
           </div>
         </div>
 
-        {/* Admin preset edit form */}
         {(editingPreset || addingPreset) && presetForm && (
           <div className="doc-preset-form">
             <div className="doc-label">{addingPreset ? 'Add Preset' : 'Edit Preset'}</div>
@@ -332,27 +290,44 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
           </div>
         )}
 
-        {/* Saved schemes */}
-        {savedSchemes.length > 0 && (
-          <div className="doc-saved">
-            <div className="doc-label">My Saved Schemes</div>
-            {savedSchemes.map(s => (
-              <div key={s.id} className="doc-saved-item">
-                <span className="doc-saved-name" onClick={() => loadSavedScheme(s)}>{s.movement}</span>
-                <span className="del-entry" onClick={() => deleteSavedScheme(s.id)}>✕</span>
-              </div>
-            ))}
+        {/* My Saved Decks */}
+        {session && (
+          <div className="doc-my-decks">
+            <div className="doc-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => setShowMyDecks(!showMyDecks)}>
+              <span>My Saved Decks ({savedSchemes.length})</span>
+              <span style={{ fontSize: '10px' }}>{showMyDecks ? '▾' : '▸'}</span>
+            </div>
+            {showMyDecks && (
+              <>
+                {savedSchemes.length === 0 ? (
+                  <div style={{ fontSize: '12px', color: 'var(--tx3)', padding: '8px 0' }}>No saved decks yet. Build one below and save it.</div>
+                ) : savedSchemes.map(s => {
+                  let data = {}
+                  try { data = JSON.parse(s.notes) } catch {}
+                  return (
+                    <div key={s.id} className="doc-saved-item">
+                      <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => loadSavedScheme(s)}>
+                        <div className="doc-saved-name">{s.movement}</div>
+                        <div style={{ fontSize: '10px', color: 'var(--tx3)', marginTop: '2px' }}>
+                          {SUITS.map(su => data.suits?.[su] ? `${su} ${data.suits[su]}` : '').filter(Boolean).join(' · ')}
+                        </div>
+                      </div>
+                      <span className="del-entry" onClick={() => deleteSavedScheme(s.id)}>✕</span>
+                    </div>
+                  )
+                })}
+              </>
+            )}
           </div>
         )}
 
-        {/* Suit assignments */}
         <div className="doc-suits">
           <div className="doc-label">Assign Movements</div>
           {SUITS.map(suit => (
             <div key={suit} className="doc-suit-row">
               <span className="doc-suit-icon" style={{ color: SUIT_COLORS[suit] }}>{suit}</span>
               <span className="doc-suit-name">{SUIT_NAMES[suit]}</span>
-              <input className="doc-suit-input" value={suitMovements[suit]} onChange={e => setSuitMovements({ ...suitMovements, [suit]: e.target.value })} placeholder="e.g. Push-Ups" />
+              <input className="doc-suit-input" value={suitMovements[suit]} onChange={e => { setSuitMovements({ ...suitMovements, [suit]: e.target.value }); setActivePresetName(null) }} placeholder="e.g. Push-Ups" />
             </div>
           ))}
           <div className="doc-joker-row">
@@ -366,17 +341,16 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
           </div>
         </div>
 
-        {/* Save scheme */}
         {session && (
           <div className="doc-save-area">
             {showSave ? (
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <input value={schemeName} onChange={e => setSchemeName(e.target.value)} placeholder="Scheme name..." className="doc-suit-input" style={{ flex: 1 }} />
+                <input value={schemeName} onChange={e => setSchemeName(e.target.value)} placeholder="Deck name..." className="doc-suit-input" style={{ flex: 1 }} />
                 <button className="ab p" onClick={saveScheme} style={{ padding: '7px 14px', fontSize: '12px' }}>Save</button>
                 <button className="ab" onClick={() => setShowSave(false)} style={{ padding: '7px 10px', fontSize: '12px' }}>Cancel</button>
               </div>
             ) : (
-              <button className="ab" onClick={() => setShowSave(true)} style={{ fontSize: '12px' }}>💾 Save This Scheme</button>
+              <button className="ab" onClick={() => setShowSave(true)} style={{ fontSize: '12px' }}>💾 Save This Deck</button>
             )}
           </div>
         )}
@@ -385,7 +359,8 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
         <div className="doc-info">
           <span>52 cards{includeJokers ? ' + 2 Jokers' : ''}</span>
           <span>·</span>
-          <span>Total: {includeJokers ? '222' : '220'} reps + Jokers</span>
+          <span>{includeJokers ? '222' : '220'} reps{includeJokers ? ' + Jokers' : ''}</span>
+          {activePresetName && <><span>·</span><span style={{ color: 'var(--acc)' }}>{activePresetName}</span></>}
         </div>
       </div>
     )
@@ -431,7 +406,6 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
                     <div className="doc-card-corner-br" style={{ color: SUIT_COLORS[currentCard.suit] }}>
                       <div>{currentCard.suit}</div><div>{currentCard.rank}</div>
                     </div>
-                    <div className="doc-card-gorilla-bg">🦍</div>
                   </>
                 )}
               </div>
@@ -457,8 +431,8 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
         </div>
 
         <div className="doc-controls" onClick={e => e.stopPropagation()}>
-          <button className="doc-ctrl" onClick={togglePause}>{paused ? '▶ Resume' : '⏸ Pause'}</button>
-          <button className="doc-ctrl sec" onClick={() => { if (confirm('Quit this deck?')) resetToSetup() }}>✕ Quit</button>
+          <button className="doc-ctrl" onClick={() => setPaused(!paused)}>{paused ? '▶ Resume' : '⏸ Pause'}</button>
+          <button className="doc-ctrl sec" onClick={() => { if (confirm('Quit this deck?')) { setPhase('setup'); setRunning(false); releaseWakeLock() } }}>✕ Quit</button>
         </div>
 
         {paused && (
@@ -469,13 +443,11 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
               <div>{totalReps} total reps</div>
               <div>{formatTime(elapsed)}</div>
             </div>
-            <button className="doc-ctrl" onClick={togglePause}>▶ Resume</button>
+            <button className="doc-ctrl" onClick={() => setPaused(false)}>▶ Resume</button>
           </div>
         )}
 
-        {!paused && currentCard && (
-          <div className="doc-tap-hint">tap for next card →</div>
-        )}
+        {!paused && currentCard && <div className="doc-tap-hint">tap for next card →</div>}
       </div>
     )
   }
@@ -512,12 +484,14 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
       </div>
       <div className="doc-complete-actions">
         {session && !logged ? (
-          <button className="doc-start-btn" onClick={logToActivity}>✓ Log to Activity Feed ({formatTime(elapsed)})</button>
+          <button className="doc-start-btn" onClick={logToActivity}>
+            ✓ Log {formatTime(elapsed)} to {activePresetName ? PRESET_WORKOUT_MAP[activePresetName] || 'Custom' : 'Deck of Cards - Custom'}
+          </button>
         ) : logged ? (
-          <div style={{ color: 'var(--grn)', fontWeight: 600, fontSize: '16px', textAlign: 'center', padding: '10px' }}>✓ Logged!</div>
+          <div style={{ color: 'var(--grn)', fontWeight: 600, fontSize: '16px', textAlign: 'center', padding: '10px' }}>✓ Logged to Activity Feed!</div>
         ) : null}
         <button className="doc-ctrl" style={{ width: '100%' }} onClick={() => { const d = buildDeck(includeJokers); setDeck(d); setCurrentIdx(-1); setElapsed(0); setTotalReps(0); setSuitReps({ '♠': 0, '♥': 0, '♦': 0, '♣': 0, '🃏': 0 }); setRunning(true); setLogged(false); setPhase('playing'); requestWakeLock(); setTimeout(() => flipNext(d, -1), 400) }}>🔄 Reshuffle & Go Again</button>
-        <button className="doc-ctrl sec" style={{ width: '100%' }} onClick={resetToSetup}>← Back to Setup</button>
+        <button className="doc-ctrl sec" style={{ width: '100%' }} onClick={() => { setPhase('setup'); setRunning(false); releaseWakeLock() }}>← Back to Setup</button>
       </div>
     </div>
   )
