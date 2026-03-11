@@ -3,12 +3,17 @@ import { supabase } from '../lib/supabase'
 import WorkoutTimer from './WorkoutTimer'
 
 function formatDesc(text) {
+  function renderBold(str) {
+    const parts = str.split(/\*\*(.*?)\*\*/)
+    if (parts.length === 1) return str
+    return parts.map((part, i) => i % 2 === 1 ? <b key={i}>{part}</b> : part)
+  }
   return (text || '').split('\n').map((line, i) => {
-    if (line.startsWith('  • ')) return <div key={i} className="desc-li sub">{line.slice(4)}</div>
-    if (line.startsWith('• ')) return <div key={i} className="desc-li">{line.slice(2)}</div>
-    if (line.startsWith('--- ')) return <div key={i} className="desc-section">{line.slice(4)}</div>
+    if (line.startsWith('  • ')) return <div key={i} className="desc-li sub">{renderBold(line.slice(4))}</div>
+    if (line.startsWith('• ')) return <div key={i} className="desc-li">{renderBold(line.slice(2))}</div>
+    if (line.startsWith('--- ')) return <div key={i} className="desc-section">{renderBold(line.slice(4))}</div>
     if (line.trim() === '') return <br key={i} />
-    return <div key={i}>{line}</div>
+    return <div key={i}>{renderBold(line)}</div>
   })
 }
 

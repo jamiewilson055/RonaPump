@@ -92,17 +92,24 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
             setForm({ ...form, description: before + insert + after })
             setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + insert.length }, 0)
           }}>  ◦ Sub-bullet</button>
-          <button type="button" className="fmt-btn" title="Add separator line" onClick={() => {
+          <button type="button" className="fmt-btn" title="Bold selected text" onClick={() => {
             const ta = document.getElementById('wk-desc')
             if (!ta) return
             const start = ta.selectionStart
-            const before = form.description.slice(0, start)
-            const after = form.description.slice(start)
-            const needsNewline = before.length > 0 && !before.endsWith('\n')
-            const insert = (needsNewline ? '\n' : '') + '\n'
-            setForm({ ...form, description: before + insert + after })
-            setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + insert.length }, 0)
-          }}>↵ Line Break</button>
+            const end = ta.selectionEnd
+            const selected = form.description.slice(start, end)
+            if (selected) {
+              const before = form.description.slice(0, start)
+              const after = form.description.slice(end)
+              setForm({ ...form, description: before + '**' + selected + '**' + after })
+              setTimeout(() => { ta.focus(); ta.selectionStart = start; ta.selectionEnd = end + 4 }, 0)
+            } else {
+              const before = form.description.slice(0, start)
+              const after = form.description.slice(start)
+              setForm({ ...form, description: before + '****' + after })
+              setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + 2 }, 0)
+            }
+          }}><b>B</b> Bold</button>
           <button type="button" className="fmt-btn" title="Add section header" onClick={() => {
             const ta = document.getElementById('wk-desc')
             if (!ta) return

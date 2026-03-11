@@ -22,12 +22,17 @@ function cleanDesc(w) {
 }
 
 function formatDesc(text) {
+  function renderBold(str) {
+    const parts = str.split(/\*\*(.*?)\*\*/)
+    if (parts.length === 1) return str
+    return parts.map((part, i) => i % 2 === 1 ? <b key={i}>{part}</b> : part)
+  }
   return text.split('\n').map((line, i) => {
-    if (line.startsWith('  • ')) return <div key={i} className="desc-li sub">{line.slice(4)}</div>
-    if (line.startsWith('• ')) return <div key={i} className="desc-li">{line.slice(2)}</div>
-    if (line.startsWith('--- ')) return <div key={i} className="desc-section">{line.slice(4)}</div>
+    if (line.startsWith('  • ')) return <div key={i} className="desc-li sub">{renderBold(line.slice(4))}</div>
+    if (line.startsWith('• ')) return <div key={i} className="desc-li">{renderBold(line.slice(2))}</div>
+    if (line.startsWith('--- ')) return <div key={i} className="desc-section">{renderBold(line.slice(4))}</div>
     if (line.trim() === '') return <br key={i} />
-    return <div key={i}>{line}</div>
+    return <div key={i}>{renderBold(line)}</div>
   })
 }
 
@@ -541,12 +546,20 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
               const ta = document.getElementById('wk-edit-desc')
               if (!ta) return
               const start = ta.selectionStart
-              const before = editForm.description.slice(0, start)
-              const after = editForm.description.slice(start)
-              const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
-              setEditForm({ ...editForm, description: before + nl + '\n' + after })
-              setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 1 }, 0)
-            }}>↵ Line Break</button>
+              const end = ta.selectionEnd
+              const selected = editForm.description.slice(start, end)
+              if (selected) {
+                const before = editForm.description.slice(0, start)
+                const after = editForm.description.slice(end)
+                setEditForm({ ...editForm, description: before + '**' + selected + '**' + after })
+                setTimeout(() => { ta.focus(); ta.selectionStart = start; ta.selectionEnd = end + 4 }, 0)
+              } else {
+                const before = editForm.description.slice(0, start)
+                const after = editForm.description.slice(start)
+                setEditForm({ ...editForm, description: before + '****' + after })
+                setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + 2 }, 0)
+              }
+            }}><b>B</b> Bold</button>
             <button type="button" className="fmt-btn" onClick={() => {
               const ta = document.getElementById('wk-edit-desc')
               if (!ta) return
