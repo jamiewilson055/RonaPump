@@ -27,8 +27,13 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
     })
   }
 
-  async function handleSave(submitForReview = false) {
+  async function handleSave(submitForReview = false, adminVisibility = null) {
     if (!form.description.trim()) { alert('Description is required.'); return }
+    let visibility = 'private'
+    if (adminVisibility) visibility = adminVisibility
+    else if (isAdmin) visibility = 'official'
+    else if (submitForReview) visibility = 'pending'
+
     const { error } = await supabase.from('workouts').insert({
       name: form.name.trim() || null,
       description: form.description.trim(),
@@ -43,7 +48,7 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
       body_parts: form.body_parts.length ? form.body_parts : [],
       source: 'user-created',
       created_by: session?.user?.id || null,
-      visibility: isAdmin ? 'official' : (submitForReview ? 'pending' : 'private'),
+      visibility,
       submitted_at: submitForReview ? new Date().toISOString() : null,
     })
     if (error) { alert('Error: ' + error.message); return }
@@ -128,7 +133,10 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
         <div className="mf" style={{ gap: '8px' }}>
           <button className="ab" onClick={onClose}>Cancel</button>
           {isAdmin ? (
-            <button className="ab p" onClick={() => handleSave(false)}>Add Official Workout</button>
+            <>
+              <button className="ab" onClick={() => handleSave(false, 'private')}>Save to My Workouts</button>
+              <button className="ab p" onClick={() => handleSave(false, 'official')}>Add as Official 🦍</button>
+            </>
           ) : (
             <>
               <button className="ab" onClick={() => handleSave(false)}>Save Private</button>

@@ -32,7 +32,7 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
     // Source filter
     if (sourceFilter === 'official') w = w.filter(x => x.visibility === 'official')
     else if (sourceFilter === 'community') w = w.filter(x => x.visibility === 'community')
-    else if (sourceFilter === 'mine') w = w.filter(x => x.created_by === session?.user?.id)
+    else if (sourceFilter === 'mine') w = w.filter(x => x.created_by === session?.user?.id && x.visibility !== 'official' && x.visibility !== 'community')
 
     if (query) {
       const q = query.toLowerCase()
