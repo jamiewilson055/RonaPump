@@ -14,6 +14,7 @@ import UpdatePassword from './components/UpdatePassword'
 import Welcome from './components/Welcome'
 import AddToHomeScreen from './components/AddToHomeScreen'
 import AdminQueue from './components/AdminQueue'
+import AdminAnalytics from './pages/AdminAnalytics'
 import SignupGate from './components/SignupGate'
 import ActivityFeed from './pages/ActivityFeed'
 import DeckOfCards from './components/DeckOfCards'
@@ -229,6 +230,7 @@ function App() {
       ) : tab === 'stats' ? (
         session ? (
           <ErrorBoundary>
+            {profile?.is_admin && <AdminAnalytics />}
             <Stats workouts={workouts} favorites={favorites} />
           </ErrorBoundary>
         ) : (
