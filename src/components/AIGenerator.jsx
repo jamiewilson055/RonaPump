@@ -12,10 +12,19 @@ const QUICK_PROMPTS = [
   { label: '🦍 Harambe', prompt: 'Create the most brutal full body workout you can think of, 30 minutes, any equipment' },
 ]
 
+const ALL_EQUIPMENT = ['Barbell', 'Bench', 'Bike (Assault/Echo)', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Speed Rope', 'Weighted Vest']
+const ALL_TYPES = ['AMRAP', 'EMOM', 'For Calories', 'For Distance', 'For Time', 'Interval', 'Ladder', 'Rounds', 'Strength']
+const ALL_CATEGORIES = ['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Outdoor', 'Track Workouts']
+const ALL_MOVEMENTS = ['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat']
+const ALL_BODY_PARTS = ['Upper Body', 'Lower Body', 'Full Body']
+const SCORE_TYPES = ['Time', 'Rounds + Reps', 'Reps', 'Calories', 'Distance', 'Load', 'None']
+
 export default function AIGenerator({ session, onAuthRequired, isAdmin, onWorkoutsChanged }) {
   const [prompt, setPrompt] = useState('')
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState(null)
+  const [editing, setEditing] = useState(false)
+  const [editForm, setEditForm] = useState(null)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
 
@@ -24,6 +33,8 @@ export default function AIGenerator({ session, onAuthRequired, isAdmin, onWorkou
     if (!p.trim()) return
     setGenerating(true)
     setResult(null)
+    setEditForm(null)
+    setEditing(false)
     setError('')
     setSaved(false)
 
@@ -33,35 +44,65 @@ export default function AIGenerator({ session, onAuthRequired, isAdmin, onWorkou
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: p })
       })
-
       const text = await response.text()
       let data
-      try {
-        data = JSON.parse(text)
-      } catch {
+      try { data = JSON.parse(text) } catch {
         setError('Server returned invalid response. Status: ' + response.status)
         setGenerating(false)
         return
       }
-
-      if (data.error) {
-        setError(data.error)
-        setGenerating(false)
-        return
-      }
-
+      if (data.error) { setError(data.error); setGenerating(false); return }
       setResult(data)
     } catch (err) {
       setError('Network error: ' + (err.message || 'Please try again.'))
-      console.error(err)
     }
     setGenerating(false)
   }
 
-  async function saveWorkout() {
+  function startEdit() {
+    setEditForm({
+      name: result.name || '',
+      description: result.description || '',
+      score_type: result.score_type || 'None',
+      estimated_duration_mins: result.estimated_duration_mins || '',
+      equipment: result.equipment || ['Bodyweight'],
+      workout_types: result.workout_types || [],
+      movement_categories: result.movement_categories || [],
+      body_parts: result.body_parts || [],
+      categories: result.categories || [],
+    })
+    setEditing(true)
+  }
+
+  function toggleArray(field, val) {
+    setEditForm(prev => {
+      const arr = [...(prev[field] || [])]
+      const idx = arr.indexOf(val)
+      if (idx >= 0) arr.splice(idx, 1); else arr.push(val)
+      return { ...prev, [field]: arr }
+    })
+  }
+
+  function applyEdit() {
+    setResult({
+      ...result,
+      name: editForm.name,
+      description: editForm.description,
+      score_type: editForm.score_type,
+      estimated_duration_mins: editForm.estimated_duration_mins ? parseInt(editForm.estimated_duration_mins) : null,
+      equipment: editForm.equipment.length ? editForm.equipment : ['Bodyweight'],
+      workout_types: editForm.workout_types,
+      movement_categories: editForm.movement_categories,
+      body_parts: editForm.body_parts,
+      categories: editForm.categories,
+    })
+    setEditing(false)
+    setEditForm(null)
+  }
+
+  async function saveWorkout(visibility) {
     if (!session) { onAuthRequired(); return }
     if (!result) return
-
     const { error: err } = await supabase.from('workouts').insert({
       name: result.name,
       description: result.description,
@@ -72,13 +113,12 @@ export default function AIGenerator({ session, onAuthRequired, isAdmin, onWorkou
       movement_categories: result.movement_categories?.length ? result.movement_categories : [],
       body_parts: result.body_parts?.length ? result.body_parts : [],
       categories: result.categories || [],
-      visibility: isAdmin ? 'official' : 'private',
-      created_by: session?.user?.id || null,
+      visibility: visibility,
+      created_by: session.user.id,
       source: 'ai-generated',
     })
-
     if (err) { setError('Error saving: ' + err.message); return }
-    setSaved(true)
+    setSaved(visibility)
     if (onWorkoutsChanged) onWorkoutsChanged()
   }
 
@@ -107,14 +147,11 @@ export default function AIGenerator({ session, onAuthRequired, isAdmin, onWorkou
       </div>
 
       <div className="ai-input-row">
-        <input
-          value={prompt}
-          onChange={e => setPrompt(e.target.value)}
+        <input value={prompt} onChange={e => setPrompt(e.target.value)}
           placeholder="e.g. 20 min AMRAP with dumbbells and burpees..."
           className="doc-suit-input"
           onKeyDown={e => { if (e.key === 'Enter') generate() }}
-          style={{ flex: 1 }}
-        />
+          style={{ flex: 1 }} />
         <button className="ai-gen-btn" onClick={() => generate()} disabled={generating}>
           {generating ? '⏳' : '🦍'} {generating ? 'Generating...' : 'Generate'}
         </button>
@@ -124,9 +161,7 @@ export default function AIGenerator({ session, onAuthRequired, isAdmin, onWorkou
         <div className="doc-label">Or try one of these</div>
         <div className="ai-quick-grid">
           {QUICK_PROMPTS.map((qp, i) => (
-            <button key={i} className="ai-quick-btn" onClick={() => { setPrompt(qp.prompt); generate(qp.prompt) }}>
-              {qp.label}
-            </button>
+            <button key={i} className="ai-quick-btn" onClick={() => { setPrompt(qp.prompt); generate(qp.prompt) }}>{qp.label}</button>
           ))}
         </div>
       </div>
@@ -140,7 +175,8 @@ export default function AIGenerator({ session, onAuthRequired, isAdmin, onWorkou
         </div>
       )}
 
-      {result && (
+      {/* Preview mode */}
+      {result && !editing && (
         <div className="ai-result">
           <div className="ai-result-header">
             <div className="ai-result-name">{result.name}</div>
@@ -159,14 +195,100 @@ export default function AIGenerator({ session, onAuthRequired, isAdmin, onWorkou
           <div className="ai-result-actions">
             {!saved ? (
               <>
-                <button className="doc-start-btn" onClick={saveWorkout} style={{ fontSize: '14px' }}>
-                  {isAdmin ? '🦍 Save as Official Workout' : '💾 Save to My Workouts'}
-                </button>
-                <button className="doc-ctrl" style={{ width: '100%' }} onClick={() => generate()}>🔄 Regenerate</button>
+                <button className="doc-ctrl" style={{ width: '100%' }} onClick={startEdit}>✏️ Edit Before Saving</button>
+                {isAdmin ? (
+                  <button className="doc-start-btn" onClick={() => saveWorkout('official')} style={{ fontSize: '14px' }}>
+                    🦍 Save as Official Workout
+                  </button>
+                ) : (
+                  <>
+                    <button className="doc-start-btn" onClick={() => saveWorkout('private')} style={{ fontSize: '14px' }}>
+                      💾 Save to My Workouts
+                    </button>
+                    <button className="doc-ctrl" style={{ width: '100%', borderColor: 'var(--cyn)', color: 'var(--cyn)' }} onClick={() => saveWorkout('pending')}>
+                      📤 Submit for Community Approval
+                    </button>
+                  </>
+                )}
+                <button className="doc-ctrl sec" style={{ width: '100%' }} onClick={() => generate()}>🔄 Regenerate</button>
               </>
             ) : (
-              <div style={{ color: 'var(--grn)', fontWeight: 600, fontSize: '15px', textAlign: 'center', padding: '12px' }}>✓ Saved!</div>
+              <div style={{ color: 'var(--grn)', fontWeight: 600, fontSize: '15px', textAlign: 'center', padding: '12px' }}>
+                ✓ {saved === 'official' ? 'Saved as Official!' : saved === 'pending' ? 'Submitted for Approval!' : 'Saved to My Workouts!'}
+              </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Edit mode */}
+      {editing && editForm && (
+        <div className="ai-result" style={{ borderColor: 'var(--ylw)' }}>
+          <div className="doc-label" style={{ marginBottom: '8px' }}>✏️ Edit Workout</div>
+
+          <label className="ai-edit-label">Name</label>
+          <input className="doc-suit-input" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} style={{ marginBottom: '8px' }} />
+
+          <label className="ai-edit-label">Description</label>
+          <textarea className="doc-suit-input" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+            style={{ minHeight: '160px', marginBottom: '8px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, resize: 'vertical' }} />
+
+          <label className="ai-edit-label">Score Type</label>
+          <div className="cr" style={{ marginBottom: '8px' }}>
+            {SCORE_TYPES.map(t => (
+              <button key={t} className={`ch${editForm.score_type === t ? ' on' : ''}`}
+                onClick={() => setEditForm({ ...editForm, score_type: t })}>{t}</button>
+            ))}
+          </div>
+
+          <label className="ai-edit-label">Duration (minutes)</label>
+          <input type="number" className="doc-suit-input" value={editForm.estimated_duration_mins}
+            onChange={e => setEditForm({ ...editForm, estimated_duration_mins: e.target.value })}
+            placeholder="e.g. 20" style={{ width: '100px', marginBottom: '8px' }} />
+
+          <label className="ai-edit-label">Equipment</label>
+          <div className="cr" style={{ marginBottom: '8px' }}>
+            {ALL_EQUIPMENT.map(eq => (
+              <button key={eq} className={`ch${editForm.equipment.includes(eq) ? ' on' : ''}`}
+                onClick={() => toggleArray('equipment', eq)}>{eq}</button>
+            ))}
+          </div>
+
+          <label className="ai-edit-label">Workout Type</label>
+          <div className="cr" style={{ marginBottom: '8px' }}>
+            {ALL_TYPES.map(t => (
+              <button key={t} className={`ch${editForm.workout_types.includes(t) ? ' on' : ''}`}
+                onClick={() => toggleArray('workout_types', t)}>{t}</button>
+            ))}
+          </div>
+
+          <label className="ai-edit-label">Category</label>
+          <div className="cr" style={{ marginBottom: '8px' }}>
+            {ALL_CATEGORIES.map(c => (
+              <button key={c} className={`ch${editForm.categories.includes(c) ? ' on' : ''}`}
+                onClick={() => toggleArray('categories', c)}>{c}</button>
+            ))}
+          </div>
+
+          <label className="ai-edit-label">Movement Type</label>
+          <div className="cr" style={{ marginBottom: '8px' }}>
+            {ALL_MOVEMENTS.map(m => (
+              <button key={m} className={`ch${editForm.movement_categories.includes(m) ? ' on' : ''}`}
+                onClick={() => toggleArray('movement_categories', m)}>{m}</button>
+            ))}
+          </div>
+
+          <label className="ai-edit-label">Body Part</label>
+          <div className="cr" style={{ marginBottom: '12px' }}>
+            {ALL_BODY_PARTS.map(b => (
+              <button key={b} className={`ch${editForm.body_parts.includes(b) ? ' on' : ''}`}
+                onClick={() => toggleArray('body_parts', b)}>{b}</button>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="doc-start-btn" onClick={applyEdit} style={{ fontSize: '14px', flex: 1 }}>✓ Apply Changes</button>
+            <button className="doc-ctrl" onClick={() => { setEditing(false); setEditForm(null) }}>Cancel</button>
           </div>
         </div>
       )}

@@ -1006,3 +1006,6 @@ input, select, textarea { font-family: inherit; }
   .ai-hero-title { font-size: 20px; }
   .ai-quick-btn { font-size: 12px; padding: 6px 12px; }
 }
+
+/* AI edit labels */
+.ai-edit-label { font-size: 12px; color: var(--tx3); display: block; margin-bottom: 3px; }
