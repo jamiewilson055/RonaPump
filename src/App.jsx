@@ -267,23 +267,11 @@ function App() {
 
           {/* Sticky sidebar — desktop only */}
           <div className="desktop-sidebar desktop-only">
-            <div className="sidebar-card">
-              <div className="sidebar-label">Quick AI</div>
-              <div className="sidebar-ai-hint">Describe your ideal workout and let AI build it for you.</div>
-              <button className="sidebar-ai-btn" onClick={() => setTab('ai')}>🤖 Generate a Workout</button>
+            <div className="sidebar-card sidebar-ai">
+              <div className="sidebar-label">🤖 AI Workout Generator</div>
+              <div className="sidebar-ai-hint">Tell me what equipment you have, how much time, and what you want to focus on.</div>
+              <button className="sidebar-ai-btn" onClick={() => setTab('ai')}>Generate a Custom Workout →</button>
             </div>
-
-            {session && (
-              <div className="sidebar-card">
-                <div className="sidebar-label">Your Stats</div>
-                <div className="sidebar-stats">
-                  <div className="sidebar-stat"><span className="sidebar-stat-n">{counts.done}</span><span className="sidebar-stat-l">Done</span></div>
-                  <div className="sidebar-stat"><span className="sidebar-stat-n">{streak > 0 ? `🔥${streak}` : '0'}</span><span className="sidebar-stat-l">Streak</span></div>
-                  <div className="sidebar-stat"><span className="sidebar-stat-n">{favorites.size}</span><span className="sidebar-stat-l">Favs</span></div>
-                </div>
-                <button className="sidebar-link" onClick={() => setTab('stats')}>View Full Stats →</button>
-              </div>
-            )}
 
             {session && (
               <div className="sidebar-card">

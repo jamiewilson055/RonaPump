@@ -56,12 +56,17 @@ export default function Header({ counts, session, profile, onAuthClick, streak, 
         <ThemeToggle />
         {session && <NotificationBell session={session} onNavigate={onNotifNavigate} />}
         {session ? (
-          <button className="user-btn" onClick={onAuthClick}>
-            {profile?.display_name || 'Profile'}
-          </button>
+          <div className="hdr-user-group">
+            <button className="user-btn" onClick={onAuthClick}>
+              {profile?.display_name || 'Profile'}
+            </button>
+            <button className="stats-btn activity-btn" onClick={onActivityClick} title="Activity Feed">
+              👥 <span className="activity-label">Activity</span>
+            </button>
+          </div>
         ) : (
           <button className="user-btn" onClick={onAuthClick}>Sign In</button>
-        )}}
+        )}
       </div>
     </div>
   )
