@@ -937,3 +937,57 @@ input, select, textarea { font-family: inherit; }
 .stats-btn { background: var(--s2); border: 1px solid var(--brd); border-radius: 6px; padding: 5px 10px; font-size: 16px; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all .12s; }
 .stats-btn:hover { border-color: var(--tx3); background: var(--s3); }
 .stats-streak { font-size: 11px; font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+
+/* Traveling filter */
+.sf-travel { border-color: rgba(59,130,246,.2); }
+.sf-travel.on { background: rgba(59,130,246,.08); border-color: var(--blu); color: var(--blu); }
+
+/* Workout Calendar */
+.cal-wrap { margin-bottom: 20px; }
+.cal-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.cal-streak { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600; color: #ff9500; }
+.cal-month-stats { font-size: 12px; color: var(--tx3); }
+.cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.cal-nav-btn { background: var(--s2); border: 1px solid var(--brd); border-radius: 6px; width: 36px; height: 36px; font-size: 20px; cursor: pointer; color: var(--tx); display: flex; align-items: center; justify-content: center; transition: all .1s; }
+.cal-nav-btn:hover { background: var(--s3); }
+.cal-month-title { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 600; color: var(--tx); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal-day-label { text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--tx3); padding: 4px 0; }
+.cal-cell { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; position: relative; background: var(--s1); border: 1px solid var(--brd); transition: all .1s; }
+.cal-cell.empty { background: transparent; border-color: transparent; cursor: default; }
+.cal-cell:not(.empty):hover { border-color: var(--tx3); }
+.cal-cell.active { background: var(--acc-d); border-color: var(--acc); }
+.cal-cell.today { box-shadow: inset 0 0 0 2px var(--acc); }
+.cal-cell.selected { background: var(--acc); border-color: var(--acc); }
+.cal-cell.selected .cal-cell-num { color: #fff; }
+.cal-cell.selected .cal-cell-dot { color: #fff; }
+.cal-cell-num { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: var(--tx); }
+.cal-cell-dot { font-size: 9px; color: var(--acc); font-family: 'JetBrains Mono', monospace; font-weight: 700; line-height: 1; }
+.cal-detail { background: var(--s1); border: 1px solid var(--brd); border-radius: 10px; padding: 14px; margin-top: 10px; }
+.cal-detail-date { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: var(--tx); margin-bottom: 8px; }
+.cal-detail-empty { font-size: 12px; color: var(--tx3); }
+.cal-detail-item { padding: 8px 0; border-bottom: 1px solid var(--brd); }
+.cal-detail-item:last-child { border-bottom: none; }
+.cal-detail-name { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: var(--tx); }
+.cal-detail-score { font-size: 12px; color: var(--tx2); margin-top: 2px; }
+.cal-detail-notes { font-size: 11px; color: var(--tx3); margin-top: 2px; font-style: italic; }
+
+/* AI Generator */
+.ai-gen { max-width: 560px; margin: 0 auto; }
+.ai-quick-prompts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.ai-quick-btn { background: var(--s1); border: 1px solid var(--brd); border-radius: 20px; padding: 7px 14px; font-size: 12px; color: var(--tx2); cursor: pointer; transition: all .12s; font-family: 'DM Sans', sans-serif; }
+.ai-quick-btn:hover { border-color: var(--acc); color: var(--tx); background: var(--s2); }
+.ai-input-row { display: flex; gap: 8px; margin-bottom: 16px; }
+.ai-loading { text-align: center; padding: 32px; }
+.ai-loading-text { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--tx3); animation: doc-pulse 1.5s infinite; }
+.ai-result { background: var(--s1); border: 1px solid var(--brd); border-radius: 10px; padding: 16px; }
+.ai-result-name { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: var(--tx); margin-bottom: 6px; }
+.ai-result-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+.ai-result-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
+.ai-result-desc { font-size: 14px; color: var(--tx2); line-height: 1.6; padding: 10px; background: var(--bg); border-radius: 8px; margin-bottom: 12px; }
+.ai-result-actions { display: flex; flex-direction: column; gap: 8px; }
+
+@media (max-width: 640px) {
+  .ai-input-row { flex-direction: column; }
+  .ai-quick-btn { font-size: 11px; padding: 6px 12px; }
+}

@@ -181,6 +181,16 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
         <button className={`sf-btn sf-official${sourceFilter === 'official' ? ' on' : ''}`} onClick={() => { setSourceFilter('official'); setPage(1) }}>🦍 Official</button>
         <button className={`sf-btn sf-community${sourceFilter === 'community' ? ' on' : ''}`} onClick={() => { setSourceFilter('community'); setPage(1) }}>👤 Community</button>
         {session && <button className={`sf-btn sf-mine${sourceFilter === 'mine' ? ' on' : ''}`} onClick={() => { setSourceFilter('mine'); setPage(1) }}>🔒 My Workouts</button>}
+        <button className={`sf-btn sf-travel${sourceFilter === 'traveling' ? ' on' : ''}`} onClick={() => {
+          if (sourceFilter === 'traveling') {
+            setSourceFilter('all')
+            setFilters({ eq: [], eqEx: [], mv: [], mvEx: [], cat: [], wt: [], bp: [], durMin: null, durMax: null, includeNoDur: true })
+          } else {
+            setSourceFilter('traveling')
+            setFilters({ eq: ['Bodyweight'], eqEx: [], mv: [], mvEx: [], cat: [], wt: [], bp: [], durMin: null, durMax: null, includeNoDur: true })
+          }
+          setPage(1)
+        }}>✈️ Traveling</button>
       </div>
 
       <div className="rbar">

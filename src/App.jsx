@@ -18,6 +18,8 @@ import SignupGate from './components/SignupGate'
 import AdminAnalytics from './pages/AdminAnalytics'
 import ActivityFeed from './pages/ActivityFeed'
 import DeckOfCards from './components/DeckOfCards'
+import WorkoutCalendar from './components/WorkoutCalendar'
+import AIGenerator from './components/AIGenerator'
 import ScrollToTop from './components/ScrollToTop'
 import './App.css'
 
@@ -188,12 +190,14 @@ function App() {
       <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} />
       {!session && <Welcome onSignIn={() => setShowAuth(true)} />}
       <QuoteBar isAdmin={profile?.is_admin || false} />
-      {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && tab !== 'activity' && tab !== 'deck' && (
+      {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && tab !== 'activity' && tab !== 'deck' && tab !== 'ai' && (
         <WODCard workouts={workouts} session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} favorites={favorites} toggleFavorite={toggleFavorite} />
       )}
       <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} collectionsCount={collections.length} />
       {tab === 'deck' ? (
         <DeckOfCards session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} isAdmin={profile?.is_admin || false} />
+      ) : tab === 'ai' ? (
+        <AIGenerator session={session} onAuthRequired={() => setShowAuth(true)} isAdmin={profile?.is_admin || false} onWorkoutsChanged={loadWorkouts} />
       ) : tab === 'prs' ? (
         <PRTracker session={session} onAuthRequired={() => setShowAuth(true)} />
       ) : tab === 'activity' ? (
@@ -213,6 +217,7 @@ function App() {
         session ? (
           <>
             {profile?.is_admin && <AdminAnalytics />}
+            <WorkoutCalendar workouts={workouts} session={session} />
             <Stats workouts={workouts} favorites={favorites} />
           </>
         ) : (

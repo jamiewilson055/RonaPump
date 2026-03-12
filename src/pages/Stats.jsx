@@ -14,100 +14,82 @@ export default function Stats({ workouts, favorites }) {
   }, [])
 
   async function loadLeaderboard() {
-    try {
-      const { data, error } = await supabase
-        .from('performance_log')
-        .select('score, completed_at, workout_id, user_id')
-        .not('score', 'is', null)
-        .order('completed_at', { ascending: false })
-        .limit(500)
-
-      if (error || !data) return
-
-      // Get unique workout ids and user ids
-      const workoutIds = [...new Set(data.map(d => d.workout_id))]
-      const userIds = [...new Set(data.map(d => d.user_id))]
-
-      // Fetch workout names
-      const { data: wkData } = await supabase
-        .from('workouts')
-        .select('id, name, score_type')
-        .in('id', workoutIds)
-      const wkMap = {}
-      ;(wkData || []).forEach(w => { wkMap[w.id] = w })
-
-      // Fetch user names
-      const { data: prData } = await supabase
-        .from('profiles')
-        .select('id, display_name')
-        .in('id', userIds)
-      const prMap = {}
-      ;(prData || []).forEach(p => { prMap[p.id] = p.display_name || 'Anonymous' })
-
-      // Group by workout
+    // Get all performance logs with profiles and workout names
+    const { data } = await supabase
+      .from('performance_log')
+      .select('score, completed_at, workout_id, user_id, profiles(display_name), workouts(name, score_type)')
+      .not('score', 'is', null)
+      .order('completed_at', { ascending: false })
+      .limit(200)
+    if (data) {
+      // Group by workout, find best scores per user
       const byWorkout = {}
       data.forEach(entry => {
-        const wk = wkMap[entry.workout_id]
-        if (!wk || !wk.name || wk.score_type === 'None') return
-        if (!byWorkout[wk.name]) byWorkout[wk.name] = { name: wk.name, scoreType: wk.score_type, entries: [] }
-        byWorkout[wk.name].entries.push({
-          user: prMap[entry.user_id] || 'Anonymous',
+        const wName = entry.workouts?.name || 'Unnamed'
+        const scoreType = entry.workouts?.score_type || 'None'
+        if (scoreType === 'None') return
+        if (!byWorkout[wName]) byWorkout[wName] = { name: wName, scoreType, entries: [] }
+        byWorkout[wName].entries.push({
+          user: entry.profiles?.display_name || 'Anonymous',
           score: entry.score,
+          date: entry.completed_at,
           userId: entry.user_id,
         })
       })
-
+      // Only show workouts with 1+ entries that have real scores
       const boards = Object.values(byWorkout)
         .filter(b => b.entries.length >= 1)
         .map(b => {
+          // Best per user
           const userBest = {}
           b.entries.forEach(e => {
             if (!userBest[e.userId] || (b.scoreType === 'Time' ? e.score < userBest[e.userId].score : e.score > userBest[e.userId].score)) {
               userBest[e.userId] = e
             }
           })
-          const ranked = Object.values(userBest).sort((a, c) =>
-            b.scoreType === 'Time' ? a.score.localeCompare(c.score) : c.score.localeCompare(a.score)
-          )
+          const ranked = Object.values(userBest).sort((a, c) => b.scoreType === 'Time' ? a.score.localeCompare(c.score) : c.score.localeCompare(a.score))
           return { ...b, ranked }
         })
         .filter(b => b.ranked.length >= 1)
         .sort((a, b) => b.ranked.length - a.ranked.length)
         .slice(0, 10)
-
       setLeaderboard(boards)
-    } catch (err) {
-      console.error('Leaderboard error:', err)
     }
   }
-
   const stats = useMemo(() => {
+    // Use performance log dates for user-specific stats
     const logsWithDates = workouts
       .filter(w => w.performance_log && w.performance_log.length > 0)
       .flatMap(w => w.performance_log.map(p => p.completed_at).filter(Boolean))
     const done = workouts.filter(w => w.performance_log && w.performance_log.length > 0)
     const queue = workouts.filter(w => !w.performance_log || w.performance_log.length === 0)
 
+    // Years
     const years = {}
     logsWithDates.forEach(d => { const y = d.slice(0, 4); years[y] = (years[y] || 0) + 1 })
 
+    // Months (last 12)
     const months = {}
     logsWithDates.forEach(d => { const m = d.slice(0, 7); months[m] = (months[m] || 0) + 1 })
     const monthKeys = Object.keys(months).sort().slice(-12)
     const maxMonth = Math.max(...monthKeys.map(k => months[k]), 1)
 
+    // Equipment
     const eqCount = {}
     workouts.forEach(w => w.equipment?.forEach(e => { if (e !== 'Bodyweight') eqCount[e] = (eqCount[e] || 0) + 1 }))
     const topEq = Object.entries(eqCount).sort((a, b) => b[1] - a[1]).slice(0, 10)
 
+    // Movement types
     const mcCount = {}
     workouts.forEach(w => w.movement_categories?.forEach(m => { if (m !== 'General' && m !== 'Cardio') mcCount[m] = (mcCount[m] || 0) + 1 }))
     const topMc = Object.entries(mcCount).sort((a, b) => b[1] - a[1]).slice(0, 10)
 
+    // Workout types
     const wtCount = {}
     workouts.forEach(w => w.workout_types?.forEach(t => { if (t !== 'General') wtCount[t] = (wtCount[t] || 0) + 1 }))
     const topWt = Object.entries(wtCount).sort((a, b) => b[1] - a[1])
 
+    // Heatmap (last 180 days)
     const dates = new Set(logsWithDates)
     const today = new Date()
     const calDays = []
@@ -118,6 +100,7 @@ export default function Stats({ workouts, favorites }) {
       calDays.push({ d: ds, n: count, label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) })
     }
 
+    // Streak
     let best = 0, cur = 0, cStreak = 0
     for (let i = 0; i < 365; i++) {
       const d = new Date(today); d.setDate(d.getDate() - i)
@@ -130,7 +113,7 @@ export default function Stats({ workouts, favorites }) {
       if (dates.has(ds)) cStreak++; else if (i > 0) break
     }
 
-    return { done, queue, years, months, monthKeys, maxMonth, topEq, topMc, topWt, calDays, best, cStreak }
+    return { done, queue, dated, years, months, monthKeys, maxMonth, topEq, topMc, topWt, calDays, best, cStreak }
   }, [workouts])
 
   return (
