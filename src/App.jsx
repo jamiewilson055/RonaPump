@@ -226,11 +226,11 @@ function App() {
               <div className="hero-sub">Flip, rep, survive the whole deck</div>
             </div>
           </button>
-          <button className="hero-card hero-h2h" onClick={() => setTab('h2h')}>
-            <span className="hero-icon">⚔️</span>
+          <button className="hero-card hero-h2h" onClick={() => setTab('prs')}>
+            <span className="hero-icon">🏆</span>
             <div>
-              <div className="hero-title">Head-to-Head</div>
-              <div className="hero-sub">Challenge your friends</div>
+              <div className="hero-title">PR Tracker</div>
+              <div className="hero-sub">Track your personal records</div>
             </div>
           </button>
         </div>
@@ -269,8 +269,8 @@ function App() {
           <div className="desktop-sidebar desktop-only">
             <div className="sidebar-card">
               <div className="sidebar-label">Quick AI</div>
-              <div className="sidebar-ai-hint">What do you want to train?</div>
-              <button className="sidebar-ai-btn" onClick={() => setTab('ai')}>🤖 Open AI Generator</button>
+              <div className="sidebar-ai-hint">Describe your ideal workout and let AI build it for you.</div>
+              <button className="sidebar-ai-btn" onClick={() => setTab('ai')}>🤖 Generate a Workout</button>
             </div>
 
             {session && (
@@ -281,18 +281,17 @@ function App() {
                   <div className="sidebar-stat"><span className="sidebar-stat-n">{streak > 0 ? `🔥${streak}` : '0'}</span><span className="sidebar-stat-l">Streak</span></div>
                   <div className="sidebar-stat"><span className="sidebar-stat-n">{favorites.size}</span><span className="sidebar-stat-l">Favs</span></div>
                 </div>
-                <button className="sidebar-link" onClick={() => setTab('stats')}>📊 View Full Stats</button>
+                <button className="sidebar-link" onClick={() => setTab('stats')}>View Full Stats →</button>
               </div>
             )}
 
-            <div className="sidebar-card">
-              <div className="sidebar-label">Quick Access</div>
-              <button className="sidebar-link" onClick={() => setTab('deck')}>🃏 Deck of Cards</button>
-              <button className="sidebar-link" onClick={() => setTab('h2h')}>⚔️ Head-to-Head</button>
-              <button className="sidebar-link" onClick={() => setTab('prs')}>🏆 PR Tracker</button>
-              {session && <button className="sidebar-link" onClick={() => { setActivityHighlight(null); setTab('activity') }}>👥 Activity Feed</button>}
-              {session && <button className="sidebar-link" onClick={() => setTab('collections')}>📁 Collections</button>}
-            </div>
+            {session && (
+              <div className="sidebar-card">
+                <div className="sidebar-label">Recent Activity</div>
+                <div className="sidebar-activity-hint">See what you and your friends are doing.</div>
+                <button className="sidebar-link" onClick={() => { setActivityHighlight(null); setTab('activity') }}>Open Activity Feed →</button>
+              </div>
+            )}
           </div>
         </div>
       ) : (
