@@ -50,6 +50,7 @@ function App() {
   const [showAuth, setShowAuth] = useState(false)
   const [collections, setCollections] = useState([])
   const [streak, setStreak] = useState(0)
+  const [activityHighlight, setActivityHighlight] = useState(null)
   const [totalCompleted, setTotalCompleted] = useState(0)
 
   async function loadCollections(userId) {
@@ -189,7 +190,7 @@ function App() {
   if (showProfile && session) {
     return (
       <div className="app">
-        <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => setTab("activity")} onH2HClick={() => setTab("h2h")} onCollectionsClick={() => setTab("collections")} />
+        <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => setTab("activity")} onH2HClick={() => setTab("h2h")} onCollectionsClick={() => setTab("collections")} onNotifNavigate={(link) => { if (link.startsWith("activity:")) { const parts = link.split(":"); setActivityHighlight(parts[1]); setTab("activity") } }} />
         <Profile
           session={session}
           profile={profile}
@@ -202,7 +203,7 @@ function App() {
 
   return (
     <div className="app">
-      <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => setTab("activity")} onH2HClick={() => setTab("h2h")} onCollectionsClick={() => setTab("collections")} />
+      <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => setTab("activity")} onH2HClick={() => setTab("h2h")} onCollectionsClick={() => setTab("collections")} onNotifNavigate={(link) => { if (link.startsWith("activity:")) { const parts = link.split(":"); setActivityHighlight(parts[1]); setTab("activity") } }} />
       {!session && <Welcome onSignIn={() => setShowAuth(true)} />}
       <div className={['deck','ai','prs','h2h'].includes(tab) ? 'mobile-hide' : ''}>
         <QuoteBar isAdmin={profile?.is_admin || false} />
@@ -220,7 +221,7 @@ function App() {
       ) : tab === 'prs' ? (
         <PRTracker session={session} onAuthRequired={() => setShowAuth(true)} />
       ) : tab === 'activity' ? (
-        <ActivityFeed session={session} onAuthRequired={() => setShowAuth(true)} onNavigateToWorkout={(id, name) => {
+        <ActivityFeed session={session} onAuthRequired={() => setShowAuth(true)} highlightId={activityHighlight} onNavigateToWorkout={(id, name) => {
           if (name) {
             const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
             window.location.href = '/workout/' + slug

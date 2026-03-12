@@ -23,7 +23,7 @@ function getCurrentMilestone(total) {
   return current
 }
 
-export default function Header({ counts, session, profile, onAuthClick, streak, totalCompleted, onLogoClick, onStatsClick, onActivityClick, onH2HClick, onCollectionsClick }) {
+export default function Header({ counts, session, profile, onAuthClick, streak, totalCompleted, onLogoClick, onStatsClick, onActivityClick, onH2HClick, onCollectionsClick, onNotifNavigate }) {
   const currentMs = getCurrentMilestone(totalCompleted || 0)
   const nextMs = getNextMilestone(totalCompleted || 0)
 
@@ -54,7 +54,7 @@ export default function Header({ counts, session, profile, onAuthClick, streak, 
         <div className="hs"><div className="hs-n">{counts.done}</div><div className="hs-l">Done</div></div>
         <div className="hs"><div className="hs-n">{counts.queue}</div><div className="hs-l">Queue</div></div>
         <ThemeToggle />
-        {session && <NotificationBell session={session} />}
+        {session && <NotificationBell session={session} onNavigate={onNotifNavigate} />}
         {session ? (
           <div className="hdr-user-group">
             <button className="user-btn" onClick={onAuthClick}>

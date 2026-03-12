@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import PublicProfile from './PublicProfile'
 
-export default function ActivityFeed({ session, onAuthRequired, onNavigateToWorkout }) {
+export default function ActivityFeed({ session, onAuthRequired, onNavigateToWorkout, highlightId }) {
   const [activities, setActivities] = useState([])
   const [loading, setLoading] = useState(true)
   const [following, setFollowing] = useState([])
@@ -56,6 +56,18 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
     ].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || '')).slice(0, 50)
 
     setActivities(combined)
+
+    // Auto-expand highlighted activity
+    if (highlightId) {
+      const match = combined.find(a => a.id === highlightId)
+      if (match) {
+        setExpandedComments(match.id)
+        setTimeout(() => {
+          const el = document.getElementById('activity-' + match.id)
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 300)
+      }
+    }
 
     // Load likes and comments for these activities
     await loadLikesAndComments(combined)
@@ -139,6 +151,7 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
           type: 'like',
           title: `${name} liked your activity`,
           body: a.feed_type === 'pr' ? `Your PR on ${a.movement || 'a movement'}` : `Your log on ${a.workouts?.name || 'a workout'}`,
+          link: `activity:${a.id}:${a.feed_type}`,
         })
       }
     }
@@ -177,6 +190,7 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
         type: 'comment',
         title: `${name} commented on your activity`,
         body: commentText.trim().slice(0, 100),
+        link: `activity:${a.id}:${a.feed_type}`,
       })
     }
 
@@ -298,7 +312,7 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
             const commentList = comments['data:' + key] || []
 
             return (
-              <div key={a.id + (a.feed_type || '')} className="activity-item">
+              <div key={a.id + (a.feed_type || '')} id={`activity-${a.id}`} className={`activity-item${a.id === highlightId ? ' highlighted' : ''}`}>
                 <div className="activity-avatar" onClick={() => setViewingProfile(a.user_id)}>
                   {a.profiles?.avatar_url ? (
                     <img src={a.profiles.avatar_url} alt="" className="activity-avatar-img" />

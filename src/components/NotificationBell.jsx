@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
-export default function NotificationBell({ session }) {
+export default function NotificationBell({ session, onNavigate }) {
   const [notifications, setNotifications] = useState([])
   const [open, setOpen] = useState(false)
   const [unread, setUnread] = useState(0)
@@ -86,7 +86,8 @@ export default function NotificationBell({ session }) {
           ) : (
             <div className="notif-list">
               {notifications.map(n => (
-                <div key={n.id} className={`notif-item${n.read ? '' : ' unread'}`}>
+                <div key={n.id} className={`notif-item${n.read ? '' : ' unread'}${n.link ? ' clickable' : ''}`}
+                  onClick={() => { if (n.link && onNavigate) { onNavigate(n.link); setOpen(false) } }}>
                   <span className="notif-icon">{icons[n.type] || '📌'}</span>
                   <div className="notif-content">
                     <div className="notif-title">{n.title}</div>

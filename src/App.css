@@ -1072,3 +1072,8 @@ input, select, textarea { font-family: inherit; }
 
 /* Similar workout preview */
 .wp-similar-preview { font-size: 12px; color: var(--tx3); line-height: 1.5; margin: 3px 0 4px; }
+
+/* Highlighted activity + clickable notifications */
+.activity-item.highlighted { background: var(--acc-d); border-left: 3px solid var(--acc); padding-left: 10px; border-radius: 6px; }
+.notif-item.clickable { cursor: pointer; }
+.notif-item.clickable:hover { background: var(--s2); }
