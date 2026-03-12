@@ -1148,10 +1148,10 @@ input, select, textarea { font-family: inherit; }
 .timer-hero-sub { color: var(--tx3); font-size: 14px; }
 
 .timer-modes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-.timer-mode-card { display: flex; align-items: center; gap: 12px; background: var(--s1); border: 1px solid var(--brd); border-radius: 10px; padding: 16px; cursor: pointer; text-align: left; transition: all .15s; }
+.timer-mode-card { display: flex; align-items: center; gap: 12px; background: var(--s1); border: 1px solid var(--brd); border-radius: 10px; padding: 16px; cursor: pointer; text-align: left; transition: all .15s; color: var(--tx); }
 .timer-mode-card:hover { border-color: var(--acc); transform: translateY(-1px); }
 .timer-mode-icon { font-size: 28px; flex-shrink: 0; }
-.timer-mode-name { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; }
+.timer-mode-name { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; color: var(--tx); }
 .timer-mode-desc { font-size: 11px; color: var(--tx3); margin-top: 2px; }
 
 .timer-back { background: none; border: none; color: var(--tx3); font-size: 13px; cursor: pointer; padding: 8px 0; margin-bottom: 8px; transition: color .12s; }
@@ -1257,3 +1257,42 @@ input, select, textarea { font-family: inherit; }
 
 /* Show only on mobile */
 @media (min-width: 641px) { .mobile-only { display: none !important; } }
+
+/* Saved Timers */
+.timer-saved-section { margin-top: 16px; }
+.timer-saved-label { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: var(--tx3); margin-bottom: 8px; }
+.timer-saved-item { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
+.timer-saved-btn { flex: 1; display: flex; align-items: center; gap: 10px; background: var(--s1); border: 1px solid var(--brd); border-radius: 8px; padding: 10px 12px; cursor: pointer; text-align: left; transition: all .12s; color: var(--tx); }
+.timer-saved-btn:hover { border-color: var(--acc); }
+.timer-saved-icon { font-size: 18px; }
+.timer-saved-name { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: var(--tx); }
+.timer-saved-mode { font-size: 10px; color: var(--tx3); text-transform: uppercase; letter-spacing: .5px; }
+.timer-saved-del { background: none; border: none; color: var(--tx3); font-size: 14px; cursor: pointer; padding: 8px; }
+.timer-saved-del:hover { color: var(--acc); }
+
+.timer-save-section { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--brd); }
+.timer-save-toggle { background: none; border: 1px dashed var(--brd); border-radius: 8px; width: 100%; padding: 10px; font-size: 13px; color: var(--tx3); cursor: pointer; transition: all .12s; }
+.timer-save-toggle:hover { border-color: var(--acc); color: var(--acc); }
+.timer-save-form { display: flex; gap: 6px; }
+.timer-save-input { flex: 1; background: var(--bg); border: 1px solid var(--brd); border-radius: 6px; padding: 8px 10px; font-size: 13px; color: var(--tx); }
+.timer-save-input:focus { border-color: var(--acc); outline: none; }
+.timer-save-btn { background: var(--acc); color: #fff; border: none; border-radius: 6px; padding: 8px 14px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.timer-save-cancel { background: var(--s2); border: 1px solid var(--brd); border-radius: 6px; padding: 8px 12px; font-size: 12px; color: var(--tx3); cursor: pointer; }
+
+/* Sidebar: Your Week */
+@media (min-width: 641px) {
+  .sidebar-week { display: flex; gap: 4px; justify-content: space-between; margin-bottom: 8px; }
+  .sidebar-day { text-align: center; flex: 1; }
+  .sidebar-day-dot { width: 28px; height: 28px; border-radius: 50%; background: var(--bg); border: 1px solid var(--brd); display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--tx3); margin: 0 auto 3px; }
+  .sidebar-day-dot.active { background: var(--grn-d); border-color: var(--grn); color: var(--grn); font-weight: 700; }
+  .sidebar-day-dot.multi { background: var(--acc-d); border-color: var(--acc); color: var(--acc); }
+  .sidebar-day-label { font-size: 9px; color: var(--tx3); text-transform: uppercase; letter-spacing: .5px; }
+  .sidebar-week-summary { display: flex; justify-content: space-between; font-size: 12px; color: var(--tx2); font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+
+  /* Sidebar: Weekly Leaders */
+  .sidebar-leader { display: flex; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--brd); font-size: 12px; }
+  .sidebar-leader:last-child { border-bottom: none; }
+  .sidebar-leader-rank { font-size: 14px; min-width: 20px; }
+  .sidebar-leader-name { flex: 1; font-weight: 600; color: var(--tx); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .sidebar-leader-count { color: var(--tx3); font-size: 11px; }
+}

@@ -23,7 +23,7 @@ function getCurrentMilestone(total) {
   return current
 }
 
-export default function Header({ counts, session, profile, onAuthClick, streak, totalCompleted, onLogoClick, onStatsClick, onActivityClick, onH2HClick, onCollectionsClick, onNotifNavigate }) {
+export default function Header({ counts, session, profile, onAuthClick, streak, totalCompleted, onLogoClick, onStatsClick, onActivityClick, onH2HClick, onCollectionsClick, onTimerClick, onNotifNavigate }) {
   const currentMs = getCurrentMilestone(totalCompleted || 0)
   const nextMs = getNextMilestone(totalCompleted || 0)
 
@@ -62,6 +62,12 @@ export default function Header({ counts, session, profile, onAuthClick, streak, 
             </button>
             <button className="stats-btn activity-btn" onClick={onActivityClick} title="Activity Feed">
               👥 <span className="activity-label">Activity</span>
+            </button>
+            <button className="stats-btn activity-btn" onClick={onTimerClick} title="Timer">
+              ⏱
+            </button>
+            <button className="stats-btn activity-btn" onClick={onCollectionsClick} title="Collections">
+              📁
             </button>
           </div>
         ) : (

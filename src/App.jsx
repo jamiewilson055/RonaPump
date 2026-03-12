@@ -54,6 +54,7 @@ function App() {
   const [activityHighlight, setActivityHighlight] = useState(null)
   const [sidebarPrompt, setSidebarPrompt] = useState('')
   const [recentActivity, setRecentActivity] = useState([])
+  const [weeklyLeaders, setWeeklyLeaders] = useState([])
   const [totalCompleted, setTotalCompleted] = useState(0)
 
   async function loadCollections(userId) {
@@ -177,7 +178,44 @@ function App() {
     if (data) setRecentActivity(data)
   }
 
-  useEffect(() => { loadRecentActivity() }, [])
+  useEffect(() => { loadRecentActivity(); loadWeeklyLeaders() }, [])
+
+  async function loadWeeklyLeaders() {
+    const startOfWeek = new Date()
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay())
+    startOfWeek.setHours(0, 0, 0, 0)
+    const { data } = await supabase
+      .from('performance_log')
+      .select('user_id, profiles(display_name, avatar_url)')
+      .gte('created_at', startOfWeek.toISOString())
+    if (data) {
+      const counts = {}
+      data.forEach(d => {
+        const id = d.user_id
+        if (!counts[id]) counts[id] = { id, name: d.profiles?.display_name || 'Anonymous', avatar: d.profiles?.avatar_url, count: 0 }
+        counts[id].count++
+      })
+      setWeeklyLeaders(Object.values(counts).sort((a, b) => b.count - a.count).slice(0, 5))
+    }
+  }
+
+  // Compute "my week" — 7-day heatmap
+  const myWeek = (() => {
+    if (!session) return []
+    const today = new Date()
+    const days = []
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today); d.setDate(d.getDate() - i)
+      const ds = d.toISOString().slice(0, 10)
+      const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short' })
+      const count = workouts.filter(w => {
+        const logs = w.performance_log || []
+        return logs.some(l => l.user_id === session.user.id && l.completed_at === ds)
+      }).length
+      days.push({ label: dayLabel, date: ds, count })
+    }
+    return days
+  })()
 
   async function toggleFavorite(workoutId) {
     if (!session) { setShowAuth(true); return }
@@ -204,7 +242,7 @@ function App() {
   if (showProfile && session) {
     return (
       <div className="app">
-        <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => { setActivityHighlight(null); setTab("activity") }} onH2HClick={() => setTab("h2h")} onCollectionsClick={() => setTab("collections")} onNotifNavigate={(link) => { if (link.startsWith("activity:")) { const parts = link.split(":"); setActivityHighlight(parts[1]); setTab("activity") } }} />
+        <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => { setActivityHighlight(null); setTab("activity") }} onH2HClick={() => setTab("h2h")} onCollectionsClick={() => setTab("collections")} onTimerClick={() => setTab("timer")} onNotifNavigate={(link) => { if (link.startsWith("activity:")) { const parts = link.split(":"); setActivityHighlight(parts[1]); setTab("activity") } }} />
         <Profile
           session={session}
           profile={profile}
@@ -220,7 +258,7 @@ function App() {
 
   return (
     <div className="app">
-      <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => { setActivityHighlight(null); setTab("activity") }} onH2HClick={() => setTab("h2h")} onCollectionsClick={() => setTab("collections")} onNotifNavigate={(link) => { if (link.startsWith("activity:")) { const parts = link.split(":"); setActivityHighlight(parts[1]); setTab("activity") } }} />
+      <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => { setActivityHighlight(null); setTab("activity") }} onH2HClick={() => setTab("h2h")} onCollectionsClick={() => setTab("collections")} onTimerClick={() => setTab("timer")} onNotifNavigate={(link) => { if (link.startsWith("activity:")) { const parts = link.split(":"); setActivityHighlight(parts[1]); setTab("activity") } }} />
       {!session && <Welcome onSignIn={() => setShowAuth(true)} />}
 
       {/* Hero Feature Cards — desktop only, on main tabs */}
@@ -281,28 +319,40 @@ function App() {
 
           {/* Sticky sidebar — desktop only */}
           <div className="desktop-sidebar desktop-only">
-            <div className="sidebar-card sidebar-ai">
-              <div className="sidebar-label">🤖 AI Workout Generator</div>
-              <input className="sidebar-ai-input" value={sidebarPrompt} onChange={e => setSidebarPrompt(e.target.value)}
-                placeholder="e.g. 20 min dumbbell AMRAP..." onKeyDown={e => { if (e.key === 'Enter' && sidebarPrompt.trim()) { setTab('ai') } }} />
-              <div className="sidebar-ai-quicks">
-                {['Quick Burn', 'DB Only', 'Hotel Room', 'Leg Day'].map(q => (
-                  <button key={q} className="sidebar-ai-quick" onClick={() => { setSidebarPrompt(q); setTab('ai') }}>{q}</button>
+            {/* Your Week */}
+            {session && (
+              <div className="sidebar-card">
+                <div className="sidebar-label">🗓 Your Week</div>
+                <div className="sidebar-week">
+                  {myWeek.map(d => (
+                    <div key={d.date} className="sidebar-day">
+                      <div className={`sidebar-day-dot${d.count > 0 ? ' active' : ''}${d.count > 1 ? ' multi' : ''}`}>{d.count > 0 ? '✓' : ''}</div>
+                      <div className="sidebar-day-label">{d.label}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="sidebar-week-summary">
+                  <span>{myWeek.filter(d => d.count > 0).length}/7 days</span>
+                  {streak > 0 && <span>🔥 {streak} day streak</span>}
+                </div>
+              </div>
+            )}
+
+            {/* This Week's Leaders */}
+            {weeklyLeaders.length > 0 && (
+              <div className="sidebar-card">
+                <div className="sidebar-label">🏆 This Week's Leaders</div>
+                {weeklyLeaders.map((l, i) => (
+                  <div key={l.id} className="sidebar-leader">
+                    <span className="sidebar-leader-rank">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}</span>
+                    <span className="sidebar-leader-name">{l.name}</span>
+                    <span className="sidebar-leader-count">{l.count} workout{l.count !== 1 ? 's' : ''}</span>
+                  </div>
                 ))}
               </div>
-              <button className="sidebar-ai-btn" onClick={() => setTab('ai')}>Generate →</button>
-            </div>
+            )}
 
-            <div className="sidebar-card">
-              <div className="sidebar-label">⏱ Quick Timer</div>
-              <div className="sidebar-timer-grid">
-                <button className="sidebar-timer-btn" onClick={() => setTab('timer')}>AMRAP</button>
-                <button className="sidebar-timer-btn" onClick={() => setTab('timer')}>Tabata</button>
-                <button className="sidebar-timer-btn" onClick={() => setTab('timer')}>EMOM</button>
-                <button className="sidebar-timer-btn" onClick={() => setTab('timer')}>Custom</button>
-              </div>
-            </div>
-
+            {/* Recent Activity */}
             {recentActivity.length > 0 && (
               <div className="sidebar-card">
                 <div className="sidebar-label">👥 Recent Activity</div>

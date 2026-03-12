@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { supabase } from '../lib/supabase'
 
 // ============= Audio =============
 let audioCtx = null
@@ -71,6 +72,56 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
   const [currentSet, setCurrentSet] = useState(0)
   const [intervalTimeLeft, setIntervalTimeLeft] = useState(0)
   const [currentIntervalIdx, setCurrentIntervalIdx] = useState(0)
+
+  // Saved timers
+  const [savedTimers, setSavedTimers] = useState([])
+  const [saveName, setSaveName] = useState('')
+  const [showSave, setShowSave] = useState(false)
+
+  useEffect(() => { if (session) loadSavedTimers() }, [session])
+
+  async function loadSavedTimers() {
+    const { data } = await supabase.from('saved_timers').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false })
+    if (data) setSavedTimers(data)
+  }
+
+  function getCurrentConfig() {
+    if (mode === 'amrap') return { amrapMins }
+    if (mode === 'fortime') return { fortimeCap }
+    if (mode === 'emom') return { emomInterval, emomRounds }
+    if (mode === 'tabata') return { tabataWork, tabataRest, tabataRounds, tabataSets, tabataSetRest }
+    if (mode === 'custom') return { customIntervals, customRounds }
+    return {}
+  }
+
+  function loadTimerConfig(timer) {
+    setMode(timer.mode)
+    const c = timer.config
+    if (timer.mode === 'amrap' && c.amrapMins) setAmrapMins(c.amrapMins)
+    if (timer.mode === 'fortime' && c.fortimeCap) setFortimeCap(c.fortimeCap)
+    if (timer.mode === 'emom') { if (c.emomInterval) setEmomInterval(c.emomInterval); if (c.emomRounds) setEmomRounds(c.emomRounds) }
+    if (timer.mode === 'tabata') { if (c.tabataWork) setTabataWork(c.tabataWork); if (c.tabataRest) setTabataRest(c.tabataRest); if (c.tabataRounds) setTabataRounds(c.tabataRounds); if (c.tabataSets) setTabataSets(c.tabataSets); if (c.tabataSetRest) setTabataSetRest(c.tabataSetRest) }
+    if (timer.mode === 'custom') { if (c.customIntervals) setCustomIntervals(c.customIntervals); if (c.customRounds) setCustomRounds(c.customRounds) }
+  }
+
+  async function saveCurrentTimer() {
+    if (!session) { onAuthRequired(); return }
+    if (!saveName.trim()) return
+    await supabase.from('saved_timers').insert({
+      user_id: session.user.id,
+      name: saveName.trim(),
+      mode,
+      config: getCurrentConfig(),
+    })
+    setSaveName(''); setShowSave(false)
+    loadSavedTimers()
+  }
+
+  async function deleteSavedTimer(id) {
+    if (!confirm('Delete this saved timer?')) return
+    await supabase.from('saved_timers').delete().eq('id', id)
+    loadSavedTimers()
+  }
 
   // Wake lock
   async function requestWakeLock() {
@@ -322,6 +373,24 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
             </button>
           ))}
         </div>
+
+        {savedTimers.length > 0 && (
+          <div className="timer-saved-section">
+            <div className="timer-saved-label">💾 My Saved Timers</div>
+            {savedTimers.map(st => (
+              <div key={st.id} className="timer-saved-item">
+                <button className="timer-saved-btn" onClick={() => loadTimerConfig(st)}>
+                  <span className="timer-saved-icon">{MODES.find(m => m.key === st.mode)?.icon}</span>
+                  <div>
+                    <div className="timer-saved-name">{st.name}</div>
+                    <div className="timer-saved-mode">{st.mode.toUpperCase()}</div>
+                  </div>
+                </button>
+                <button className="timer-saved-del" onClick={() => deleteSavedTimer(st.id)}>✕</button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     )
   }
@@ -454,6 +523,21 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
               </div>
               <div className="timer-total">Total: {fmt(customIntervals.reduce((a, c) => a + c.duration, 0) * customRounds)}</div>
               <button className="timer-go-btn" onClick={startCustom}>▶ Start Custom Timer</button>
+            </div>
+          )}
+
+          {/* Save timer option (all modes except stopwatch) */}
+          {mode !== 'stopwatch' && session && (
+            <div className="timer-save-section">
+              {!showSave ? (
+                <button className="timer-save-toggle" onClick={() => setShowSave(true)}>💾 Save This Timer</button>
+              ) : (
+                <div className="timer-save-form">
+                  <input className="timer-save-input" placeholder="Timer name..." value={saveName} onChange={e => setSaveName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveCurrentTimer() }} />
+                  <button className="timer-save-btn" onClick={saveCurrentTimer}>Save</button>
+                  <button className="timer-save-cancel" onClick={() => { setShowSave(false); setSaveName('') }}>Cancel</button>
+                </div>
+              )}
             </div>
           )}
         </div>
