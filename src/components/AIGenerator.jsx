@@ -34,7 +34,15 @@ export default function AIGenerator({ session, onAuthRequired, isAdmin, onWorkou
         body: JSON.stringify({ prompt: p })
       })
 
-      const data = await response.json()
+      const text = await response.text()
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch {
+        setError('Server returned invalid response. Status: ' + response.status)
+        setGenerating(false)
+        return
+      }
 
       if (data.error) {
         setError(data.error)
@@ -44,7 +52,7 @@ export default function AIGenerator({ session, onAuthRequired, isAdmin, onWorkou
 
       setResult(data)
     } catch (err) {
-      setError('Failed to generate workout. Please try again.')
+      setError('Network error: ' + (err.message || 'Please try again.'))
       console.error(err)
     }
     setGenerating(false)
