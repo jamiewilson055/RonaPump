@@ -8,6 +8,8 @@ const QUICK_PROMPTS = [
   { label: '🦵 Leg Destroyer', prompt: 'Make a brutal 20-minute lower body workout with squats and lunges' },
   { label: '⏱ EMOM', prompt: 'Create a 20-minute EMOM with 4 movements' },
   { label: '🏨 Hotel Room', prompt: 'No equipment, 15 minutes, something I can do in a small hotel room' },
+  { label: '🏋 Barbell', prompt: 'Build a 30-minute barbell workout with deadlifts and presses' },
+  { label: '🦍 Harambe', prompt: 'Create the most brutal full body workout you can think of, 30 minutes, any equipment' },
 ]
 
 export default function AIGenerator({ session, onAuthRequired, isAdmin, onWorkoutsChanged }) {
@@ -26,45 +28,21 @@ export default function AIGenerator({ session, onAuthRequired, isAdmin, onWorkou
     setSaved(false)
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('/api/generate-workout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [{
-            role: 'user',
-            content: `You are a fitness workout creator for RonaPump, a functional fitness app. Generate a workout based on this request: "${p}"
-
-Respond ONLY in this exact JSON format, no other text:
-{
-  "name": "Workout Name",
-  "description": "Full workout description with movements, reps, and rounds. Use bullet points with • for each movement. Include warm-up notes if relevant.",
-  "score_type": "Time or Rounds + Reps or Reps or Calories or None",
-  "estimated_duration_mins": 20,
-  "equipment": ["Bodyweight"],
-  "workout_types": ["AMRAP"],
-  "movement_categories": ["Push-Up", "Squat"],
-  "body_parts": ["Full Body"],
-  "categories": []
-}
-
-Valid equipment: Bodyweight, Dumbbell, Kettlebell, Barbell, Pull-Up Bar, Box, Bench, Rower, Bike (Assault/Echo), Ski Erg, Speed Rope, Medicine Ball, Sandbag, Sled, Weighted Vest
-Valid workout_types: AMRAP, EMOM, For Calories, For Distance, For Time, Interval, Ladder, Rounds, Strength
-Valid movement_categories: Bench Press, Burpee, DB Snatch, Deadlift, Farmers Carry, Jump, Lunge, Pull-Up, Push-Up, Run, Shoulder Press, Squat
-Valid body_parts: Upper Body, Lower Body, Full Body
-Valid categories: Cardio Only, DB Only, RonaAbs, Home Gym, Hotel Workouts, HYROX, Outdoor, Track Workouts
-
-Make the workout creative, challenging, and well-structured. Use descriptive names.`
-          }]
-        })
+        body: JSON.stringify({ prompt: p })
       })
 
       const data = await response.json()
-      const text = data.content?.map(c => c.text || '').join('') || ''
-      const clean = text.replace(/```json|```/g, '').trim()
-      const workout = JSON.parse(clean)
-      setResult(workout)
+
+      if (data.error) {
+        setError(data.error)
+        setGenerating(false)
+        return
+      }
+
+      setResult(data)
     } catch (err) {
       setError('Failed to generate workout. Please try again.')
       console.error(err)
@@ -87,7 +65,7 @@ Make the workout creative, challenging, and well-structured. Use descriptive nam
       body_parts: result.body_parts?.length ? result.body_parts : [],
       categories: result.categories || [],
       visibility: isAdmin ? 'official' : 'private',
-      created_by: session.user.id,
+      created_by: session?.user?.id || null,
       source: 'ai-generated',
     })
 
@@ -114,19 +92,10 @@ Make the workout creative, challenging, and well-structured. Use descriptive nam
 
   return (
     <div className="ai-gen">
-      <div className="doc-header">
-        <h3>🤖 AI Workout Generator</h3>
-        <div style={{ fontSize: '13px', color: 'var(--tx3)', marginTop: '2px' }}>
-          Tell me what you want and I'll build you a workout.
-        </div>
-      </div>
-
-      <div className="ai-quick-prompts">
-        {QUICK_PROMPTS.map((qp, i) => (
-          <button key={i} className="ai-quick-btn" onClick={() => { setPrompt(qp.prompt); generate(qp.prompt) }}>
-            {qp.label}
-          </button>
-        ))}
+      <div className="ai-hero">
+        <div className="ai-hero-icon">🤖</div>
+        <h2 className="ai-hero-title">AI Workout Generator</h2>
+        <p className="ai-hero-sub">Tell me what you want — equipment, time, focus — and I'll build you a custom workout.</p>
       </div>
 
       <div className="ai-input-row">
@@ -138,26 +107,40 @@ Make the workout creative, challenging, and well-structured. Use descriptive nam
           onKeyDown={e => { if (e.key === 'Enter') generate() }}
           style={{ flex: 1 }}
         />
-        <button className="doc-start-btn" onClick={() => generate()} disabled={generating} style={{ width: 'auto', padding: '12px 24px', fontSize: '14px' }}>
-          {generating ? '⏳ Generating...' : '🦍 Generate'}
+        <button className="ai-gen-btn" onClick={() => generate()} disabled={generating}>
+          {generating ? '⏳' : '🦍'} {generating ? 'Generating...' : 'Generate'}
         </button>
       </div>
 
-      {error && <div style={{ color: 'var(--acc)', fontSize: '13px', marginTop: '8px' }}>{error}</div>}
+      <div className="ai-quick-prompts">
+        <div className="doc-label">Or try one of these</div>
+        <div className="ai-quick-grid">
+          {QUICK_PROMPTS.map((qp, i) => (
+            <button key={i} className="ai-quick-btn" onClick={() => { setPrompt(qp.prompt); generate(qp.prompt) }}>
+              {qp.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {error && <div style={{ color: 'var(--acc)', fontSize: '13px', marginTop: '8px', textAlign: 'center' }}>{error}</div>}
 
       {generating && (
         <div className="ai-loading">
+          <div className="ai-loading-spinner">🦍</div>
           <div className="ai-loading-text">Building your workout...</div>
         </div>
       )}
 
       {result && (
         <div className="ai-result">
-          <div className="ai-result-name">{result.name}</div>
-          <div className="ai-result-meta">
-            {result.estimated_duration_mins && <span className="wdr">{result.estimated_duration_mins}m</span>}
-            {result.score_type && result.score_type !== 'None' && <span className="wst">{result.score_type}</span>}
-            {result.workout_types?.map(t => <span key={t} className="tg tw">{t}</span>)}
+          <div className="ai-result-header">
+            <div className="ai-result-name">{result.name}</div>
+            <div className="ai-result-meta">
+              {result.estimated_duration_mins && <span className="wdr">{result.estimated_duration_mins}m</span>}
+              {result.score_type && result.score_type !== 'None' && <span className="wst">{result.score_type}</span>}
+              {result.workout_types?.map(t => <span key={t} className="tg tw">{t}</span>)}
+            </div>
           </div>
           <div className="ai-result-tags">
             {result.equipment?.filter(e => e !== 'Bodyweight').map(e => <span key={e} className="tg te">{e}</span>)}
@@ -169,12 +152,12 @@ Make the workout creative, challenging, and well-structured. Use descriptive nam
             {!saved ? (
               <>
                 <button className="doc-start-btn" onClick={saveWorkout} style={{ fontSize: '14px' }}>
-                  {isAdmin ? '🦍 Save as Official' : '💾 Save to My Workouts'}
+                  {isAdmin ? '🦍 Save as Official Workout' : '💾 Save to My Workouts'}
                 </button>
                 <button className="doc-ctrl" style={{ width: '100%' }} onClick={() => generate()}>🔄 Regenerate</button>
               </>
             ) : (
-              <div style={{ color: 'var(--grn)', fontWeight: 600, fontSize: '15px', textAlign: 'center', padding: '12px' }}>✓ Saved to {isAdmin ? 'Official Workouts' : 'My Workouts'}!</div>
+              <div style={{ color: 'var(--grn)', fontWeight: 600, fontSize: '15px', textAlign: 'center', padding: '12px' }}>✓ Saved!</div>
             )}
           </div>
         </div>

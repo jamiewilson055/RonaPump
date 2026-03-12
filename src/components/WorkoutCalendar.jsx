@@ -79,6 +79,8 @@ export default function WorkoutCalendar({ workouts, session }) {
     return { count, days: days.size }
   }, [logsByDate, year, month, daysInMonth])
 
+  if (!session || !workouts) return null
+
   return (
     <div className="cal-wrap">
       <div className="cal-top">
