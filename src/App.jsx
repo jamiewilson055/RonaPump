@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Component } from 'react'
 import { supabase } from './lib/supabase'
 import Header from './components/Header'
 import QuoteBar from './components/QuoteBar'
@@ -15,12 +15,26 @@ import Welcome from './components/Welcome'
 import AddToHomeScreen from './components/AddToHomeScreen'
 import AdminQueue from './components/AdminQueue'
 import SignupGate from './components/SignupGate'
-import AdminAnalytics from './pages/AdminAnalytics'
 import ActivityFeed from './pages/ActivityFeed'
 import DeckOfCards from './components/DeckOfCards'
 import AIGenerator from './components/AIGenerator'
 import ScrollToTop from './components/ScrollToTop'
 import './App.css'
+
+class ErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null } }
+  static getDerivedStateFromError(error) { return { hasError: true, error } }
+  render() {
+    if (this.state.hasError) {
+      return <div style={{ padding: '20px', color: 'var(--acc)' }}>
+        <h3>Something went wrong</h3>
+        <p style={{ fontSize: '12px', color: 'var(--tx3)', marginTop: '8px' }}>{this.state.error?.message || 'Unknown error'}</p>
+        <button onClick={() => this.setState({ hasError: false, error: null })} style={{ marginTop: '10px' }} className="ab p">Try Again</button>
+      </div>
+    }
+    return this.props.children
+  }
+}
 
 function App() {
   const [session, setSession] = useState(null)
@@ -214,10 +228,9 @@ function App() {
         }} />
       ) : tab === 'stats' ? (
         session ? (
-          <>
-            {profile?.is_admin && <AdminAnalytics />}
+          <ErrorBoundary>
             <Stats workouts={workouts} favorites={favorites} />
-          </>
+          </ErrorBoundary>
         ) : (
           <div className="pr-section">
             <div className="pr-empty">
