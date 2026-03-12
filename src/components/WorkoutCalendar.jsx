@@ -1,19 +1,19 @@
 import { useState, useMemo } from 'react'
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+const DAYS_HEADER = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
 export default function WorkoutCalendar({ workouts, session }) {
-  const [viewDate, setViewDate] = useState(new Date())
+  const [viewDate, setViewDate] = useState(() => new Date())
   const [selectedDate, setSelectedDate] = useState(null)
 
   const year = viewDate.getFullYear()
   const month = viewDate.getMonth()
 
-  // Build map of date -> logs
+  // All hooks called unconditionally before any returns
   const logsByDate = useMemo(() => {
     const map = {}
-    if (!session) return map
+    if (!session?.user?.id || !workouts) return map
     workouts.forEach(w => {
       (w.performance_log || []).forEach(p => {
         if (p.user_id === session.user.id && p.completed_at) {
@@ -25,32 +25,6 @@ export default function WorkoutCalendar({ workouts, session }) {
     return map
   }, [workouts, session])
 
-  // Calendar grid
-  const firstDay = new Date(year, month, 1).getDay()
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const today = new Date().toISOString().slice(0, 10)
-
-  const cells = []
-  for (let i = 0; i < firstDay; i++) cells.push(null)
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d)
-
-  function dateStr(d) {
-    return `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-  }
-
-  function prevMonth() {
-    setViewDate(new Date(year, month - 1, 1))
-    setSelectedDate(null)
-  }
-
-  function nextMonth() {
-    setViewDate(new Date(year, month + 1, 1))
-    setSelectedDate(null)
-  }
-
-  const selectedLogs = selectedDate ? (logsByDate[selectedDate] || []) : []
-
-  // Streak calculation
   const streak = useMemo(() => {
     let s = 0
     const d = new Date()
@@ -65,21 +39,36 @@ export default function WorkoutCalendar({ workouts, session }) {
     return s
   }, [logsByDate])
 
-  // Month stats
-  const monthLogs = useMemo(() => {
-    let count = 0
-    let days = new Set()
-    for (let d = 1; d <= daysInMonth; d++) {
-      const ds = dateStr(d)
+  const calData = useMemo(() => {
+    const firstDay = new Date(year, month, 1).getDay()
+    const dim = new Date(year, month + 1, 0).getDate()
+    const cells = []
+    for (let i = 0; i < firstDay; i++) cells.push(null)
+    for (let d = 1; d <= dim; d++) cells.push(d)
+
+    let mDays = 0, mCount = 0
+    const seen = new Set()
+    for (let d = 1; d <= dim; d++) {
+      const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
       if (logsByDate[ds]) {
-        count += logsByDate[ds].length
-        days.add(ds)
+        mCount += logsByDate[ds].length
+        seen.add(ds)
       }
     }
-    return { count, days: days.size }
-  }, [logsByDate, year, month, daysInMonth])
+    mDays = seen.size
+    return { cells, mDays, mCount }
+  }, [year, month, logsByDate])
 
+  // Now safe to return early
   if (!session || !workouts) return null
+
+  const today = new Date().toISOString().slice(0, 10)
+
+  function dateStr(d) {
+    return `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+  }
+
+  const selectedLogs = selectedDate ? (logsByDate[selectedDate] || []) : []
 
   return (
     <div className="cal-wrap">
@@ -88,19 +77,19 @@ export default function WorkoutCalendar({ workouts, session }) {
           {streak > 0 && <span>🔥 {streak} day streak</span>}
         </div>
         <div className="cal-month-stats">
-          {monthLogs.days} days · {monthLogs.count} workouts this month
+          {calData.mDays} days · {calData.mCount} workouts this month
         </div>
       </div>
 
       <div className="cal-nav">
-        <button className="cal-nav-btn" onClick={prevMonth}>‹</button>
+        <button className="cal-nav-btn" onClick={() => { setViewDate(new Date(year, month - 1, 1)); setSelectedDate(null) }}>‹</button>
         <span className="cal-month-title">{MONTHS[month]} {year}</span>
-        <button className="cal-nav-btn" onClick={nextMonth}>›</button>
+        <button className="cal-nav-btn" onClick={() => { setViewDate(new Date(year, month + 1, 1)); setSelectedDate(null) }}>›</button>
       </div>
 
       <div className="cal-grid">
-        {DAYS.map(d => <div key={d} className="cal-day-label">{d}</div>)}
-        {cells.map((d, i) => {
+        {DAYS_HEADER.map(d => <div key={d} className="cal-day-label">{d}</div>)}
+        {calData.cells.map((d, i) => {
           if (d === null) return <div key={`e${i}`} className="cal-cell empty"></div>
           const ds = dateStr(d)
           const hasLogs = !!logsByDate[ds]
@@ -122,7 +111,9 @@ export default function WorkoutCalendar({ workouts, session }) {
 
       {selectedDate && (
         <div className="cal-detail">
-          <div className="cal-detail-date">{new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
+          <div className="cal-detail-date">
+            {new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          </div>
           {selectedLogs.length === 0 ? (
             <div className="cal-detail-empty">No workouts logged</div>
           ) : (
