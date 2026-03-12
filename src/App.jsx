@@ -190,7 +190,7 @@ function App() {
   if (showProfile && session) {
     return (
       <div className="app">
-        <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => setTab("activity")} onH2HClick={() => setTab("h2h")} onCollectionsClick={() => setTab("collections")} onNotifNavigate={(link) => { if (link.startsWith("activity:")) { const parts = link.split(":"); setActivityHighlight(parts[1]); setTab("activity") } }} />
+        <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => { setActivityHighlight(null); setTab("activity") }} onH2HClick={() => setTab("h2h")} onCollectionsClick={() => setTab("collections")} onNotifNavigate={(link) => { if (link.startsWith("activity:")) { const parts = link.split(":"); setActivityHighlight(parts[1]); setTab("activity") } }} />
         <Profile
           session={session}
           profile={profile}
@@ -203,7 +203,7 @@ function App() {
 
   return (
     <div className="app">
-      <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => setTab("activity")} onH2HClick={() => setTab("h2h")} onCollectionsClick={() => setTab("collections")} onNotifNavigate={(link) => { if (link.startsWith("activity:")) { const parts = link.split(":"); setActivityHighlight(parts[1]); setTab("activity") } }} />
+      <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => { setActivityHighlight(null); setTab("activity") }} onH2HClick={() => setTab("h2h")} onCollectionsClick={() => setTab("collections")} onNotifNavigate={(link) => { if (link.startsWith("activity:")) { const parts = link.split(":"); setActivityHighlight(parts[1]); setTab("activity") } }} />
       {!session && <Welcome onSignIn={() => setShowAuth(true)} />}
       <div className={['deck','ai','prs','h2h'].includes(tab) ? 'mobile-hide' : ''}>
         <QuoteBar isAdmin={profile?.is_admin || false} />

@@ -23,6 +23,13 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
     }
   }, [session])
 
+  // Re-load and highlight when navigated from notification
+  useEffect(() => {
+    if (session && highlightId) {
+      loadActivity()
+    }
+  }, [highlightId])
+
   async function loadFollowing() {
     const { data } = await supabase.from('user_follows').select('following_id').eq('follower_id', session.user.id)
     if (data) setFollowing(data.map(f => f.following_id))
@@ -57,20 +64,32 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
 
     setActivities(combined)
 
-    // Auto-expand highlighted activity
+    // Load likes and comments for these activities
+    await loadLikesAndComments(combined)
+
+    // Auto-expand highlighted activity after everything loaded
     if (highlightId) {
       const match = combined.find(a => a.id === highlightId)
       if (match) {
         setExpandedComments(match.id)
+        // Load comments for this activity
+        const isPr = match.feed_type === 'pr'
+        const col = isPr ? 'personal_record_id' : 'performance_log_id'
+        const { data: cmts } = await supabase
+          .from('activity_comments')
+          .select('*, profiles(display_name, avatar_url)')
+          .eq(col, match.id)
+          .order('created_at', { ascending: true })
+        const key = actKey(match)
+        setComments(prev => ({ ...prev, ['data:' + key]: cmts || [] }))
+
         setTimeout(() => {
           const el = document.getElementById('activity-' + match.id)
           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        }, 300)
+        }, 200)
       }
     }
 
-    // Load likes and comments for these activities
-    await loadLikesAndComments(combined)
     setLoading(false)
   }
 
