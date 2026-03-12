@@ -29,6 +29,7 @@ export default function AIGenerator({ session, onAuthRequired, isAdmin, onWorkou
   const [error, setError] = useState('')
 
   async function generate(customPrompt) {
+    if (!session) { onAuthRequired(); return }
     const p = customPrompt || prompt
     if (!p.trim()) return
     setGenerating(true)

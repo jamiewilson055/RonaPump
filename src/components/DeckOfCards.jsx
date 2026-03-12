@@ -167,6 +167,7 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
   }
 
   function startGame() {
+    if (!session) { onAuthRequired(); return }
     const empty = Object.values(suitMovements).some(v => !v.trim())
     if (empty) { alert('Please assign a movement to each suit.'); return }
     if (includeJokers && !jokerMovement.trim()) { alert('Please assign a Joker movement or disable Jokers.'); return }

@@ -9,6 +9,7 @@ export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount, 
   const secondaryTabs = [
     { key: 'deck', label: 'Deck', icon: '🃏', count: null },
     { key: 'ai', label: 'AI', icon: '🤖', count: null },
+    { key: 'timer', label: 'Timer', icon: '⏱', count: null },
     { key: 'prs', label: 'PRs', icon: '🏆', count: prsCount },
     { key: 'h2h', label: 'H2H', icon: '⚔️', count: null },
     { key: 'activity', label: 'Activity', icon: '👥', count: null },

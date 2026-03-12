@@ -46,7 +46,7 @@ export default function Header({ counts, session, profile, onAuthClick, streak, 
       </div>
       <div className="hdr-r">
         {session && (
-          <button className="stats-btn" onClick={onStatsClick} title="Stats & Streaks">
+          <button className="stats-btn mobile-only" onClick={onStatsClick} title="Stats & Streaks">
             📊{streak > 0 && <span className="stats-streak">🔥{streak}</span>}
           </button>
         )}

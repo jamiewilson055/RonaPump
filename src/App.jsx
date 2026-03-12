@@ -19,6 +19,7 @@ import SignupGate from './components/SignupGate'
 import ActivityFeed from './pages/ActivityFeed'
 import DeckOfCards from './components/DeckOfCards'
 import AIGenerator from './components/AIGenerator'
+import StandaloneTimer from './components/StandaloneTimer'
 import Challenges from './components/Challenges'
 import ScrollToTop from './components/ScrollToTop'
 import './App.css'
@@ -51,6 +52,8 @@ function App() {
   const [collections, setCollections] = useState([])
   const [streak, setStreak] = useState(0)
   const [activityHighlight, setActivityHighlight] = useState(null)
+  const [sidebarPrompt, setSidebarPrompt] = useState('')
+  const [recentActivity, setRecentActivity] = useState([])
   const [totalCompleted, setTotalCompleted] = useState(0)
 
   async function loadCollections(userId) {
@@ -165,6 +168,17 @@ function App() {
     if (workouts.length) updateCounts(workouts, favorites)
   }, [workouts, favorites, updateCounts])
 
+  async function loadRecentActivity() {
+    const { data } = await supabase
+      .from('performance_log')
+      .select('id, score, completed_at, workouts(name), profiles(display_name)')
+      .order('created_at', { ascending: false })
+      .limit(3)
+    if (data) setRecentActivity(data)
+  }
+
+  useEffect(() => { loadRecentActivity() }, [])
+
   async function toggleFavorite(workoutId) {
     if (!session) { setShowAuth(true); return }
     const userId = session.user.id
@@ -202,7 +216,7 @@ function App() {
   }
 
   const isMainTab = ['all', 'done', 'queue', 'favs'].includes(tab)
-  const isFeatureTab = ['deck', 'ai', 'h2h', 'prs', 'activity', 'stats', 'collections'].includes(tab)
+  const isFeatureTab = ['deck', 'ai', 'timer', 'h2h', 'prs', 'activity', 'stats', 'collections'].includes(tab)
 
   return (
     <div className="app">
@@ -226,28 +240,28 @@ function App() {
               <div className="hero-sub">Flip, rep, survive the whole deck</div>
             </div>
           </button>
-          <button className="hero-card hero-h2h" onClick={() => setTab('prs')}>
-            <span className="hero-icon">🏆</span>
+          <button className="hero-card hero-h2h" onClick={() => setTab('timer')}>
+            <span className="hero-icon">⏱</span>
             <div>
-              <div className="hero-title">PR Tracker</div>
-              <div className="hero-sub">Track your personal records</div>
+              <div className="hero-title">Workout Timer</div>
+              <div className="hero-sub">AMRAP, Tabata, EMOM & more</div>
             </div>
           </button>
         </div>
       )}
 
-      <div className={['deck','ai','prs','h2h'].includes(tab) ? 'mobile-hide' : ''}>
+      <div className={['deck','ai','prs','h2h','timer'].includes(tab) ? 'mobile-hide' : ''}>
         <QuoteBar isAdmin={profile?.is_admin || false} />
       </div>
 
       {/* Bigger secondary tabs — desktop only */}
-      <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} collectionsCount={collections.length} hideMainOnMobile={['deck','ai','prs','h2h'].includes(tab)} />
+      <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} collectionsCount={collections.length} hideMainOnMobile={['deck','ai','prs','h2h','timer'].includes(tab)} />
 
       {/* Two-column layout on desktop for main workout tabs */}
       {isMainTab ? (
         <div className="desktop-layout">
           <div className="desktop-main">
-            {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && tab !== 'activity' && tab !== 'deck' && tab !== 'ai' && tab !== 'h2h' && (
+            {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && tab !== 'activity' && tab !== 'deck' && tab !== 'ai' && tab !== 'h2h' && tab !== 'timer' && (
               <WODCard workouts={workouts} session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} favorites={favorites} toggleFavorite={toggleFavorite} />
             )}
             {(profile?.is_admin) && tab === 'all' && <AdminQueue onWorkoutsChanged={loadWorkouts} />}
@@ -269,15 +283,37 @@ function App() {
           <div className="desktop-sidebar desktop-only">
             <div className="sidebar-card sidebar-ai">
               <div className="sidebar-label">🤖 AI Workout Generator</div>
-              <div className="sidebar-ai-hint">Tell me what equipment you have, how much time, and what you want to focus on.</div>
-              <button className="sidebar-ai-btn" onClick={() => setTab('ai')}>Generate a Custom Workout →</button>
+              <input className="sidebar-ai-input" value={sidebarPrompt} onChange={e => setSidebarPrompt(e.target.value)}
+                placeholder="e.g. 20 min dumbbell AMRAP..." onKeyDown={e => { if (e.key === 'Enter' && sidebarPrompt.trim()) { setTab('ai') } }} />
+              <div className="sidebar-ai-quicks">
+                {['Quick Burn', 'DB Only', 'Hotel Room', 'Leg Day'].map(q => (
+                  <button key={q} className="sidebar-ai-quick" onClick={() => { setSidebarPrompt(q); setTab('ai') }}>{q}</button>
+                ))}
+              </div>
+              <button className="sidebar-ai-btn" onClick={() => setTab('ai')}>Generate →</button>
             </div>
 
-            {session && (
+            <div className="sidebar-card">
+              <div className="sidebar-label">⏱ Quick Timer</div>
+              <div className="sidebar-timer-grid">
+                <button className="sidebar-timer-btn" onClick={() => setTab('timer')}>AMRAP</button>
+                <button className="sidebar-timer-btn" onClick={() => setTab('timer')}>Tabata</button>
+                <button className="sidebar-timer-btn" onClick={() => setTab('timer')}>EMOM</button>
+                <button className="sidebar-timer-btn" onClick={() => setTab('timer')}>Custom</button>
+              </div>
+            </div>
+
+            {recentActivity.length > 0 && (
               <div className="sidebar-card">
-                <div className="sidebar-label">Recent Activity</div>
-                <div className="sidebar-activity-hint">See what you and your friends are doing.</div>
-                <button className="sidebar-link" onClick={() => { setActivityHighlight(null); setTab('activity') }}>Open Activity Feed →</button>
+                <div className="sidebar-label">👥 Recent Activity</div>
+                {recentActivity.map(a => (
+                  <div key={a.id} className="sidebar-activity-item">
+                    <span className="sidebar-activity-name">{a.profiles?.display_name || 'Someone'}</span>
+                    {a.score ? <> logged <b>{a.score}</b> on </> : <> completed </>}
+                    <span className="sidebar-activity-wod">{a.workouts?.name || 'a workout'}</span>
+                  </div>
+                ))}
+                <button className="sidebar-link" onClick={() => { setActivityHighlight(null); setTab('activity') }}>View All Activity →</button>
               </div>
             )}
           </div>
@@ -290,6 +326,8 @@ function App() {
             <AIGenerator session={session} onAuthRequired={() => setShowAuth(true)} isAdmin={profile?.is_admin || false} onWorkoutsChanged={loadWorkouts} />
           ) : tab === 'h2h' ? (
             <Challenges session={session} onAuthRequired={() => setShowAuth(true)} workouts={workouts} />
+          ) : tab === 'timer' ? (
+            <StandaloneTimer session={session} onAuthRequired={() => setShowAuth(true)} />
           ) : tab === 'prs' ? (
             <PRTracker session={session} onAuthRequired={() => setShowAuth(true)} />
           ) : tab === 'activity' ? (
