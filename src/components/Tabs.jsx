@@ -17,6 +17,7 @@ export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount }
 
   // Bottom nav: 4 items
   const bottomNavTabs = [
+    { key: 'all', label: 'Workouts', icon: '💪' },
     { key: 'deck', label: 'Deck', icon: '🃏' },
     { key: 'ai', label: 'AI', icon: '🤖' },
     { key: 'prs', label: 'PRs', icon: '🏆' },

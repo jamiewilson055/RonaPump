@@ -52,6 +52,7 @@ export default function Header({ counts, session, profile, onAuthClick, streak, 
         )}
         <div className="hs"><div className="hs-n">{counts.total}</div><div className="hs-l">Workouts</div></div>
         <div className="hs"><div className="hs-n">{counts.done}</div><div className="hs-l">Done</div></div>
+        <div className="hs"><div className="hs-n">{counts.queue}</div><div className="hs-l">Queue</div></div>
         <ThemeToggle />
         {session && <NotificationBell session={session} />}
         {session && (
