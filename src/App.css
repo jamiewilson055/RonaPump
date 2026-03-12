@@ -1060,3 +1060,12 @@ input, select, textarea { font-family: inherit; }
 .act-comment-body { color: var(--tx2); }
 .act-comment-time { color: var(--tx3); font-size: 10px; }
 .act-comment-form { display: flex; gap: 6px; margin-top: 6px; }
+
+/* WorkoutPage secondary actions */
+.wp-actions-secondary { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.wp-leaderboard { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--brd); }
+.wp-similar { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--brd); }
+.wp-similar-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg); border: 1px solid var(--brd); border-radius: 8px; margin-bottom: 6px; text-decoration: none; color: var(--tx); transition: border-color .12s; }
+.wp-similar-item:hover { border-color: var(--acc); }
+.wp-similar-name { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; }
+.wp-similar-meta { display: flex; gap: 4px; }

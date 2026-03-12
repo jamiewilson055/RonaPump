@@ -62,7 +62,7 @@ export default function NotificationBell({ session }) {
     return Math.floor(s / 604800) + 'w'
   }
 
-  const icons = { approval: '✅', rejection: '❌', score: '🏆', comment: '💬', milestone: '🎉' }
+  const icons = { approval: '✅', rejection: '❌', score: '🏆', comment: '💬', like: '❤️', challenge: '⚔️', milestone: '🎉' }
 
   if (!session) return null
 
