@@ -133,10 +133,12 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
 
       // Notify the author
       if (a.user_id !== session.user.id) {
+        const name = session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || 'Someone'
         await supabase.from('notifications').insert({
           user_id: a.user_id,
           type: 'like',
-          message: `${session.user.email?.split('@')[0] || 'Someone'} liked your activity`,
+          title: `${name} liked your activity`,
+          body: a.feed_type === 'pr' ? `Your PR on ${a.movement || 'a movement'}` : `Your log on ${a.workouts?.name || 'a workout'}`,
         })
       }
     }
@@ -169,10 +171,12 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
 
     // Notify
     if (a.user_id !== session.user.id) {
+      const name = session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || 'Someone'
       await supabase.from('notifications').insert({
         user_id: a.user_id,
         type: 'comment',
-        message: `${session.user.email?.split('@')[0] || 'Someone'} commented on your activity`,
+        title: `${name} commented on your activity`,
+        body: commentText.trim().slice(0, 100),
       })
     }
 

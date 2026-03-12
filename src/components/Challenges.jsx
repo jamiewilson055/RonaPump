@@ -55,10 +55,12 @@ export default function Challenges({ session, onAuthRequired, workouts }) {
     if (error) { alert('Error: ' + error.message); return }
 
     // Send notification
+    const name = session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || 'Someone'
     await supabase.from('notifications').insert({
       user_id: selectedUser.id,
       type: 'challenge',
-      message: `${session.user.email?.split('@')[0] || 'Someone'} challenged you to ${selectedWorkout.name}!`,
+      title: `${name} challenged you!`,
+      body: `Head-to-head on ${selectedWorkout.name}`,
     })
 
     setCreating(false)
