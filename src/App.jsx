@@ -201,70 +201,141 @@ function App() {
     )
   }
 
+  const isMainTab = ['all', 'done', 'queue', 'favs'].includes(tab)
+  const isFeatureTab = ['deck', 'ai', 'h2h', 'prs', 'activity', 'stats', 'collections'].includes(tab)
+
   return (
     <div className="app">
       <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => { setActivityHighlight(null); setTab("activity") }} onH2HClick={() => setTab("h2h")} onCollectionsClick={() => setTab("collections")} onNotifNavigate={(link) => { if (link.startsWith("activity:")) { const parts = link.split(":"); setActivityHighlight(parts[1]); setTab("activity") } }} />
       {!session && <Welcome onSignIn={() => setShowAuth(true)} />}
+
+      {/* Hero Feature Cards — desktop only, on main tabs */}
+      {isMainTab && (
+        <div className="hero-features desktop-only">
+          <button className="hero-card hero-ai" onClick={() => setTab('ai')}>
+            <span className="hero-icon">🤖</span>
+            <div>
+              <div className="hero-title">AI Workout Generator</div>
+              <div className="hero-sub">Describe what you want — we build it</div>
+            </div>
+          </button>
+          <button className="hero-card hero-deck" onClick={() => setTab('deck')}>
+            <span className="hero-icon">🃏</span>
+            <div>
+              <div className="hero-title">Deck of Cards</div>
+              <div className="hero-sub">Flip, rep, survive the whole deck</div>
+            </div>
+          </button>
+          <button className="hero-card hero-h2h" onClick={() => setTab('h2h')}>
+            <span className="hero-icon">⚔️</span>
+            <div>
+              <div className="hero-title">Head-to-Head</div>
+              <div className="hero-sub">Challenge your friends</div>
+            </div>
+          </button>
+        </div>
+      )}
+
       <div className={['deck','ai','prs','h2h'].includes(tab) ? 'mobile-hide' : ''}>
         <QuoteBar isAdmin={profile?.is_admin || false} />
       </div>
-      {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && tab !== 'activity' && tab !== 'deck' && tab !== 'ai' && tab !== 'h2h' && (
-        <WODCard workouts={workouts} session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} favorites={favorites} toggleFavorite={toggleFavorite} />
-      )}
+
+      {/* Bigger secondary tabs — desktop only */}
       <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} collectionsCount={collections.length} hideMainOnMobile={['deck','ai','prs','h2h'].includes(tab)} />
-      {tab === 'deck' ? (
-        <DeckOfCards session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} isAdmin={profile?.is_admin || false} />
-      ) : tab === 'ai' ? (
-        <AIGenerator session={session} onAuthRequired={() => setShowAuth(true)} isAdmin={profile?.is_admin || false} onWorkoutsChanged={loadWorkouts} />
-      ) : tab === 'h2h' ? (
-        <Challenges session={session} onAuthRequired={() => setShowAuth(true)} workouts={workouts} />
-      ) : tab === 'prs' ? (
-        <PRTracker session={session} onAuthRequired={() => setShowAuth(true)} />
-      ) : tab === 'activity' ? (
-        <ActivityFeed session={session} onAuthRequired={() => setShowAuth(true)} highlightId={activityHighlight} onNavigateToWorkout={(id, name) => {
-          if (name) {
-            const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-            window.location.href = '/workout/' + slug
-          } else {
-            setTab('all')
-            setTimeout(() => {
-              const el = document.getElementById('wc-' + id)
-              if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.click() }
-            }, 200)
-          }
-        }} />
-      ) : tab === 'stats' ? (
-        session ? (
-          <ErrorBoundary>
-            {profile?.is_admin && <AdminAnalytics />}
-            <Stats workouts={workouts} favorites={favorites} />
-          </ErrorBoundary>
-        ) : (
-          <div className="pr-section">
-            <div className="pr-empty">
-              <div style={{ fontSize: '32px', marginBottom: '8px' }}>📊</div>
-              <b>Sign in</b> to view your stats, streaks, and workout analytics.
-              <br /><button className="ab p" style={{ marginTop: '12px' }} onClick={() => setShowAuth(true)}>Sign In</button>
+
+      {/* Two-column layout on desktop for main workout tabs */}
+      {isMainTab ? (
+        <div className="desktop-layout">
+          <div className="desktop-main">
+            {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && tab !== 'activity' && tab !== 'deck' && tab !== 'ai' && tab !== 'h2h' && (
+              <WODCard workouts={workouts} session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} favorites={favorites} toggleFavorite={toggleFavorite} />
+            )}
+            {(profile?.is_admin) && tab === 'all' && <AdminQueue onWorkoutsChanged={loadWorkouts} />}
+            <WorkoutList
+              workouts={workouts}
+              tab={tab}
+              favorites={favorites}
+              toggleFavorite={toggleFavorite}
+              session={session}
+              isAdmin={profile?.is_admin || false}
+              onAuthRequired={() => setShowAuth(true)}
+              onWorkoutsChanged={loadWorkouts}
+              collections={collections}
+              onCollectionsChanged={() => session && loadCollections(session.user.id)}
+            />
+          </div>
+
+          {/* Sticky sidebar — desktop only */}
+          <div className="desktop-sidebar desktop-only">
+            <div className="sidebar-card">
+              <div className="sidebar-label">Quick AI</div>
+              <div className="sidebar-ai-hint">What do you want to train?</div>
+              <button className="sidebar-ai-btn" onClick={() => setTab('ai')}>🤖 Open AI Generator</button>
+            </div>
+
+            {session && (
+              <div className="sidebar-card">
+                <div className="sidebar-label">Your Stats</div>
+                <div className="sidebar-stats">
+                  <div className="sidebar-stat"><span className="sidebar-stat-n">{counts.done}</span><span className="sidebar-stat-l">Done</span></div>
+                  <div className="sidebar-stat"><span className="sidebar-stat-n">{streak > 0 ? `🔥${streak}` : '0'}</span><span className="sidebar-stat-l">Streak</span></div>
+                  <div className="sidebar-stat"><span className="sidebar-stat-n">{favorites.size}</span><span className="sidebar-stat-l">Favs</span></div>
+                </div>
+                <button className="sidebar-link" onClick={() => setTab('stats')}>📊 View Full Stats</button>
+              </div>
+            )}
+
+            <div className="sidebar-card">
+              <div className="sidebar-label">Quick Access</div>
+              <button className="sidebar-link" onClick={() => setTab('deck')}>🃏 Deck of Cards</button>
+              <button className="sidebar-link" onClick={() => setTab('h2h')}>⚔️ Head-to-Head</button>
+              <button className="sidebar-link" onClick={() => setTab('prs')}>🏆 PR Tracker</button>
+              {session && <button className="sidebar-link" onClick={() => { setActivityHighlight(null); setTab('activity') }}>👥 Activity Feed</button>}
+              {session && <button className="sidebar-link" onClick={() => setTab('collections')}>📁 Collections</button>}
             </div>
           </div>
-        )
-      ) : tab === 'collections' ? (
-        <Collections session={session} onAuthRequired={() => setShowAuth(true)} workouts={workouts} />
+        </div>
       ) : (
         <>
-          {(profile?.is_admin) && tab === 'all' && <AdminQueue onWorkoutsChanged={loadWorkouts} />}
-          <WorkoutList
-          workouts={workouts}
-          tab={tab}
-          favorites={favorites}
-          toggleFavorite={toggleFavorite}
-          session={session}
-          isAdmin={profile?.is_admin || false}
-          onAuthRequired={() => setShowAuth(true)}
-          onWorkoutsChanged={loadWorkouts}
-          collections={collections}
-          onCollectionsChanged={() => session && loadCollections(session.user.id)}
-        />
+          {tab === 'deck' ? (
+            <DeckOfCards session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} isAdmin={profile?.is_admin || false} />
+          ) : tab === 'ai' ? (
+            <AIGenerator session={session} onAuthRequired={() => setShowAuth(true)} isAdmin={profile?.is_admin || false} onWorkoutsChanged={loadWorkouts} />
+          ) : tab === 'h2h' ? (
+            <Challenges session={session} onAuthRequired={() => setShowAuth(true)} workouts={workouts} />
+          ) : tab === 'prs' ? (
+            <PRTracker session={session} onAuthRequired={() => setShowAuth(true)} />
+          ) : tab === 'activity' ? (
+            <ActivityFeed session={session} onAuthRequired={() => setShowAuth(true)} highlightId={activityHighlight} onNavigateToWorkout={(id, name) => {
+              if (name) {
+                const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+                window.location.href = '/workout/' + slug
+              } else {
+                setTab('all')
+                setTimeout(() => {
+                  const el = document.getElementById('wc-' + id)
+                  if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.click() }
+                }, 200)
+              }
+            }} />
+          ) : tab === 'stats' ? (
+            session ? (
+              <ErrorBoundary>
+                {profile?.is_admin && <AdminAnalytics />}
+                <Stats workouts={workouts} favorites={favorites} />
+              </ErrorBoundary>
+            ) : (
+              <div className="pr-section">
+                <div className="pr-empty">
+                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>📊</div>
+                  <b>Sign in</b> to view your stats, streaks, and workout analytics.
+                  <br /><button className="ab p" style={{ marginTop: '12px' }} onClick={() => setShowAuth(true)}>Sign In</button>
+                </div>
+              </div>
+            )
+          ) : tab === 'collections' ? (
+            <Collections session={session} onAuthRequired={() => setShowAuth(true)} workouts={workouts} />
+          ) : null}
         </>
       )}
       {showAuth && <Auth onClose={() => setShowAuth(false)} />}
