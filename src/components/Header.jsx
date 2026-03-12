@@ -55,15 +55,15 @@ export default function Header({ counts, session, profile, onAuthClick, streak, 
         <div className="hs"><div className="hs-n">{counts.queue}</div><div className="hs-l">Queue</div></div>
         <ThemeToggle />
         {session && <NotificationBell session={session} />}
-        {session && (
-          <button className="stats-btn" onClick={onActivityClick} title="Activity Feed">
-            👥
-          </button>
-        )}
         {session ? (
-          <button className="user-btn" onClick={onAuthClick}>
-            {profile?.display_name || 'Profile'}
-          </button>
+          <div className="hdr-user-group">
+            <button className="user-btn" onClick={onAuthClick}>
+              {profile?.display_name || 'Profile'}
+            </button>
+            <button className="stats-btn activity-btn" onClick={onActivityClick} title="Activity Feed">
+              👥
+            </button>
+          </div>
         ) : (
           <button className="user-btn" onClick={onAuthClick}>Sign In</button>
         )}
