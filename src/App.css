@@ -1044,3 +1044,19 @@ input, select, textarea { font-family: inherit; }
 .ch-score-divider { font-size: 12px; color: var(--tx3); flex-shrink: 0; }
 .ch-crown { font-size: 16px; margin-top: 2px; }
 .ch-card-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+/* AI prompt textarea */
+.ai-prompt-input { font-family: 'DM Sans', sans-serif; line-height: 1.5; transition: rows .2s; }
+
+/* Activity likes and comments */
+.activity-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
+.activity-actions { display: flex; gap: 4px; }
+.act-btn { background: none; border: none; font-size: 13px; cursor: pointer; padding: 2px 6px; border-radius: 4px; color: var(--tx3); transition: all .1s; }
+.act-btn:hover { background: var(--s2); }
+.act-btn.liked { color: var(--acc); }
+.act-comments { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--brd); }
+.act-comment { display: flex; align-items: baseline; gap: 4px; flex-wrap: wrap; padding: 3px 0; font-size: 12px; }
+.act-comment-name { font-weight: 600; color: var(--tx); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+.act-comment-body { color: var(--tx2); }
+.act-comment-time { color: var(--tx3); font-size: 10px; }
+.act-comment-form { display: flex; gap: 6px; margin-top: 6px; }

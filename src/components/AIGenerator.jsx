@@ -147,11 +147,14 @@ export default function AIGenerator({ session, onAuthRequired, isAdmin, onWorkou
       </div>
 
       <div className="ai-input-row">
-        <input value={prompt} onChange={e => setPrompt(e.target.value)}
+        <textarea value={prompt} onChange={e => setPrompt(e.target.value)}
           placeholder="e.g. 20 min AMRAP with dumbbells and burpees..."
-          className="doc-suit-input"
-          onKeyDown={e => { if (e.key === 'Enter') generate() }}
-          style={{ flex: 1 }} />
+          className="doc-suit-input ai-prompt-input"
+          rows={1}
+          onFocus={e => e.target.rows = 4}
+          onBlur={e => { if (!e.target.value.trim()) e.target.rows = 1 }}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); generate() } }}
+          style={{ flex: 1, resize: 'none' }} />
         <button className="ai-gen-btn" onClick={() => generate()} disabled={generating}>
           {generating ? '⏳' : '🦍'} {generating ? 'Generating...' : 'Generate'}
         </button>
