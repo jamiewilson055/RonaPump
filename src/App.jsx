@@ -18,7 +18,6 @@ import SignupGate from './components/SignupGate'
 import AdminAnalytics from './pages/AdminAnalytics'
 import ActivityFeed from './pages/ActivityFeed'
 import DeckOfCards from './components/DeckOfCards'
-import WorkoutCalendar from './components/WorkoutCalendar'
 import AIGenerator from './components/AIGenerator'
 import ScrollToTop from './components/ScrollToTop'
 import './App.css'
@@ -174,7 +173,7 @@ function App() {
   if (showProfile && session) {
     return (
       <div className="app">
-        <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} />
+        <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => setTab("activity")} />
         <Profile
           session={session}
           profile={profile}
@@ -187,7 +186,7 @@ function App() {
 
   return (
     <div className="app">
-      <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} />
+      <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => setTab("activity")} />
       {!session && <Welcome onSignIn={() => setShowAuth(true)} />}
       <QuoteBar isAdmin={profile?.is_admin || false} />
       {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && tab !== 'activity' && tab !== 'deck' && tab !== 'ai' && (
@@ -217,7 +216,6 @@ function App() {
         session ? (
           <>
             {profile?.is_admin && <AdminAnalytics />}
-            <WorkoutCalendar workouts={workouts} session={session} />
             <Stats workouts={workouts} favorites={favorites} />
           </>
         ) : (

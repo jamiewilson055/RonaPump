@@ -20,7 +20,6 @@ export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount }
     { key: 'deck', label: 'Deck', icon: '🃏' },
     { key: 'ai', label: 'AI', icon: '🤖' },
     { key: 'prs', label: 'PRs', icon: '🏆' },
-    { key: 'activity', label: 'Activity', icon: '👥' },
   ]
 
   const isSecondary = secondaryTabs.some(t => t.key === tab)
