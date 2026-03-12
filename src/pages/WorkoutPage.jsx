@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import WorkoutTimer from '../components/WorkoutTimer'
 import ShareImage from '../components/ShareImage'
+import '../App.css'
 
 function formatDesc(text) {
   function renderBold(str) {
@@ -37,6 +38,7 @@ export default function WorkoutPage() {
   const [isFav, setIsFav] = useState(false)
   const [similar, setSimilar] = useState([])
   const [showSimilar, setShowSimilar] = useState(false)
+  const [remixSaved, setRemixSaved] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session: s } }) => setSession(s))
@@ -44,13 +46,8 @@ export default function WorkoutPage() {
     return () => subscription.unsubscribe()
   }, [])
 
-  useEffect(() => {
-    loadWorkout()
-  }, [slug])
-
-  useEffect(() => {
-    if (session && workout) checkFavorite()
-  }, [session, workout])
+  useEffect(() => { loadWorkout() }, [slug])
+  useEffect(() => { if (session && workout) checkFavorite() }, [session, workout])
 
   async function loadWorkout() {
     setLoading(true)
@@ -70,7 +67,6 @@ export default function WorkoutPage() {
     if (!match) { setNotFound(true); setLoading(false); return }
     setWorkout(match)
 
-    // Find similar
     const sim = data.filter(w => w.id !== match.id && w.name && w.visibility === 'official').filter(w => {
       let score = 0
       if (match.equipment?.some(e => w.equipment?.includes(e))) score++
@@ -80,7 +76,6 @@ export default function WorkoutPage() {
       return score >= 2
     }).slice(0, 5)
     setSimilar(sim)
-
     setLoading(false)
   }
 
@@ -111,6 +106,29 @@ export default function WorkoutPage() {
     setAddingLog(false); setLogScore(''); setLogNotes(''); setLogged(true)
   }
 
+  async function remixWorkout() {
+    if (!session || !workout) return
+    const { error } = await supabase.from('workouts').insert({
+      name: (workout.name || 'Workout') + ' (My Version)',
+      description: workout.description,
+      score_type: workout.score_type,
+      estimated_duration_mins: workout.estimated_duration_mins,
+      estimated_duration_min: workout.estimated_duration_min,
+      estimated_duration_max: workout.estimated_duration_max,
+      equipment: workout.equipment || ['Bodyweight'],
+      workout_types: workout.workout_types || [],
+      categories: workout.categories || [],
+      movement_categories: workout.movement_categories || [],
+      body_parts: workout.body_parts || [],
+      created_by: session.user.id,
+      visibility: 'private',
+      source: 'remix-of-' + workout.id,
+    })
+    if (error) { alert('Error: ' + error.message); return }
+    setRemixSaved(true)
+    setTimeout(() => setRemixSaved(false), 3000)
+  }
+
   function shareWorkout() {
     const text = `${workout.name}\n\n${workout.description?.slice(0, 200)}${workout.description?.length > 200 ? '...' : ''}\n\n🦍 ronapump.com`
     navigator.share?.({ title: workout.name, text }) || navigator.clipboard.writeText(text)
@@ -122,9 +140,10 @@ export default function WorkoutPage() {
     setCopied(true); setTimeout(() => setCopied(false), 2000)
   }
 
-  function remixWorkout() {
-    // Navigate to home with remix intent
-    window.location.href = '/?remix=' + workout.id
+  function previewDesc(desc, max) {
+    if (!desc) return ''
+    const clean = desc.replace(/\*\*/g, '').replace(/^•\s*/gm, '').replace(/\n+/g, ' ').trim()
+    return clean.length > max ? clean.slice(0, max) + '...' : clean
   }
 
   if (loading) return <div className="app"><div className="loading">Loading workout...</div></div>
@@ -192,7 +211,6 @@ export default function WorkoutPage() {
           )}
         </div>
 
-        {/* Secondary actions */}
         <div className="wp-actions-secondary">
           {session && (
             <button className={`ab${isFav ? ' p' : ''}`} onClick={toggleFavorite}>
@@ -203,14 +221,16 @@ export default function WorkoutPage() {
           <button className="ab" onClick={shareWorkout}>{copied ? '✓ Copied!' : '↗ Share'}</button>
           <button className="ab" onClick={copyLink}>🔗 Link</button>
           {session && w.created_by !== session.user.id && (
-            <button className="ab" onClick={remixWorkout}>🔀 Remix</button>
+            <button className="ab" onClick={remixWorkout}>{remixSaved ? '✓ Saved!' : '🔀 Remix'}</button>
           )}
-          <button className="ab" onClick={() => setShowSimilar(!showSimilar)}>
-            🔍 Similar {similar.length > 0 ? `(${similar.length})` : ''}
-          </button>
+          {similar.length > 0 && (
+            <button className="ab" onClick={() => setShowSimilar(!showSimilar)}>
+              🔍 Similar ({similar.length})
+            </button>
+          )}
         </div>
 
-        {showShare && <ShareImage workout={w} />}
+        {showShare && <ShareImage workout={w} onClose={() => setShowShare(false)} />}
 
         {addingLog && session && (
           <div className="plog-form" style={{ marginTop: '10px' }}>
@@ -225,7 +245,6 @@ export default function WorkoutPage() {
           </div>
         )}
 
-        {/* Leaderboard */}
         {w.performance_log?.length > 0 && (
           <div className="wp-leaderboard">
             <h4 style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', marginBottom: '8px' }}>Leaderboard</h4>
@@ -248,19 +267,22 @@ export default function WorkoutPage() {
           </div>
         )}
 
-        {/* Similar workouts */}
         {showSimilar && similar.length > 0 && (
           <div className="wp-similar">
             <h4 style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', marginBottom: '8px' }}>Similar Workouts</h4>
             {similar.map(s => {
               const sSlug = s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
               return (
-                <Link key={s.id} to={`/workout/${sSlug}`} className="wp-similar-item" onClick={() => window.scrollTo(0, 0)}>
-                  <span className="wp-similar-name">{s.name}</span>
-                  <span className="wp-similar-meta">
-                    {s.estimated_duration_mins && <span className="wdr">{s.estimated_duration_mins}m</span>}
-                    {s.score_type !== 'None' && <span className="wst">{s.score_type}</span>}
-                  </span>
+                <Link key={s.id} to={`/workout/${sSlug}`} className="wp-similar-item" onClick={() => { window.scrollTo(0, 0); setShowSimilar(false) }}>
+                  <div style={{ flex: 1 }}>
+                    <div className="wp-similar-name">{s.name}</div>
+                    <div className="wp-similar-preview">{previewDesc(s.description, 160)}</div>
+                    <div className="wp-similar-meta">
+                      {s.estimated_duration_mins && <span className="wdr">{s.estimated_duration_mins}m</span>}
+                      {s.score_type !== 'None' && <span className="wst">{s.score_type}</span>}
+                      {s.equipment?.filter(e => e !== 'Bodyweight').slice(0, 3).map(e => <span key={e} className="tg te">{e}</span>)}
+                    </div>
+                  </div>
                 </Link>
               )
             })}

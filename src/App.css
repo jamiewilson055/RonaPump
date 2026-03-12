@@ -1069,3 +1069,6 @@ input, select, textarea { font-family: inherit; }
 .wp-similar-item:hover { border-color: var(--acc); }
 .wp-similar-name { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; }
 .wp-similar-meta { display: flex; gap: 4px; }
+
+/* Similar workout preview */
+.wp-similar-preview { font-size: 12px; color: var(--tx3); line-height: 1.5; margin: 3px 0 4px; }
