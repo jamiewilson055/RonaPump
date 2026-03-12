@@ -1,4 +1,4 @@
-export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount }) {
+export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount, hideMainOnMobile }) {
   const mainTabs = [
     { key: 'all', label: 'All', short: 'All', count: counts.total },
     { key: 'done', label: 'Completed', short: 'Done', count: counts.done },
@@ -10,6 +10,7 @@ export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount }
     { key: 'deck', label: 'Deck', icon: '🃏', count: null },
     { key: 'ai', label: 'AI', icon: '🤖', count: null },
     { key: 'prs', label: 'PRs', icon: '🏆', count: prsCount },
+    { key: 'h2h', label: 'H2H', icon: '⚔️', count: null },
     { key: 'activity', label: 'Activity', icon: '👥', count: null },
     { key: 'collections', label: 'Collections', icon: '📁', count: collectionsCount || null },
     { key: 'stats', label: 'Stats', icon: '📊', count: null },
@@ -26,7 +27,7 @@ export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount }
 
   return (
     <>
-      <div className="tabs">
+      <div className={`tabs${hideMainOnMobile ? ' mobile-hide' : ''}`}>
         {mainTabs.map(t => (
           <button key={t.key} className={`tab${tab === t.key ? ' on' : ''}`} onClick={() => setTab(t.key)}>
             <span className="tab-full">{t.label}</span>

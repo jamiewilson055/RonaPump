@@ -15,6 +15,7 @@ export default function Profile({ session, profile, onClose, onProfileUpdated })
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [wodSubscribed, setWodSubscribed] = useState(false)
   const fileRef = useRef(null)
 
   useEffect(() => {
@@ -29,7 +30,30 @@ export default function Profile({ session, profile, onClose, onProfileUpdated })
         weekly_digest: profile.weekly_digest !== false,
       })
     }
-  }, [profile])
+    if (session) loadWodSub()
+  }, [profile, session])
+
+  async function loadWodSub() {
+    const { data } = await supabase.from('email_subscribers').select('subscribed').eq('user_id', session.user.id).single()
+    if (data) setWodSubscribed(data.subscribed)
+  }
+
+  async function toggleWodSub() {
+    const email = session.user.email
+    if (!email) return
+    if (wodSubscribed) {
+      await supabase.from('email_subscribers').update({ subscribed: false }).eq('user_id', session.user.id)
+      setWodSubscribed(false)
+    } else {
+      const { data: existing } = await supabase.from('email_subscribers').select('id').eq('user_id', session.user.id).single()
+      if (existing) {
+        await supabase.from('email_subscribers').update({ subscribed: true }).eq('user_id', session.user.id)
+      } else {
+        await supabase.from('email_subscribers').insert({ user_id: session.user.id, email, subscribed: true })
+      }
+      setWodSubscribed(true)
+    }
+  }
 
   async function handleSave() {
     setSaving(true)
@@ -181,6 +205,12 @@ export default function Profile({ session, profile, onClose, onProfileUpdated })
             <div className="prof-row">
               <span className="prof-label">Weekly Digest</span>
               <span className="prof-value">{profile?.weekly_digest !== false ? '✅ Subscribed' : '❌ Not subscribed'}</span>
+            </div>
+            <div className="prof-row">
+              <span className="prof-label">Daily WOD Email</span>
+              <button className={`ab${wodSubscribed ? ' p' : ''}`} onClick={toggleWodSub} style={{ padding: '4px 12px', fontSize: '11px' }}>
+                {wodSubscribed ? '✅ Subscribed' : 'Subscribe'}
+              </button>
             </div>
 
             <div className="prof-actions">

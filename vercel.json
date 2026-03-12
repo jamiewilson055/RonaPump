@@ -1,4 +1,7 @@
 {
+  "crons": [
+    { "path": "/api/daily-wod", "schedule": "0 11 * * *" }
+  ],
   "headers": [
     {
       "source": "/(.*).html",

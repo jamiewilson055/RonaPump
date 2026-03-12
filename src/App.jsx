@@ -19,6 +19,7 @@ import SignupGate from './components/SignupGate'
 import ActivityFeed from './pages/ActivityFeed'
 import DeckOfCards from './components/DeckOfCards'
 import AIGenerator from './components/AIGenerator'
+import Challenges from './components/Challenges'
 import ScrollToTop from './components/ScrollToTop'
 import './App.css'
 
@@ -203,15 +204,19 @@ function App() {
     <div className="app">
       <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => setTab("activity")} />
       {!session && <Welcome onSignIn={() => setShowAuth(true)} />}
-      <QuoteBar isAdmin={profile?.is_admin || false} />
-      {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && tab !== 'activity' && tab !== 'deck' && tab !== 'ai' && (
+      <div className={['deck','ai','prs','h2h'].includes(tab) ? 'mobile-hide' : ''}>
+        <QuoteBar isAdmin={profile?.is_admin || false} />
+      </div>
+      {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && tab !== 'activity' && tab !== 'deck' && tab !== 'ai' && tab !== 'h2h' && (
         <WODCard workouts={workouts} session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} favorites={favorites} toggleFavorite={toggleFavorite} />
       )}
-      <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} collectionsCount={collections.length} />
+      <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} collectionsCount={collections.length} hideMainOnMobile={['deck','ai','prs','h2h'].includes(tab)} />
       {tab === 'deck' ? (
         <DeckOfCards session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} isAdmin={profile?.is_admin || false} />
       ) : tab === 'ai' ? (
         <AIGenerator session={session} onAuthRequired={() => setShowAuth(true)} isAdmin={profile?.is_admin || false} onWorkoutsChanged={loadWorkouts} />
+      ) : tab === 'h2h' ? (
+        <Challenges session={session} onAuthRequired={() => setShowAuth(true)} workouts={workouts} />
       ) : tab === 'prs' ? (
         <PRTracker session={session} onAuthRequired={() => setShowAuth(true)} />
       ) : tab === 'activity' ? (
