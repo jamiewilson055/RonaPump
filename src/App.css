@@ -1370,3 +1370,66 @@ input, select, textarea { font-family: inherit; }
   .ach-ranks-row { overflow-x: auto; flex-wrap: nowrap; }
   .ach-rank-step { min-width: 50px; }
 }
+
+/* ============= AI Coach ============= */
+.coach-section { max-width: 560px; margin: 0 auto; }
+.coach-hero { text-align: center; padding: 20px 0; }
+.coach-hero-icon { font-size: 48px; }
+.coach-hero-title { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 800; margin: 8px 0 4px; color: var(--tx); }
+.coach-hero-sub { color: var(--tx3); font-size: 14px; line-height: 1.5; max-width: 400px; margin: 0 auto; }
+
+.coach-ask-btn { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; background: linear-gradient(135deg, #e01e1e 0%, #a00 100%); border: none; border-radius: 14px; padding: 20px; cursor: pointer; transition: transform .15s, box-shadow .15s; }
+.coach-ask-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(224, 30, 30, .3); }
+.coach-ask-btn span { color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; }
+.coach-ask-icon { font-size: 32px; }
+
+.coach-loading { text-align: center; padding: 24px 0; }
+.coach-loading-steps { margin-bottom: 16px; }
+.coach-step { font-size: 13px; color: var(--tx3); padding: 4px 0; opacity: 0.4; transition: opacity .3s; }
+.coach-step.active { opacity: 1; color: var(--tx); }
+
+.coach-error { color: var(--acc); font-size: 13px; text-align: center; padding: 12px; }
+
+/* Analysis */
+.coach-analysis { background: var(--s1); border: 1px solid var(--brd); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.coach-analysis-title { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: var(--tx3); margin-bottom: 10px; }
+.coach-analysis-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+.coach-stat { text-align: center; background: var(--bg); border-radius: 8px; padding: 10px 6px; }
+.coach-stat-n { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 800; color: var(--tx); }
+.coach-stat-l { font-size: 10px; color: var(--tx3); text-transform: uppercase; letter-spacing: .5px; margin-top: 2px; }
+
+.coach-fresh, .coach-recent { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 6px; }
+.coach-fresh-label, .coach-recent-label { font-size: 11px; color: var(--tx3); font-weight: 600; }
+.coach-fresh-tag { background: var(--grn-d); color: var(--grn); border: 1px solid var(--grn); border-radius: 4px; padding: 2px 6px; font-size: 10px; font-weight: 600; text-transform: capitalize; }
+.coach-recent-tag { background: var(--acc-d); color: var(--acc); border: 1px solid var(--acc); border-radius: 4px; padding: 2px 6px; font-size: 10px; font-weight: 600; text-transform: capitalize; }
+
+/* Recommendation */
+.coach-rec { background: var(--s1); border: 2px solid var(--acc); border-radius: 12px; padding: 18px; }
+.coach-rec-header { margin-bottom: 12px; }
+.coach-rec-label { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: var(--acc); margin-bottom: 6px; }
+.coach-rec-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+.coach-focus { background: var(--s2); border: 1px solid var(--brd); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: 600; color: var(--tx2); }
+.coach-intensity { border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+.coach-intensity.light { background: var(--grn-d); color: var(--grn); }
+.coach-intensity.moderate { background: var(--ylw); color: #000; }
+.coach-intensity.high { background: var(--acc-d); color: var(--acc); }
+.coach-intensity.max-effort { background: var(--acc); color: #fff; }
+
+.coach-reasoning { font-size: 14px; color: var(--tx2); line-height: 1.6; margin-bottom: 14px; padding: 10px; background: var(--bg); border-radius: 8px; border-left: 3px solid var(--acc); }
+
+.coach-workout { margin-bottom: 12px; }
+.coach-workout-name { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 800; color: var(--tx); margin-bottom: 6px; }
+.coach-workout-meta { display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+.coach-workout-tags { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
+.coach-workout-desc { font-size: 13px; line-height: 1.6; color: var(--tx2); }
+
+.coach-tips { background: var(--bg); border-radius: 8px; padding: 10px; margin-bottom: 12px; }
+.coach-tips-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: var(--tx3); margin-bottom: 6px; }
+.coach-tip { font-size: 12px; color: var(--tx2); padding: 3px 0; line-height: 1.4; }
+.coach-tip::before { content: '→ '; color: var(--acc); }
+
+.coach-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+
+/* BodyMap preview CTA */
+.bodymap-preview-cta { font-size: 11px; color: var(--acc); text-align: center; margin-top: 8px; font-weight: 600; }
+.bodymap-preview { opacity: 0.7; }
