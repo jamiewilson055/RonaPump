@@ -431,7 +431,6 @@ export default function Longevity({ session, onAuthRequired }) {
         </div>
         <div className="lon-vital-info">
           <div className="lon-vital-heading">🧬 Vital Age</div>
-          {testedCount > 0 && <div className="lon-idx-bar"><span className="lon-idx-num">{longevityIndex}</span><span className="lon-idx-max">/100</span></div>}
           {testedCount > 0 ? (
             <div className="lon-vital-diff" style={{ color: ageDiff <= -5 ? '#22d3ee' : ageDiff <= 0 ? '#4ade80' : ageDiff <= 5 ? '#e0c81e' : '#e01e1e' }}>
               {ageDiff < 0 ? `${Math.abs(ageDiff)} years younger` : ageDiff === 0 ? 'On track' : `${ageDiff} years older`} than age {age}

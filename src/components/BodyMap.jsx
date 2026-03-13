@@ -14,6 +14,30 @@ const MOVEMENT_TO_MUSCLES = {
   'Jump': ['quads', 'calves', 'glutes'],
   'DB Snatch': ['shoulders', 'back', 'core', 'quads'],
   'Farmers Carry': ['core', 'back', 'shoulders', 'biceps'],
+  'Thruster': ['quads', 'shoulders', 'triceps', 'core', 'glutes'],
+  'Clean': ['quads', 'hamstrings', 'back', 'shoulders', 'core'],
+  'Snatch': ['quads', 'hamstrings', 'back', 'shoulders', 'core'],
+  'Row': ['back', 'biceps', 'core'],
+  'Rowing': ['back', 'biceps', 'quads', 'core'],
+  'Box Jump': ['quads', 'calves', 'glutes'],
+  'Wall Ball': ['quads', 'shoulders', 'core', 'glutes'],
+  'Muscle-Up': ['chest', 'back', 'biceps', 'triceps', 'shoulders', 'core'],
+  'Dip': ['chest', 'triceps', 'shoulders'],
+  'Plank': ['core', 'shoulders'],
+  'Sit-Up': ['core'],
+  'Toes-to-Bar': ['core', 'biceps', 'back'],
+  'Kettlebell Swing': ['hamstrings', 'glutes', 'core', 'shoulders'],
+  'Bike': ['quads', 'calves', 'hamstrings'],
+  'Sled Push': ['quads', 'glutes', 'calves', 'core'],
+  'Sled Pull': ['back', 'biceps', 'hamstrings', 'core'],
+  'Turkish Get-Up': ['shoulders', 'core', 'quads', 'glutes'],
+  'Curl': ['biceps'],
+  'Tricep Extension': ['triceps'],
+  'Lateral Raise': ['shoulders'],
+  'Calf Raise': ['calves'],
+  'Hip Thrust': ['glutes', 'hamstrings'],
+  'Step-Up': ['quads', 'glutes'],
+  'Jump Rope': ['calves', 'quads'],
 }
 
 const BODYPART_TO_MUSCLES = {
@@ -38,9 +62,10 @@ function daysAgo(dateStr) {
 function muscleColor(days) {
   if (days === 0) return { fill: '#e01e1e', opacity: 0.85, label: 'Today', ring: '#ff4444' }
   if (days === 1) return { fill: '#e05e1e', opacity: 0.75, label: 'Yesterday', ring: '#ff7744' }
-  if (days <= 2) return { fill: '#e0a01e', opacity: 0.65, label: `${days}d ago`, ring: '#ffbb44' }
-  if (days <= 4) return { fill: '#4ade80', opacity: 0.5, label: `${days}d ago`, ring: '#4ade80' }
-  return { fill: '#2a2a35', opacity: 0.25, label: '5+ days', ring: '#3a3a45' }
+  if (days === 2) return { fill: '#e0a01e', opacity: 0.65, label: '2 days ago', ring: '#ffbb44' }
+  if (days <= 4) return { fill: '#4ade80', opacity: 0.5, label: `${days} days ago`, ring: '#4ade80' }
+  if (days <= 7) return { fill: '#2a2a35', opacity: 0.25, label: `${days} days ago`, ring: '#3a3a45' }
+  return { fill: '#2a2a35', opacity: 0.15, label: 'No data', ring: '#3a3a45' }
 }
 
 // Demo data for non-signed-in preview
@@ -205,9 +230,9 @@ export default function BodyMap({ session, preview }) {
 
           <div className="bodymap-legend">
             <div className="bodymap-legend-item"><span className="bodymap-dot" style={{ background: '#e01e1e' }}></span> Today</div>
-            <div className="bodymap-legend-item"><span className="bodymap-dot" style={{ background: '#e0a01e' }}></span> 1-2d</div>
-            <div className="bodymap-legend-item"><span className="bodymap-dot" style={{ background: '#4ade80' }}></span> 3-4d</div>
-            <div className="bodymap-legend-item"><span className="bodymap-dot" style={{ background: '#2a2a35', border: '1px solid #3a3a45' }}></span> 5+d</div>
+            <div className="bodymap-legend-item"><span className="bodymap-dot" style={{ background: '#e0a01e' }}></span> 1-2 days</div>
+            <div className="bodymap-legend-item"><span className="bodymap-dot" style={{ background: '#4ade80' }}></span> 3-4 days</div>
+            <div className="bodymap-legend-item"><span className="bodymap-dot" style={{ background: '#2a2a35', border: '1px solid #3a3a45' }}></span> No data</div>
           </div>
 
           <div className="bodymap-muscle-list">
