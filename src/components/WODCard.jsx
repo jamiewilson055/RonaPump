@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import WorkoutTimer from './WorkoutTimer'
+import ShareImage from './ShareImage'
+import StoryCard from './StoryCard'
 
 function formatDesc(text) {
   function renderBold(str) {
@@ -27,6 +29,10 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
   const [logScore, setLogScore] = useState('')
   const [logDate, setLogDate] = useState(new Date().toISOString().slice(0, 10))
   const [logNotes, setLogNotes] = useState('')
+  const [logRx, setLogRx] = useState(true)
+  const [showShareImage, setShowShareImage] = useState(false)
+  const [showStoryCard, setShowStoryCard] = useState(false)
+  const [lastLogScore, setLastLogScore] = useState(null)
 
   const pick = useCallback(() => {
     const pool = workouts.filter(w => w.description && w.description.length > 40 && w.visibility !== 'private')
@@ -63,17 +69,30 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
   async function addLog() {
     if (!session) { onAuthRequired(); return }
     if (!logScore.trim()) return
+    const scoreVal = logScore.trim()
     await supabase.from('performance_log').insert({
       user_id: session.user.id,
       workout_id: wod.id,
       completed_at: logDate,
-      score: logScore.trim(),
-      notes: logNotes.trim() || null
+      score: scoreVal,
+      notes: logNotes.trim() || null,
+      is_rx: logRx,
     })
+    setLastLogScore(scoreVal)
     setAddingLog(false)
     setLogScore('')
     setLogNotes('')
+    setLogRx(true)
+    setShowStoryCard(true)
     if (onWorkoutsChanged) onWorkoutsChanged()
+  }
+
+  function copyLink() {
+    if (!wod) return
+    const slug = (wod.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    navigator.clipboard.writeText(`https://www.ronapump.com/workout/${slug}`)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   if (!wod) return null
@@ -154,14 +173,20 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
             </div>
 
             <div className="acts">
-              <button className="ab p" onClick={() => setShowTimer(true)}>▶ Start Workout</button>
+              <button className="ab p" onClick={() => setShowTimer(true)} style={{ fontWeight: 600 }}>▶ Start Workout</button>
+              <button className="ab p" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }} style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)' }}>{addingLog ? 'Cancel' : '✓ Complete Workout'}</button>
               {toggleFavorite && <button className={`ab ${isFav ? '' : 'g'}`} onClick={() => toggleFavorite(wod.id)}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>}
-              <button className="ab" onClick={shareWorkout}>{copied ? '✓ Copied!' : '↗ Share'}</button>
+              <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
+              <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
+              <button className="ab" onClick={copyLink}>{copied ? '✓ Copied!' : '🔗 Link'}</button>
+              <button className="ab" onClick={shareWorkout}>↗ Share Text</button>
             </div>
           </div>
         )}
       </div>
       {showTimer && <WorkoutTimer workout={wod} onClose={() => setShowTimer(false)} session={session} onWorkoutsChanged={onWorkoutsChanged} />}
+      {showShareImage && <ShareImage workout={wod} onClose={() => setShowShareImage(false)} />}
+      {showStoryCard && <StoryCard workout={wod} score={lastLogScore} session={session} onClose={() => setShowStoryCard(false)} />}
     </>
   )
 }
