@@ -36,7 +36,9 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
   const [showCollections, setShowCollections] = useState(false)
   const [showSimilar, setShowSimilar] = useState(false)
   const [similarResults, setSimilarResults] = useState([])
-
+  const [editing, setEditing] = useState(false)
+  const [remixing, setRemixing] = useState(false)
+  const [editForm, setEditForm] = useState(null)
   const pick = useCallback(() => {
     const pool = workouts.filter(w => w.description && w.description.length > 40 && w.visibility !== 'private')
     if (pool.length) setWod(pool[Math.floor(Math.random() * pool.length)])
@@ -93,9 +95,20 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
   function copyLink() {
     if (!wod) return
     const slug = (wod.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-    navigator.clipboard.writeText(`https://www.ronapump.com/workout/${slug}`)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    const url = `https://www.ronapump.com/workout/${slug}`
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }).catch(() => {
+      const ta = document.createElement('textarea')
+      ta.value = url
+      ta.style.cssText = 'position:fixed;opacity:0;left:-9999px'
+      document.body.appendChild(ta)
+      ta.focus()
+      ta.select()
+      try { document.execCommand('copy'); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {}
+      document.body.removeChild(ta)
+    })
   }
 
   function findSimilar() {
@@ -126,6 +139,67 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
     await supabase.from('workouts').delete().eq('id', wod.id)
     if (onWorkoutsChanged) onWorkoutsChanged()
     pick()
+  }
+
+  function startEdit() {
+    setEditForm({
+      name: wod.name || '', description: wod.description || '', score_type: wod.score_type || 'None',
+      estimated_duration_mins: wod.estimated_duration_mins || '',
+      equipment: [...(wod.equipment || [])], workout_types: [...(wod.workout_types || [])],
+      categories: [...(wod.categories || [])], movement_categories: [...(wod.movement_categories || [])],
+      body_parts: [...(wod.body_parts || [])],
+    })
+    setRemixing(false)
+    setEditing(true)
+  }
+
+  function startRemix() {
+    if (!session) { onAuthRequired(); return }
+    setEditForm({
+      name: (wod.name || 'Unnamed') + ' (My Version)', description: wod.description || '', score_type: wod.score_type || 'None',
+      estimated_duration_mins: wod.estimated_duration_mins || '',
+      equipment: [...(wod.equipment || [])], workout_types: [...(wod.workout_types || [])],
+      categories: [...(wod.categories || [])], movement_categories: [...(wod.movement_categories || [])],
+      body_parts: [...(wod.body_parts || [])],
+    })
+    setRemixing(true)
+    setEditing(true)
+  }
+
+  function toggleEditArray(field, val) {
+    setEditForm(prev => {
+      const arr = [...prev[field]]
+      const idx = arr.indexOf(val)
+      if (idx >= 0) arr.splice(idx, 1); else arr.push(val)
+      return { ...prev, [field]: arr }
+    })
+  }
+
+  async function saveEdit() {
+    if (!editForm.description.trim()) { alert('Description is required.'); return }
+    if (remixing) {
+      const { error } = await supabase.from('workouts').insert({
+        name: editForm.name.trim() || null, description: editForm.description.trim(), score_type: editForm.score_type,
+        estimated_duration_mins: editForm.estimated_duration_mins ? parseInt(editForm.estimated_duration_mins) : null,
+        equipment: editForm.equipment.length ? editForm.equipment : ['Bodyweight'],
+        workout_types: editForm.workout_types.length ? editForm.workout_types : ['For Time'],
+        categories: editForm.categories, movement_categories: editForm.movement_categories.length ? editForm.movement_categories : [],
+        body_parts: editForm.body_parts || [], created_by: session.user.id, visibility: 'private', source: 'remix-of-' + wod.id,
+      })
+      if (error) { alert('Error saving: ' + error.message); return }
+    } else {
+      const { error } = await supabase.from('workouts').update({
+        name: editForm.name.trim() || null, description: editForm.description.trim(), score_type: editForm.score_type,
+        estimated_duration_mins: editForm.estimated_duration_mins ? parseInt(editForm.estimated_duration_mins) : null,
+        equipment: editForm.equipment.length ? editForm.equipment : ['Bodyweight'],
+        workout_types: editForm.workout_types.length ? editForm.workout_types : ['General'],
+        categories: editForm.categories, movement_categories: editForm.movement_categories.length ? editForm.movement_categories : [],
+        body_parts: editForm.body_parts || [], auto_named: false,
+      }).eq('id', wod.id)
+      if (error) { alert('Error saving: ' + error.message); return }
+    }
+    setEditing(false); setEditForm(null); setRemixing(false)
+    if (onWorkoutsChanged) onWorkoutsChanged()
   }
 
   if (!wod) return null
@@ -210,18 +284,12 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
               <button className="ab p" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }} style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)' }}>{addingLog ? 'Cancel' : '✓ Complete Workout'}</button>
               {toggleFavorite && <button className={`ab ${isFav ? '' : 'g'}`} onClick={() => toggleFavorite(wod.id)}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>}
               <button className="ab" onClick={() => { if (!session) { onAuthRequired(); return } setShowCollections(!showCollections) }}>{showCollections ? 'Hide' : '📁 Save'}</button>
-              <button className="ab" onClick={() => {
-                const slug = (wod.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-                window.location.href = '/workout/' + slug + '?remix=1'
-              }}>🔀 Remix</button>
+              <button className="ab" onClick={startRemix}>🔀 Remix</button>
               <button className="ab" onClick={findSimilar}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
               <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
               <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
               <button className="ab" onClick={copyLink}>{copied ? '✓ Copied!' : '🔗 Link'}</button>
-              {isAdmin && <button className="ab p" onClick={() => {
-                const slug = (wod.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-                window.location.href = '/workout/' + slug
-              }}>Edit</button>}
+              {isAdmin && <button className="ab p" onClick={startEdit}>Edit</button>}
               {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}
             </div>
 
@@ -263,6 +331,60 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
       {showTimer && <WorkoutTimer workout={wod} onClose={() => setShowTimer(false)} session={session} onWorkoutsChanged={onWorkoutsChanged} />}
       {showShareImage && <ShareImage workout={wod} onClose={() => setShowShareImage(false)} />}
       {showStoryCard && <StoryCard workout={wod} score={lastLogScore} session={session} onClose={() => setShowStoryCard(false)} />}
+      {editing && editForm && (
+        <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) { setEditing(false); setEditForm(null); setRemixing(false) } }}>
+          <div className="mc">
+            <h2>{remixing ? '🔀 Remix Workout' : 'Edit Workout'}</h2>
+            {remixing && <div style={{ fontSize: '12px', color: 'var(--tx3)', marginBottom: '10px', lineHeight: 1.5 }}>Modify this workout to fit your equipment or preferences. It'll be saved as a private copy.</div>}
+            <label>Name</label>
+            <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="e.g. The Grind" />
+            <label>Description / Details</label>
+            <textarea value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} placeholder="Full workout details..." style={{ minHeight: '140px' }} />
+            <label>Score Type</label>
+            <div className="st-sel">
+              {['Time', 'Rounds + Reps', 'Reps', 'Calories', 'Distance', 'Load', 'None'].map(t => (
+                <button key={t} className={`st-opt${editForm.score_type === t ? ' on' : ''}`} onClick={() => setEditForm({ ...editForm, score_type: t })}>{t}</button>
+              ))}
+            </div>
+            <label>Duration (minutes)</label>
+            <input type="number" value={editForm.estimated_duration_mins} onChange={e => setEditForm({ ...editForm, estimated_duration_mins: e.target.value })} placeholder="e.g. 30" />
+            <label>Equipment</label>
+            <div className="cr">
+              {['Barbell', 'Bench', 'Bike (Assault/Echo)', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Speed Rope', 'Weighted Vest'].map(eq => (
+                <button key={eq} className={`ch${editForm.equipment.includes(eq) ? ' on' : ''}`} onClick={() => toggleEditArray('equipment', eq)}>{eq}</button>
+              ))}
+            </div>
+            <label>Workout Type</label>
+            <div className="cr">
+              {['AMRAP', 'EMOM', 'For Calories', 'For Distance', 'For Time', 'Interval', 'Ladder', 'Rounds', 'Strength'].map(t => (
+                <button key={t} className={`ch${editForm.workout_types.includes(t) ? ' on' : ''}`} onClick={() => toggleEditArray('workout_types', t)}>{t}</button>
+              ))}
+            </div>
+            <label>Category</label>
+            <div className="cr">
+              {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Outdoor', 'Track Workouts'].map(c => (
+                <button key={c} className={`ch${editForm.categories.includes(c) ? ' on' : ''}`} onClick={() => toggleEditArray('categories', c)}>{c}</button>
+              ))}
+            </div>
+            <label>Movement Type</label>
+            <div className="cr">
+              {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat'].map(m => (
+                <button key={m} className={`ch${editForm.movement_categories.includes(m) ? ' on' : ''}`} onClick={() => toggleEditArray('movement_categories', m)}>{m}</button>
+              ))}
+            </div>
+            <label>Body Part</label>
+            <div className="cr">
+              {['Upper Body', 'Lower Body', 'Full Body'].map(b => (
+                <button key={b} className={`ch${editForm.body_parts.includes(b) ? ' on' : ''}`} onClick={() => toggleEditArray('body_parts', b)}>{b}</button>
+              ))}
+            </div>
+            <div className="mf">
+              <button className="ab" onClick={() => { setEditing(false); setEditForm(null); setRemixing(false) }}>Cancel</button>
+              <button className="ab p" onClick={saveEdit}>{remixing ? '🔀 Save My Version' : 'Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

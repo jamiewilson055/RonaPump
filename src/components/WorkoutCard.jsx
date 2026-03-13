@@ -117,9 +117,20 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
   function copyLink() {
     const slug = w.name ? w.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : w.id
-    navigator.clipboard.writeText(`www.ronapump.com/workout/${slug}`).then(() => {
+    const url = `https://www.ronapump.com/workout/${slug}`
+    navigator.clipboard.writeText(url).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
+    }).catch(() => {
+      // Mobile fallback
+      const ta = document.createElement('textarea')
+      ta.value = url
+      ta.style.cssText = 'position:fixed;opacity:0;left:-9999px'
+      document.body.appendChild(ta)
+      ta.focus()
+      ta.select()
+      try { document.execCommand('copy'); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {}
+      document.body.removeChild(ta)
     })
   }
 
@@ -443,7 +454,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
             <button className="ab p" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }} style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)' }}>{addingLog ? 'Cancel' : '✓ Complete Workout'}</button>
             <button className={`ab ${isFav ? '' : 'g'}`} onClick={() => toggleFavorite(w.id)}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>
             <button className="ab" onClick={() => { if (!session) { onAuthRequired(); return } setShowCollections(!showCollections) }}>{showCollections ? 'Hide' : '📁 Save'}</button>
-            {session && w.created_by !== session?.user?.id && (
+            {session && (
               <button className="ab" onClick={startRemix}>🔀 Remix</button>
             )}
             <button className="ab" onClick={() => setShowSimilar(!showSimilar)}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
