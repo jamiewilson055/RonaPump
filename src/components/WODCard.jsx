@@ -19,6 +19,37 @@ function formatDesc(text) {
   })
 }
 
+function SimilarCard({ workout: s }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className={`similar-card${open ? ' open' : ''}`}>
+      <div className="similar-hd" onClick={() => setOpen(!open)}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {s.name || 'Unnamed'}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--tx2)', marginTop: '2px' }}>
+            {s.equipment?.filter(e => e !== 'Bodyweight').slice(0, 3).join(', ')}
+            {s.estimated_duration_mins ? ` · ${s.estimated_duration_mins}m` : ''}
+            {s.score_type && s.score_type !== 'None' ? ` · ${s.score_type}` : ''}
+          </div>
+        </div>
+        <span style={{ color: 'var(--tx3)', fontSize: '10px', flexShrink: 0 }}>{open ? '▾' : '▸'}</span>
+      </div>
+      {open && (
+        <div className="similar-body">
+          <div className="dsc" style={{ fontSize: '12px', padding: '8px 0 4px' }}>{formatDesc(s.description || '')}</div>
+          <div className="wtg" style={{ padding: '4px 0' }}>
+            {s.equipment?.filter(q => q !== 'Bodyweight').map(q => <span key={q} className="tg te">{q}</span>)}
+            {s.movement_categories?.filter(m => !['General', 'Cardio'].includes(m)).slice(0, 4).map(m => <span key={m} className="tg tm">{m}</span>)}
+            {s.workout_types?.filter(t => t !== 'General').map(t => <span key={t} className="tg tw">{t}</span>)}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsChanged, favorites, toggleFavorite, isAdmin, collections, onCollectionsChanged }) {
   const [wod, setWod] = useState(null)
   const [spinning, setSpinning] = useState(false)
@@ -312,16 +343,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
                 {similarResults.length === 0 ? (
                   <div style={{ fontSize: '11px', color: 'var(--tx3)' }}>No similar workouts found.</div>
                 ) : similarResults.map(s => (
-                  <div key={s.id} className="similar-card" onClick={() => {
-                    const slug = (s.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-                    window.location.href = '/workout/' + slug
-                  }} style={{ cursor: 'pointer' }}>
-                    <div className="wn" style={{ fontSize: '12px' }}>{s.name}</div>
-                    <div style={{ fontSize: '10px', color: 'var(--tx3)' }}>{s.description?.slice(0, 100)}...</div>
-                    <div style={{ display: 'flex', gap: '3px', marginTop: '3px', flexWrap: 'wrap' }}>
-                      {s.equipment?.filter(e => e !== 'Bodyweight').slice(0, 3).map(e => <span key={e} className="tg te">{e}</span>)}
-                    </div>
-                  </div>
+                  <SimilarCard key={s.id} workout={s} />
                 ))}
               </div>
             )}
