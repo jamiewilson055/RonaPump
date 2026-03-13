@@ -20,6 +20,8 @@ import ActivityFeed from './pages/ActivityFeed'
 import DeckOfCards from './components/DeckOfCards'
 import AIGenerator from './components/AIGenerator'
 import StandaloneTimer from './components/StandaloneTimer'
+import BodyMap from './components/BodyMap'
+import AchievementDisplay, { checkAndAwardAchievements } from './components/Achievements'
 import Challenges from './components/Challenges'
 import ScrollToTop from './components/ScrollToTop'
 import './App.css'
@@ -319,6 +321,9 @@ function App() {
 
           {/* Sticky sidebar — desktop only */}
           <div className="desktop-sidebar desktop-only">
+            {/* Body Map */}
+            {session && <BodyMap session={session} />}
+
             {/* Your Week */}
             {session && (
               <div className="sidebar-card">
@@ -397,6 +402,7 @@ function App() {
             session ? (
               <ErrorBoundary>
                 {profile?.is_admin && <AdminAnalytics />}
+                <AchievementDisplay session={session} />
                 <Stats workouts={workouts} favorites={favorites} />
               </ErrorBoundary>
             ) : (
