@@ -35,6 +35,8 @@ export default function AICoach({ session, onAuthRequired, onWorkoutsChanged }) 
   const [recommendation, setRecommendation] = useState(null)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editForm, setEditForm] = useState(null)
 
   async function analyzeAndRecommend() {
     if (!session) { onAuthRequired(); return }
@@ -213,6 +215,52 @@ Respond ONLY in valid JSON, no markdown, no backticks:
     if (onWorkoutsChanged) onWorkoutsChanged()
   }
 
+  const ALL_EQUIPMENT = ['Barbell', 'Bench', 'Bike (Assault/Echo)', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Speed Rope', 'Weighted Vest']
+  const ALL_TYPES = ['AMRAP', 'EMOM', 'For Calories', 'For Distance', 'For Time', 'Interval', 'Ladder', 'Rounds', 'Strength']
+  const ALL_BODY_PARTS = ['Upper Body', 'Lower Body', 'Full Body']
+  const SCORE_TYPES = ['Time', 'Rounds + Reps', 'Reps', 'Calories', 'Distance', 'Load', 'None']
+
+  function startEdit() {
+    const w = recommendation.workout
+    setEditForm({
+      name: w.name || '',
+      description: w.description || '',
+      score_type: w.score_type || 'None',
+      estimated_duration_mins: w.estimated_duration_mins || '',
+      equipment: w.equipment || ['Bodyweight'],
+      workout_types: w.workout_types || [],
+      body_parts: w.body_parts || [],
+    })
+    setEditing(true)
+  }
+
+  function toggleArr(field, val) {
+    setEditForm(prev => {
+      const arr = [...(prev[field] || [])]
+      const idx = arr.indexOf(val)
+      if (idx >= 0) arr.splice(idx, 1); else arr.push(val)
+      return { ...prev, [field]: arr }
+    })
+  }
+
+  function applyEdit() {
+    setRecommendation(prev => ({
+      ...prev,
+      workout: {
+        ...prev.workout,
+        name: editForm.name,
+        description: editForm.description,
+        score_type: editForm.score_type,
+        estimated_duration_mins: editForm.estimated_duration_mins ? parseInt(editForm.estimated_duration_mins) : null,
+        equipment: editForm.equipment.length ? editForm.equipment : ['Bodyweight'],
+        workout_types: editForm.workout_types,
+        body_parts: editForm.body_parts,
+      }
+    }))
+    setEditing(false)
+    setEditForm(null)
+  }
+
   function renderBold(str) {
     const parts = str.split(/\*\*(.*?)\*\*/)
     if (parts.length === 1) return str
@@ -331,15 +379,70 @@ Respond ONLY in valid JSON, no markdown, no backticks:
             )}
 
             <div className="coach-actions">
-              {!saved ? (
+              {!saved && !editing ? (
                 <>
+                  <button className="doc-ctrl" style={{ width: '100%' }} onClick={startEdit}>✏️ Edit Before Saving</button>
                   <button className="doc-start-btn" onClick={saveWorkout} style={{ fontSize: '14px' }}>💾 Save Workout</button>
-                  <button className="doc-ctrl" style={{ width: '100%' }} onClick={analyzeAndRecommend}>🔄 Get Another Recommendation</button>
+                  <button className="doc-ctrl sec" style={{ width: '100%' }} onClick={analyzeAndRecommend}>🔄 Get Another Recommendation</button>
                 </>
-              ) : (
+              ) : saved ? (
                 <div style={{ color: 'var(--grn)', fontWeight: 600, fontSize: '15px', textAlign: 'center', padding: '12px' }}>✓ Saved to My Workouts!</div>
-              )}
+              ) : null}
             </div>
+
+            {/* Edit form */}
+            {editing && editForm && (
+              <div className="coach-edit" style={{ marginTop: '12px', borderTop: '1px solid var(--brd)', paddingTop: '12px' }}>
+                <label className="ai-edit-label">Name</label>
+                <input className="doc-suit-input" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} style={{ marginBottom: '8px' }} />
+
+                <label className="ai-edit-label">Description</label>
+                <textarea className="doc-suit-input" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                  style={{ minHeight: '140px', marginBottom: '8px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, resize: 'vertical' }} />
+
+                <label className="ai-edit-label">Score Type</label>
+                <div className="cr" style={{ marginBottom: '8px' }}>
+                  {SCORE_TYPES.map(t => (
+                    <button key={t} className={`ch${editForm.score_type === t ? ' on' : ''}`}
+                      onClick={() => setEditForm({ ...editForm, score_type: t })}>{t}</button>
+                  ))}
+                </div>
+
+                <label className="ai-edit-label">Duration (minutes)</label>
+                <input type="number" className="doc-suit-input" value={editForm.estimated_duration_mins}
+                  onChange={e => setEditForm({ ...editForm, estimated_duration_mins: e.target.value })}
+                  placeholder="e.g. 20" style={{ width: '100px', marginBottom: '8px' }} />
+
+                <label className="ai-edit-label">Equipment</label>
+                <div className="cr" style={{ marginBottom: '8px' }}>
+                  {ALL_EQUIPMENT.map(eq => (
+                    <button key={eq} className={`ch${editForm.equipment.includes(eq) ? ' on' : ''}`}
+                      onClick={() => toggleArr('equipment', eq)}>{eq}</button>
+                  ))}
+                </div>
+
+                <label className="ai-edit-label">Workout Type</label>
+                <div className="cr" style={{ marginBottom: '8px' }}>
+                  {ALL_TYPES.map(t => (
+                    <button key={t} className={`ch${editForm.workout_types.includes(t) ? ' on' : ''}`}
+                      onClick={() => toggleArr('workout_types', t)}>{t}</button>
+                  ))}
+                </div>
+
+                <label className="ai-edit-label">Body Part</label>
+                <div className="cr" style={{ marginBottom: '12px' }}>
+                  {ALL_BODY_PARTS.map(b => (
+                    <button key={b} className={`ch${editForm.body_parts.includes(b) ? ' on' : ''}`}
+                      onClick={() => toggleArr('body_parts', b)}>{b}</button>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button className="doc-start-btn" onClick={applyEdit} style={{ fontSize: '14px', flex: 1 }}>✓ Apply Changes</button>
+                  <button className="doc-ctrl" onClick={() => { setEditing(false); setEditForm(null) }}>Cancel</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

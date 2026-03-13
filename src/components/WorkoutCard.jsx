@@ -5,6 +5,7 @@ import WorkoutComments from './WorkoutComments'
 import PublicProfile from '../pages/PublicProfile'
 import { trackWorkoutView } from './SignupGate'
 import ShareImage from './ShareImage'
+import StoryCard from './StoryCard'
 
 const SCORE_TYPES = ['Time', 'Rounds + Reps', 'Reps', 'Calories', 'Distance', 'Load', 'None']
 
@@ -96,6 +97,8 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const [viewingProfile, setViewingProfile] = useState(null)
   const [logRx, setLogRx] = useState(true)
   const [showShareImage, setShowShareImage] = useState(false)
+  const [showStoryCard, setShowStoryCard] = useState(false)
+  const [lastLogScore, setLastLogScore] = useState(null)
 
   function shareWorkout() {
     let text = ''
@@ -161,18 +164,21 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
   async function addLog() {
     if (!session) { onAuthRequired(); return }
+    const scoreVal = logScore.trim() || null
     await supabase.from('performance_log').insert({
       user_id: session.user.id,
       workout_id: w.id,
       completed_at: logDate,
-      score: logScore.trim() || null,
+      score: scoreVal,
       notes: logNotes.trim() || null,
       is_rx: logRx,
     })
+    setLastLogScore(scoreVal)
     setAddingLog(false)
     setLogScore('')
     setLogNotes('')
     setLogRx(true)
+    setShowStoryCard(true)
     onWorkoutsChanged()
   }
 
@@ -443,6 +449,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
             <button className="ab" onClick={shareWorkout}>{copied ? '✓ Copied!' : '↗ Share'}</button>
             <button className="ab" onClick={copyLink}>🔗 Link</button>
             <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
+            <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
             <button className="ab" onClick={() => setShowSimilar(!showSimilar)}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
             {session && w.created_by !== session?.user?.id && (
               <button className="ab" onClick={startRemix}>🔀 Remix</button>
@@ -643,6 +650,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     {showTimer && <WorkoutTimer workout={w} onClose={() => setShowTimer(false)} session={session} onWorkoutsChanged={onWorkoutsChanged} />}
     {viewingProfile && <PublicProfile userId={viewingProfile} onClose={() => setViewingProfile(null)} session={session} />}
     {showShareImage && <ShareImage workout={w} onClose={() => setShowShareImage(false)} />}
+    {showStoryCard && <StoryCard workout={w} score={lastLogScore} session={session} onClose={() => setShowStoryCard(false)} />}
     </>
   )
 }
