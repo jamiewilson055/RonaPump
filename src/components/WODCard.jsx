@@ -331,7 +331,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
                 {collections.length === 0 ? (
                   <div style={{ fontSize: '11px', color: 'var(--tx3)' }}>No collections yet. Create one from the Collections tab.</div>
                 ) : collections.map(c => (
-                  <button key={c.id} className="coll-pick-btn" onClick={() => addToCollection(c.id)}>📁 {c.name}</button>
+                  <button key={c.id} className="ab" onClick={() => addToCollection(c.id)}>📁 {c.name}</button>
                 ))}
               </div>
             )}
