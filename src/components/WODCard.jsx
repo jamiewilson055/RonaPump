@@ -19,7 +19,7 @@ function formatDesc(text) {
   })
 }
 
-export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsChanged, favorites, toggleFavorite, isAdmin }) {
+export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsChanged, favorites, toggleFavorite, isAdmin, collections, onCollectionsChanged }) {
   const [wod, setWod] = useState(null)
   const [spinning, setSpinning] = useState(false)
   const [expanded, setExpanded] = useState(false)
@@ -33,6 +33,9 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
   const [showShareImage, setShowShareImage] = useState(false)
   const [showStoryCard, setShowStoryCard] = useState(false)
   const [lastLogScore, setLastLogScore] = useState(null)
+  const [showCollections, setShowCollections] = useState(false)
+  const [showSimilar, setShowSimilar] = useState(false)
+  const [similarResults, setSimilarResults] = useState([])
 
   const pick = useCallback(() => {
     const pool = workouts.filter(w => w.description && w.description.length > 40 && w.visibility !== 'private')
@@ -93,6 +96,36 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
     navigator.clipboard.writeText(`https://www.ronapump.com/workout/${slug}`)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  function findSimilar() {
+    if (!wod || !workouts) return
+    setShowSimilar(!showSimilar)
+    if (showSimilar) return
+    const eq = new Set(wod.equipment || [])
+    const types = new Set(wod.workout_types || [])
+    const results = workouts.filter(w => w.id !== wod.id && w.visibility !== 'private').map(w => {
+      let score = 0
+      ;(w.equipment || []).forEach(e => { if (eq.has(e)) score += 2 })
+      ;(w.workout_types || []).forEach(t => { if (types.has(t)) score += 3 })
+      if (w.body_parts?.some(b => (wod.body_parts || []).includes(b))) score += 2
+      return { ...w, matchScore: score }
+    }).filter(w => w.matchScore > 0).sort((a, b) => b.matchScore - a.matchScore).slice(0, 4)
+    setSimilarResults(results)
+  }
+
+  async function addToCollection(collId) {
+    if (!session || !wod) return
+    await supabase.from('collection_workouts').insert({ collection_id: collId, workout_id: wod.id })
+    if (onCollectionsChanged) onCollectionsChanged()
+    setShowCollections(false)
+  }
+
+  async function deleteWorkout() {
+    if (!confirm('Delete this workout?')) return
+    await supabase.from('workouts').delete().eq('id', wod.id)
+    if (onWorkoutsChanged) onWorkoutsChanged()
+    pick()
   }
 
   if (!wod) return null
@@ -176,19 +209,12 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
               <button className="ab p" onClick={() => setShowTimer(true)} style={{ fontWeight: 600 }}>▶ Start Workout</button>
               <button className="ab p" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }} style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)' }}>{addingLog ? 'Cancel' : '✓ Complete Workout'}</button>
               {toggleFavorite && <button className={`ab ${isFav ? '' : 'g'}`} onClick={() => toggleFavorite(wod.id)}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>}
-              <button className="ab" onClick={() => {
-                if (!session) { onAuthRequired(); return }
-                const slug = (wod.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-                window.location.href = '/workout/' + slug
-              }}>📁 Save</button>
+              <button className="ab" onClick={() => { if (!session) { onAuthRequired(); return } setShowCollections(!showCollections) }}>{showCollections ? 'Hide' : '📁 Save'}</button>
               <button className="ab" onClick={() => {
                 const slug = (wod.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-                window.location.href = '/workout/' + slug
+                window.location.href = '/workout/' + slug + '?remix=1'
               }}>🔀 Remix</button>
-              <button className="ab" onClick={() => {
-                const slug = (wod.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-                window.location.href = '/workout/' + slug
-              }}>≈ Similar</button>
+              <button className="ab" onClick={findSimilar}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
               <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
               <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
               <button className="ab" onClick={copyLink}>{copied ? '✓ Copied!' : '🔗 Link'}</button>
@@ -196,13 +222,41 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
                 const slug = (wod.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
                 window.location.href = '/workout/' + slug
               }}>Edit</button>}
-              {isAdmin && <button className="ab del" onClick={async () => {
-                if (!confirm('Delete this workout?')) return
-                await supabase.from('workouts').delete().eq('id', wod.id)
-                if (onWorkoutsChanged) onWorkoutsChanged()
-                pick()
-              }}>Delete</button>}
+              {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}
             </div>
+
+            {/* Collections picker */}
+            {showCollections && collections && (
+              <div className="coll-picker">
+                <div style={{ fontSize: '11px', color: 'var(--tx3)', marginBottom: '4px' }}>Add to collection:</div>
+                {collections.length === 0 ? (
+                  <div style={{ fontSize: '11px', color: 'var(--tx3)' }}>No collections yet. Create one from the Collections tab.</div>
+                ) : collections.map(c => (
+                  <button key={c.id} className="coll-pick-btn" onClick={() => addToCollection(c.id)}>📁 {c.name}</button>
+                ))}
+              </div>
+            )}
+
+            {/* Similar workouts */}
+            {showSimilar && (
+              <div className="similar-section">
+                <h4 style={{ fontSize: '12px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--tx3)', marginBottom: '6px' }}>Similar Workouts</h4>
+                {similarResults.length === 0 ? (
+                  <div style={{ fontSize: '11px', color: 'var(--tx3)' }}>No similar workouts found.</div>
+                ) : similarResults.map(s => (
+                  <div key={s.id} className="similar-card" onClick={() => {
+                    const slug = (s.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+                    window.location.href = '/workout/' + slug
+                  }} style={{ cursor: 'pointer' }}>
+                    <div className="wn" style={{ fontSize: '12px' }}>{s.name}</div>
+                    <div style={{ fontSize: '10px', color: 'var(--tx3)' }}>{s.description?.slice(0, 100)}...</div>
+                    <div style={{ display: 'flex', gap: '3px', marginTop: '3px', flexWrap: 'wrap' }}>
+                      {s.equipment?.filter(e => e !== 'Bodyweight').slice(0, 3).map(e => <span key={e} className="tg te">{e}</span>)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
