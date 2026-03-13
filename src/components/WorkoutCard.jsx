@@ -442,20 +442,22 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
             <button className="ab p" onClick={() => setShowTimer(true)} style={{ fontWeight: 600 }}>▶ Start Workout</button>
             <button className="ab p" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }} style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)' }}>{addingLog ? 'Cancel' : '✓ Complete Workout'}</button>
             <button className={`ab ${isFav ? '' : 'g'}`} onClick={() => toggleFavorite(w.id)}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>
-            <button className="ab" onClick={() => {
-              if (!session) { onAuthRequired(); return }
-              setShowCollections(!showCollections)
-            }}>{showCollections ? 'Hide' : '📁 Save'}</button>
-            <button className="ab" onClick={shareWorkout}>{copied ? '✓ Copied!' : '↗ Share'}</button>
-            <button className="ab" onClick={copyLink}>🔗 Link</button>
-            <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
-            <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
-            <button className="ab" onClick={() => setShowSimilar(!showSimilar)}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
+            <button className="ab" onClick={() => { if (!session) { onAuthRequired(); return } setShowCollections(!showCollections) }}>{showCollections ? 'Hide' : '📁 Save'}</button>
             {session && w.created_by !== session?.user?.id && (
               <button className="ab" onClick={startRemix}>🔀 Remix</button>
             )}
+            <button className="ab" onClick={() => setShowSimilar(!showSimilar)}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
+            <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
+            <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
+            <button className="ab" onClick={copyLink}>🔗 Link</button>
             {isAdmin && <button className="ab p" onClick={startEdit}>Edit</button>}
             {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}
+            {!isAdmin && w.created_by === session?.user?.id && w.visibility === 'private' && (
+              <>
+                <button className="ab" onClick={startEdit}>Edit</button>
+                <button className="ab del" onClick={deleteWorkout}>Delete</button>
+              </>
+            )}
             {!isAdmin && w.visibility === 'private' && w.created_by === session?.user?.id && (
               <button className="ab p" onClick={async () => {
                 await supabase.from('workouts').update({ visibility: 'pending', submitted_at: new Date().toISOString() }).eq('id', w.id)
@@ -464,12 +466,6 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
             )}
             {!isAdmin && w.visibility === 'pending' && w.created_by === session?.user?.id && (
               <span style={{ fontSize: '11px', color: 'var(--ylw)', padding: '4px 0' }}>⏳ Pending review</span>
-            )}
-            {!isAdmin && w.created_by === session?.user?.id && w.visibility === 'private' && (
-              <>
-                <button className="ab" onClick={startEdit}>Edit</button>
-                <button className="ab del" onClick={deleteWorkout}>Delete</button>
-              </>
             )}
           </div>
 
