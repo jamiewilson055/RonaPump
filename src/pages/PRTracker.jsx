@@ -234,9 +234,36 @@ export default function PRTracker({ session, onAuthRequired }) {
   if (!session) {
     return (
       <div className="pr-section">
-        <div className="pr-empty">
-          <b>Sign in</b> to start tracking your personal records.
-          <br /><button className="ab p" style={{ marginTop: '12px' }} onClick={onAuthRequired}>Sign In</button>
+        <div className="pr-hub">
+          <button className="pr-hub-card" onClick={onAuthRequired}>
+            <span className="pr-hub-icon">🏋️</span>
+            <div>
+              <div className="pr-hub-name">1RM Calculator</div>
+              <div className="pr-hub-desc">Estimate max, strength levels & training %</div>
+            </div>
+            <span className="pr-hub-arrow">→</span>
+          </button>
+          <button className="pr-hub-card" onClick={onAuthRequired}>
+            <span className="pr-hub-icon">💪</span>
+            <div>
+              <div className="pr-hub-name">Strength Records</div>
+              <div className="pr-hub-desc">Track your lifting PRs</div>
+            </div>
+            <span className="pr-hub-arrow">→</span>
+          </button>
+          <button className="pr-hub-card" onClick={onAuthRequired}>
+            <span className="pr-hub-icon">🏃</span>
+            <div>
+              <div className="pr-hub-name">Cardio Records</div>
+              <div className="pr-hub-desc">Track your best times</div>
+            </div>
+            <span className="pr-hub-arrow">→</span>
+          </button>
+          <div className="pr-hub-teaser">
+            <div className="pr-hub-teaser-title">🦍 Track Every PR</div>
+            <div className="pr-hub-teaser-desc">Calculate your 1RM, compare against strength standards, and log every personal record. Sign in to get started.</div>
+            <button className="lon-test-day-btn" style={{ width: '100%', marginTop: '10px' }} onClick={onAuthRequired}>Sign In</button>
+          </div>
         </div>
       </div>
     )

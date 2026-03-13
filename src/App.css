@@ -140,7 +140,7 @@ input, select, textarea { font-family: inherit; }
 .bottom-nav { display: none; }
 
 @media (max-width: 640px) {
-  .tabs-secondary { display: none; }
+  .tabs-secondary { display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px; }
   .bottom-nav {
     display: flex; position: fixed; bottom: 0; left: 0; right: 0;
     background: var(--s1); border-top: 1px solid var(--brd);
@@ -1725,3 +1725,64 @@ input, select, textarea { font-family: inherit; }
 .lon-hist-btn:hover { opacity: 1; }
 .lon-hist-btn.del:hover { color: var(--acc); }
 .lon-teaser-domain { display: block; font-size: 8px; color: var(--tx3); margin-top: 2px; }
+
+/* Mobile secondary tabs scrollable */
+@media (max-width: 640px) {
+  .tabs-secondary::-webkit-scrollbar { display: none; }
+  .tabs-secondary .tab-sec { flex-shrink: 0; padding: 5px 10px; font-size: 11px; }
+  .tabs-secondary .tab-sec-icon { font-size: 12px; }
+  .tabs-secondary .tab-sec-label { font-size: 10px; }
+}
+
+/* Longevity v3 additions */
+.lon-idx-badge { background: var(--acc); color: #fff; border-radius: 6px; padding: 2px 8px; font-size: 13px; font-weight: 800; margin-left: 6px; font-family: 'JetBrains Mono', monospace; }
+.lon-vital-sub { font-size: 11px; color: var(--tx3); margin-bottom: 8px; }
+.lon-vital-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.lon-age-inputs { display: flex; gap: 4px; align-items: center; }
+.lon-age-input { width: 52px; background: var(--bg); border: 1px solid var(--brd); border-radius: 6px; padding: 6px 8px; font-size: 13px; color: var(--tx); font-family: 'JetBrains Mono', monospace; text-align: center; }
+.lon-age-input:focus { border-color: var(--acc); outline: none; }
+.lon-gender-select { background: var(--bg); border: 1px solid var(--brd); border-radius: 6px; padding: 6px 8px; font-size: 12px; color: var(--tx); font-family: 'JetBrains Mono', monospace; }
+.lon-marker-weight { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--tx3); opacity: 0.7; }
+
+/* Bigger benchmark font */
+.lon-bench-label { flex: 1; color: var(--tx2); font-size: 14px; font-weight: 600; }
+.lon-bench-val { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--tx); font-size: 14px; }
+.lon-bench-header { font-size: 12px; color: var(--tx2); margin-bottom: 6px; font-weight: 600; }
+.lon-bench-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.lon-test-bench { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 4px; }
+
+/* Edit row fixes */
+.lon-edit-row { display: flex; gap: 4px; align-items: center; flex: 1; min-width: 0; }
+.lon-edit-input { width: 80px; background: var(--bg); border: 1px solid var(--brd); border-radius: 4px; padding: 4px 8px; font-size: 12px; color: var(--tx); font-family: 'JetBrains Mono', monospace; }
+.lon-edit-input:focus { border-color: var(--acc); outline: none; }
+.lon-edit-btn { background: var(--s2); border: 1px solid var(--brd); border-radius: 4px; padding: 4px 8px; font-size: 12px; cursor: pointer; color: var(--tx); }
+.lon-edit-btn.save { background: var(--grn-d); border-color: var(--grn); color: var(--grn); }
+.lon-hist-actions { display: flex; gap: 2px; flex-shrink: 0; margin-left: auto; }
+.lon-hist-btn { background: none; border: none; font-size: 13px; cursor: pointer; padding: 2px 4px; opacity: 0.5; transition: opacity .12s; }
+.lon-hist-btn:hover { opacity: 1; }
+
+/* Analytics overlay */
+.lon-analytics { }
+.lon-analytics-hero { text-align: center; margin-bottom: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.lon-ring-lg { width: 130px; height: 130px; }
+.lon-ring-lg .lon-vital-age { font-size: 44px; }
+.lon-analytics-idx { font-family: 'JetBrains Mono', monospace; font-size: 15px; color: var(--tx2); }
+.lon-analytics-card { background: var(--s1); border: 1px solid var(--brd); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+.lon-analytics-title { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: var(--tx); margin-bottom: 10px; }
+.lon-analytics-row { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--brd); }
+.lon-analytics-row:last-of-type { border-bottom: none; }
+.lon-analytics-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+.lon-analytics-info { flex: 1; min-width: 0; }
+.lon-analytics-name { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: var(--tx); }
+.lon-analytics-meta { font-size: 11px; color: var(--tx3); margin-top: 2px; }
+.lon-analytics-target { font-size: 11px; color: var(--acc); font-weight: 600; margin-top: 2px; }
+.lon-analytics-explain { font-size: 12px; color: var(--tx2); line-height: 1.5; margin-bottom: 10px; }
+.lon-weight-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.lon-weight-item { display: flex; justify-content: space-between; font-size: 11px; color: var(--tx2); padding: 3px 6px; background: var(--bg); border-radius: 4px; }
+.lon-weight-val { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--tx); }
+
+@media (max-width: 640px) {
+  .lon-ring-lg { width: 100px; height: 100px; }
+  .lon-ring-lg .lon-vital-age { font-size: 36px; }
+  .lon-weight-grid { grid-template-columns: 1fr; }
+}
