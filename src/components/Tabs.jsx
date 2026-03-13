@@ -20,7 +20,7 @@ export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount, 
 
   // Bottom nav: 3 items
   const bottomNavTabs = [
-    { key: 'deck', label: 'Deck', icon: '🃏' },
+    { key: 'longevity', label: 'Longevity', icon: '🧬' },
     { key: 'ai', label: 'AI', icon: '🤖' },
     { key: 'prs', label: 'Strength', icon: '💪' },
   ]
