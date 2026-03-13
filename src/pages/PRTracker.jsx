@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
+import OneRMCalculator from '../components/OneRMCalculator'
 
 const CARDIO_MACHINES = ['Assault Bike', 'Echo Bike', 'Rower', 'Ski Erg', 'Run', 'Treadmill', 'StairMaster']
 
@@ -8,7 +9,8 @@ export default function PRTracker({ session, onAuthRequired }) {
   const [adding, setAdding] = useState(false)
   const [prType, setPrType] = useState('strength')
   const [sort, setSort] = useState('newest')
-  const [expandedIdx, setExpandedIdx] = useState(null)
+  const [expandedFolder, setExpandedFolder] = useState(null)
+  const [expandedGroup, setExpandedGroup] = useState(null)
   const [addingEntry, setAddingEntry] = useState(null)
   const [editingGroup, setEditingGroup] = useState(null)
   const [editForm, setEditForm] = useState(null)
@@ -26,6 +28,7 @@ export default function PRTracker({ session, onAuthRequired }) {
     if (data) setPrs(data)
   }
 
+  // Build groups keyed by movement+target/weight
   const groups = useMemo(() => {
     const map = {}
     prs.forEach(p => {
@@ -36,13 +39,34 @@ export default function PRTracker({ session, onAuthRequired }) {
       map[key].entries.push(p)
     })
     Object.values(map).forEach(g => g.entries.sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || '')))
-    let arr = Object.values(map)
+    return Object.values(map)
+  }, [prs])
+
+  // Build folders: group by movement name, then nest sub-groups
+  const folders = useMemo(() => {
+    const movementMap = {}
+    groups.forEach(g => {
+      if (!movementMap[g.movement]) movementMap[g.movement] = []
+      movementMap[g.movement].push(g)
+    })
+
+    let arr = Object.entries(movementMap).map(([movement, subGroups]) => ({
+      movement,
+      type: subGroups[0].type,
+      subGroups,
+      isFolder: subGroups.length > 1,
+      // For single-group items, expose the group directly
+      singleGroup: subGroups.length === 1 ? subGroups[0] : null,
+      latestDate: subGroups.flatMap(g => g.entries).reduce((latest, e) => (!latest || (e.completed_at || '') > latest) ? e.completed_at : latest, ''),
+      totalEntries: subGroups.reduce((sum, g) => sum + g.entries.length, 0),
+    }))
+
     if (sort === 'name') arr.sort((a, b) => a.movement.localeCompare(b.movement))
-    else if (sort === 'cardio') arr = arr.filter(g => g.type === 'cardio').sort((a, b) => a.movement.localeCompare(b.movement))
-    else if (sort === 'strength') arr = arr.filter(g => g.type === 'strength').sort((a, b) => a.movement.localeCompare(b.movement))
-    else arr.sort((a, b) => (b.entries[0]?.completed_at || '').localeCompare(a.entries[0]?.completed_at || ''))
+    else if (sort === 'cardio') arr = arr.filter(f => f.type === 'cardio').sort((a, b) => a.movement.localeCompare(b.movement))
+    else if (sort === 'strength') arr = arr.filter(f => f.type === 'strength').sort((a, b) => a.movement.localeCompare(b.movement))
+    else arr.sort((a, b) => (b.latestDate || '').localeCompare(a.latestDate || ''))
     return arr
-  }, [prs, sort])
+  }, [groups, sort])
 
   function bestScore(g) {
     if (!g.entries.length) return null
@@ -80,14 +104,12 @@ export default function PRTracker({ session, onAuthRequired }) {
     loadPRs()
   }
 
-  async function addEntryToGroup(gi) {
+  async function addEntryToGroup(g, gKey) {
     if (!session) return
-    const g = groups[gi]
-    if (!g) return
     const ref = g.entries[0]
-    const sc = document.getElementById(`prge-sc-${gi}`)?.value?.trim()
-    const dt = document.getElementById(`prge-dt-${gi}`)?.value || new Date().toISOString().slice(0, 10)
-    const notes = document.getElementById(`prge-nt-${gi}`)?.value?.trim()
+    const sc = document.getElementById(`prge-sc-${gKey}`)?.value?.trim()
+    const dt = document.getElementById(`prge-dt-${gKey}`)?.value || new Date().toISOString().slice(0, 10)
+    const notes = document.getElementById(`prge-nt-${gKey}`)?.value?.trim()
     if (!sc) return
     await supabase.from('personal_records').insert({
       user_id: session.user.id, type: ref.type || 'strength',
@@ -104,15 +126,13 @@ export default function PRTracker({ session, onAuthRequired }) {
     loadPRs()
   }
 
-  function startEditGroup(gi) {
-    const g = groups[gi]
-    setEditingGroup(gi)
+  function startEditGroup(g, gKey) {
+    setEditingGroup(gKey)
     setEditForm({ movement: g.movement, weight: g.weight || '', target: g.target || '' })
   }
 
-  async function saveGroupEdit() {
-    const g = groups[editingGroup]
-    if (!g || !editForm) return
+  async function saveGroupEdit(g) {
+    if (!editForm) return
     if (!editForm.movement.trim()) { alert('Movement name is required.'); return }
     for (const entry of g.entries) {
       const updates = { movement: editForm.movement.trim() }
@@ -125,14 +145,89 @@ export default function PRTracker({ session, onAuthRequired }) {
     loadPRs()
   }
 
-  async function deleteGroup(gi) {
-    const g = groups[gi]
-    if (!confirm(`Delete "${g.movement}${g.type === 'cardio' ? ' — ' + g.target : g.weight ? ' @ ' + g.weight : ''}" and all ${g.entries.length} entries?`)) return
+  async function deleteGroup(g) {
+    const label = `${g.movement}${g.type === 'cardio' ? ' — ' + g.target : g.weight ? ' @ ' + g.weight : ''}`
+    if (!confirm(`Delete "${label}" and all ${g.entries.length} entries?`)) return
     for (const entry of g.entries) {
       await supabase.from('personal_records').delete().eq('id', entry.id)
     }
-    setExpandedIdx(null)
     loadPRs()
+  }
+
+  function renderGroup(g, gKey, indent = false) {
+    const isCardio = g.type === 'cardio'
+    const best = bestScore(g)
+    const isExp = expandedGroup === gKey
+    const isEditing = editingGroup === gKey
+    const isAddingEntry = addingEntry === gKey
+    const today = new Date().toISOString().slice(0, 10)
+
+    return (
+      <div key={gKey} className={`pr-group${isExp ? ' exp' : ''}${indent ? ' pr-indent' : ''}`}>
+        <div className="pr-group-hd" onClick={() => { setExpandedGroup(isExp ? null : gKey); setAddingEntry(null); setEditingGroup(null) }}>
+          {!indent && <span className="pr-type-icon">{isCardio ? '⚡' : '🏋'}</span>}
+          <div className="pr-mv">{indent ? '' : g.movement}</div>
+          {isCardio && g.target && <span className="pr-target-badge">{g.target}</span>}
+          {!isCardio && g.weight && <span className="pr-wt-badge">{g.weight}</span>}
+          <span className="pr-best">{best || ''}</span>
+          <span className="pr-cnt">{g.entries.length}</span>
+        </div>
+
+        {isExp && (
+          <div className="pr-exp-body">
+            {isEditing && editForm && (
+              <div className="pr-edit-form">
+                <div style={{ fontSize: '11px', color: 'var(--tx3)', marginBottom: '4px' }}>Edit PR</div>
+                <div className="pr-form" style={{ margin: 0 }}>
+                  <input value={editForm.movement} onChange={e => setEditForm({ ...editForm, movement: e.target.value })} placeholder="Movement" style={{ flex: 2 }} />
+                  {isCardio
+                    ? <input value={editForm.target} onChange={e => setEditForm({ ...editForm, target: e.target.value })} placeholder="Target" style={{ flex: 1.5 }} />
+                    : <input value={editForm.weight} onChange={e => setEditForm({ ...editForm, weight: e.target.value })} placeholder="Weight" style={{ flex: 1 }} />
+                  }
+                  <button className="ab p" onClick={() => saveGroupEdit(g)} style={{ padding: '6px 14px', fontSize: '12px' }}>Save</button>
+                  <button className="ab" onClick={() => { setEditingGroup(null); setEditForm(null) }} style={{ padding: '6px 10px', fontSize: '12px' }}>Cancel</button>
+                </div>
+              </div>
+            )}
+
+            <table className="plog-table" style={{ margin: '0 14px' }}>
+              <thead>
+                <tr><th>Date</th><th>{isCardio ? 'Time' : 'Result'}</th><th>Notes</th><th></th></tr>
+              </thead>
+              <tbody>
+                {g.entries.map(e => {
+                  const isBest = e.score === best && g.entries.length > 1
+                  return (
+                    <tr key={e.id}>
+                      <td>{e.completed_at || '—'}</td>
+                      <td className={isBest ? 'best' : ''}>{e.score}{isBest ? ' ★' : ''}</td>
+                      <td style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
+                      <td><span className="del-entry" onClick={(ev) => { ev.stopPropagation(); deletePR(e.id) }}>✕</span></td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+
+            {isAddingEntry && (
+              <div className="pr-form" style={{ margin: '6px 14px 0' }}>
+                <input id={`prge-sc-${gKey}`} placeholder={isCardio ? 'Time (e.g. 1:38)' : 'Result (e.g. 6 reps)'} style={{ flex: 1.5 }} />
+                <input id={`prge-dt-${gKey}`} type="date" defaultValue={today} style={{ flex: 1 }} />
+                <input id={`prge-nt-${gKey}`} placeholder="Notes (optional)" style={{ flex: 1 }} />
+                <button className="ab p" onClick={() => addEntryToGroup(g, gKey)} style={{ padding: '6px 14px', fontSize: '12px' }}>Save</button>
+                <button className="ab" onClick={() => setAddingEntry(null)} style={{ padding: '6px 10px', fontSize: '12px' }}>Cancel</button>
+              </div>
+            )}
+
+            <div className="pr-actions">
+              {!isAddingEntry && !isEditing && <button className="ab g" onClick={() => { setAddingEntry(gKey); setEditingGroup(null) }}>+ Add Entry</button>}
+              {!isEditing && !isAddingEntry && <button className="ab" onClick={() => startEditGroup(g, gKey)}>Edit</button>}
+              {!isEditing && !isAddingEntry && <button className="ab del" onClick={() => deleteGroup(g)}>Delete All</button>}
+            </div>
+          </div>
+        )}
+      </div>
+    )
   }
 
   if (!session) {
@@ -152,6 +247,10 @@ export default function PRTracker({ session, onAuthRequired }) {
 
   return (
     <div className="pr-section">
+      <OneRMCalculator session={session} onAuthRequired={onAuthRequired} existingPRs={prs} />
+
+      <div style={{ borderTop: '1px solid var(--brd)', margin: '20px 0' }}></div>
+
       <div className="pr-header">
         <h3>PR Tracker</h3>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -204,79 +303,35 @@ export default function PRTracker({ session, onAuthRequired }) {
         </div>
       )}
 
-      {groups.length === 0 && !adding && (
+      {folders.length === 0 && !adding && (
         <div className="pr-empty">No PRs logged yet. Hit <b>+ New PR</b> to start tracking.</div>
       )}
 
-      {groups.map((g, gi) => {
-        const isExp = expandedIdx === gi
-        const isCardio = g.type === 'cardio'
-        const best = bestScore(g)
-        const isEditing = editingGroup === gi
-        const isAddingEntry = addingEntry === gi
+      {folders.map((folder) => {
+        if (!folder.isFolder) {
+          // Single group — render directly, no folder wrapper
+          const g = folder.singleGroup
+          const gKey = `${g.type}:${g.movement}:${g.target || g.weight || ''}`
+          return renderGroup(g, gKey)
+        }
 
+        // Multiple sub-groups — render as expandable folder
+        const isFolderExp = expandedFolder === folder.movement
+        const isCardio = folder.type === 'cardio'
         return (
-          <div key={gi} className={`pr-group${isExp ? ' exp' : ''}`}>
-            <div className="pr-group-hd" onClick={() => { setExpandedIdx(isExp ? null : gi); setAddingEntry(null); setEditingGroup(null) }}>
+          <div key={folder.movement} className="pr-folder">
+            <div className="pr-folder-hd" onClick={() => setExpandedFolder(isFolderExp ? null : folder.movement)}>
               <span className="pr-type-icon">{isCardio ? '⚡' : '🏋'}</span>
-              <div className="pr-mv">{g.movement}</div>
-              {isCardio && g.target && <span className="pr-target-badge">{g.target}</span>}
-              {!isCardio && g.weight && <span className="pr-wt-badge">{g.weight}</span>}
-              <span className="pr-best">{best || ''}</span>
-              <span className="pr-cnt">{g.entries.length} entr{g.entries.length === 1 ? 'y' : 'ies'}</span>
+              <span className={`pr-folder-arrow${isFolderExp ? '' : ' shut'}`}>▾</span>
+              <div className="pr-mv">{folder.movement}</div>
+              <span className="pr-cnt">{folder.subGroups.length} variations · {folder.totalEntries} entries</span>
             </div>
-
-            {isExp && (
-              <div className="pr-exp-body">
-                {isEditing && editForm && (
-                  <div className="pr-edit-form">
-                    <div style={{ fontSize: '11px', color: 'var(--tx3)', marginBottom: '4px' }}>Edit PR</div>
-                    <div className="pr-form" style={{ margin: 0 }}>
-                      <input value={editForm.movement} onChange={e => setEditForm({ ...editForm, movement: e.target.value })} placeholder="Movement" style={{ flex: 2 }} />
-                      {isCardio
-                        ? <input value={editForm.target} onChange={e => setEditForm({ ...editForm, target: e.target.value })} placeholder="Target" style={{ flex: 1.5 }} />
-                        : <input value={editForm.weight} onChange={e => setEditForm({ ...editForm, weight: e.target.value })} placeholder="Weight" style={{ flex: 1 }} />
-                      }
-                      <button className="ab p" onClick={saveGroupEdit} style={{ padding: '6px 14px', fontSize: '12px' }}>Save</button>
-                      <button className="ab" onClick={() => { setEditingGroup(null); setEditForm(null) }} style={{ padding: '6px 10px', fontSize: '12px' }}>Cancel</button>
-                    </div>
-                  </div>
-                )}
-
-                <table className="plog-table" style={{ margin: '0 14px' }}>
-                  <thead>
-                    <tr><th>Date</th><th>{isCardio ? 'Time' : 'Result'}</th><th>Notes</th><th></th></tr>
-                  </thead>
-                  <tbody>
-                    {g.entries.map(e => {
-                      const isBest = e.score === best && g.entries.length > 1
-                      return (
-                        <tr key={e.id}>
-                          <td>{e.completed_at || '—'}</td>
-                          <td className={isBest ? 'best' : ''}>{e.score}{isBest ? ' ★' : ''}</td>
-                          <td style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
-                          <td><span className="del-entry" onClick={(ev) => { ev.stopPropagation(); deletePR(e.id) }}>✕</span></td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-
-                {isAddingEntry && (
-                  <div className="pr-form" style={{ margin: '6px 14px 0' }}>
-                    <input id={`prge-sc-${gi}`} placeholder={isCardio ? 'Time (e.g. 1:38)' : 'Result (e.g. 6 reps)'} style={{ flex: 1.5 }} />
-                    <input id={`prge-dt-${gi}`} type="date" defaultValue={today} style={{ flex: 1 }} />
-                    <input id={`prge-nt-${gi}`} placeholder="Notes (optional)" style={{ flex: 1 }} />
-                    <button className="ab p" onClick={() => addEntryToGroup(gi)} style={{ padding: '6px 14px', fontSize: '12px' }}>Save</button>
-                    <button className="ab" onClick={() => setAddingEntry(null)} style={{ padding: '6px 10px', fontSize: '12px' }}>Cancel</button>
-                  </div>
-                )}
-
-                <div className="pr-actions">
-                  {!isAddingEntry && !isEditing && <button className="ab g" onClick={() => { setAddingEntry(gi); setEditingGroup(null) }}>+ Add Entry</button>}
-                  {!isEditing && !isAddingEntry && <button className="ab" onClick={() => startEditGroup(gi)}>Edit</button>}
-                  {!isEditing && !isAddingEntry && <button className="ab del" onClick={() => deleteGroup(gi)}>Delete All</button>}
-                </div>
+            {isFolderExp && (
+              <div className="pr-folder-body">
+                {folder.subGroups.map(g => {
+                  const gKey = `${g.type}:${g.movement}:${g.target || g.weight || ''}`
+                  return renderGroup(g, gKey, true)
+                })}
               </div>
             )}
           </div>
