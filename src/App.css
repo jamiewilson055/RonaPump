@@ -1607,3 +1607,108 @@ input, select, textarea { font-family: inherit; }
   .pr-hub-icon { font-size: 28px; }
   .pr-hub-name { font-size: 14px; }
 }
+
+/* ============= Longevity / Vital Age ============= */
+.lon-section { max-width: 560px; margin: 0 auto; }
+.lon-hero { text-align: center; padding: 16px 0; }
+.lon-hero-icon { font-size: 44px; }
+.lon-hero-title { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 800; margin: 6px 0 4px; color: var(--tx); }
+.lon-hero-sub { color: var(--tx3); font-size: 13px; line-height: 1.5; }
+
+/* Vital Age Ring */
+.lon-vital { display: flex; gap: 20px; align-items: center; background: var(--s1); border: 1px solid var(--brd); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+.lon-vital-ring { width: 110px; height: 110px; border-radius: 50%; border: 5px solid; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg); }
+.lon-vital-age { font-family: 'JetBrains Mono', monospace; font-size: 38px; font-weight: 800; color: var(--tx); line-height: 1; }
+.lon-vital-label { font-size: 10px; color: var(--tx3); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+.lon-vital-info { flex: 1; min-width: 0; }
+.lon-vital-title { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700; color: var(--tx); margin-bottom: 4px; }
+.lon-vital-diff { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 800; margin-bottom: 4px; }
+.lon-vital-index { font-size: 11px; color: var(--tx3); margin-bottom: 10px; }
+.lon-test-day-btn { background: linear-gradient(135deg, #22d3ee 0%, #4ade80 100%); border: none; border-radius: 10px; padding: 10px 20px; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #000; cursor: pointer; transition: opacity .12s; }
+.lon-test-day-btn:hover { opacity: .9; }
+
+/* Marker Cards */
+.lon-markers { display: flex; flex-direction: column; gap: 6px; }
+.lon-marker { background: var(--s1); border: 1px solid var(--brd); border-radius: 10px; overflow: hidden; transition: border-color .15s; }
+.lon-marker.expanded { border-color: var(--acc); }
+.lon-marker.optional { opacity: 0.85; }
+.lon-marker-hd { display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer; }
+.lon-marker-icon { font-size: 22px; flex-shrink: 0; }
+.lon-marker-info { flex: 1; min-width: 0; }
+.lon-marker-name { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: var(--tx); }
+.lon-marker-domain { font-size: 10px; color: var(--tx3); }
+.lon-marker-score-wrap { text-align: right; flex-shrink: 0; }
+.lon-marker-value { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 800; color: var(--tx); }
+.lon-marker-unit { font-size: 10px; color: var(--tx3); font-weight: 600; }
+.lon-marker-level { font-size: 10px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+.lon-marker-empty { font-size: 11px; color: var(--tx3); font-style: italic; flex-shrink: 0; }
+.lon-marker-arrow { font-size: 12px; color: var(--tx3); transition: transform .2s; flex-shrink: 0; }
+.lon-marker-arrow.open { transform: rotate(180deg); }
+
+/* Progress bar */
+.lon-marker-bar { height: 3px; background: var(--bg); margin: 0 14px 4px; border-radius: 2px; overflow: hidden; }
+.lon-marker-fill { height: 100%; border-radius: 2px; transition: width .4s ease; }
+
+/* Expanded body */
+.lon-marker-body { padding: 0 14px 14px; }
+.lon-marker-desc { font-size: 13px; color: var(--tx2); line-height: 1.5; margin-bottom: 10px; }
+.lon-marker-source { font-size: 10px; color: var(--tx3); margin-bottom: 10px; padding: 6px 8px; background: var(--bg); border-radius: 6px; }
+
+.lon-test-how { background: var(--bg); border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+.lon-test-how-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: var(--tx3); margin-bottom: 4px; }
+.lon-test-how p { font-size: 12px; color: var(--tx2); line-height: 1.5; margin: 0; }
+
+/* Benchmarks */
+.lon-test-benchmarks { display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; }
+.lon-test-bench { display: flex; align-items: center; gap: 6px; padding: 3px 6px; border-radius: 4px; font-size: 12px; }
+.lon-test-bench.current { background: var(--s2); }
+.lon-bench-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.lon-bench-label { flex: 1; color: var(--tx2); }
+.lon-bench-val { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--tx); }
+
+/* Quick log */
+.lon-quick-log { display: flex; gap: 6px; margin: 10px 0 6px; }
+.lon-history-btn { background: none; border: none; color: var(--tx3); font-size: 11px; cursor: pointer; padding: 4px 0; transition: color .12s; }
+.lon-history-btn:hover { color: var(--tx); }
+.lon-history { margin-top: 6px; }
+.lon-history-row { display: flex; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--brd); font-size: 11px; }
+.lon-history-row:last-child { border-bottom: none; }
+.lon-history-date { font-family: 'JetBrains Mono', monospace; color: var(--tx3); min-width: 80px; }
+.lon-history-val { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--tx); }
+.lon-history-notes { color: var(--tx3); flex: 1; }
+.lon-history-empty { font-size: 11px; color: var(--tx3); font-style: italic; margin-top: 6px; }
+
+/* Test Day Mode */
+.lon-test-progress { margin-bottom: 12px; }
+.lon-test-prog-bar { height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+.lon-test-prog-fill { height: 100%; background: linear-gradient(90deg, #22d3ee, #4ade80); border-radius: 3px; transition: width .3s; }
+.lon-test-prog-label { font-size: 11px; color: var(--tx3); margin-top: 4px; text-align: center; }
+.lon-test-card { background: var(--s1); border: 1px solid var(--brd); border-radius: 14px; padding: 20px; text-align: center; }
+.lon-test-icon { font-size: 48px; margin-bottom: 8px; }
+.lon-test-name { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 800; color: var(--tx); }
+.lon-test-domain { font-size: 12px; color: var(--tx3); margin-bottom: 12px; }
+.lon-test-desc { font-size: 13px; color: var(--tx2); line-height: 1.5; text-align: left; margin-bottom: 12px; }
+.lon-test-input { display: flex; align-items: center; gap: 6px; margin-top: 12px; }
+.lon-test-unit { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--tx3); font-weight: 600; }
+.lon-test-actions { display: flex; gap: 8px; margin-top: 14px; }
+.lon-test-actions .timer-go-btn { flex: 1; }
+
+/* Teaser */
+.lon-teaser { margin-top: 8px; }
+.lon-teaser-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
+.lon-teaser-card { background: var(--s1); border: 1px solid var(--brd); border-radius: 8px; padding: 12px 8px; text-align: center; }
+.lon-teaser-icon { font-size: 24px; display: block; margin-bottom: 4px; }
+.lon-teaser-name { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; color: var(--tx2); }
+.lon-teaser-cta { font-size: 13px; color: var(--acc); text-align: center; font-weight: 600; }
+
+/* Setup */
+.lon-setup { background: var(--s1); border: 1px solid var(--brd); border-radius: 12px; padding: 20px; text-align: center; }
+
+@media (max-width: 640px) {
+  .lon-vital { flex-direction: column; text-align: center; padding: 16px; }
+  .lon-vital-ring { width: 90px; height: 90px; }
+  .lon-vital-age { font-size: 32px; }
+  .lon-marker-hd { padding: 10px 12px; }
+  .lon-marker-value { font-size: 14px; }
+  .lon-teaser-grid { grid-template-columns: repeat(2, 1fr); }
+}

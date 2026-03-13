@@ -22,6 +22,7 @@ import AIGenerator from './components/AIGenerator'
 import AICoach from './components/AICoach'
 import StandaloneTimer from './components/StandaloneTimer'
 import BodyMap from './components/BodyMap'
+import Longevity from './components/Longevity'
 import AchievementDisplay, { checkAndAwardAchievements } from './components/Achievements'
 import Challenges from './components/Challenges'
 import ScrollToTop from './components/ScrollToTop'
@@ -257,7 +258,7 @@ function App() {
   }
 
   const isMainTab = ['all', 'done', 'queue', 'favs'].includes(tab)
-  const isFeatureTab = ['deck', 'ai', 'timer', 'h2h', 'prs', 'activity', 'stats', 'collections'].includes(tab)
+  const isFeatureTab = ['deck', 'ai', 'timer', 'longevity', 'h2h', 'prs', 'activity', 'stats', 'collections'].includes(tab)
 
   return (
     <div className="app">
@@ -291,18 +292,18 @@ function App() {
         </div>
       )}
 
-      <div className={['deck','ai','prs','h2h','timer'].includes(tab) ? 'mobile-hide' : ''}>
+      <div className={['deck','ai','prs','h2h','timer','longevity'].includes(tab) ? 'mobile-hide' : ''}>
         <QuoteBar isAdmin={profile?.is_admin || false} />
       </div>
 
       {/* Bigger secondary tabs — desktop only */}
-      <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} collectionsCount={collections.length} hideMainOnMobile={['deck','ai','prs','h2h','timer'].includes(tab)} />
+      <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} collectionsCount={collections.length} hideMainOnMobile={['deck','ai','prs','h2h','timer','longevity'].includes(tab)} />
 
       {/* Two-column layout on desktop for main workout tabs */}
       {isMainTab ? (
         <div className="desktop-layout">
           <div className="desktop-main">
-            {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && tab !== 'activity' && tab !== 'deck' && tab !== 'ai' && tab !== 'h2h' && tab !== 'timer' && (
+            {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && tab !== 'activity' && tab !== 'deck' && tab !== 'ai' && tab !== 'h2h' && tab !== 'timer' && tab !== 'longevity' && (
               <WODCard workouts={workouts} session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} favorites={favorites} toggleFavorite={toggleFavorite} />
             )}
             {(profile?.is_admin) && tab === 'all' && <AdminQueue onWorkoutsChanged={loadWorkouts} />}
@@ -388,6 +389,8 @@ function App() {
             <Challenges session={session} onAuthRequired={() => setShowAuth(true)} workouts={workouts} />
           ) : tab === 'timer' ? (
             <StandaloneTimer session={session} onAuthRequired={() => setShowAuth(true)} />
+          ) : tab === 'longevity' ? (
+            <Longevity session={session} onAuthRequired={() => setShowAuth(true)} />
           ) : tab === 'prs' ? (
             <PRTracker session={session} onAuthRequired={() => setShowAuth(true)} />
           ) : tab === 'activity' ? (
