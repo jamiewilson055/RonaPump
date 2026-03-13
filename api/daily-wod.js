@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     // Pick a random official workout
     const { data: workouts } = await supabase
       .from('workouts')
-      .select('id, name, description, equipment, workout_types, estimated_duration_mins, slug')
+      .select('id, name, description, equipment, workout_types, estimated_duration_mins')
       .eq('visibility', 'official')
       .not('name', 'is', null)
 
