@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import WorkoutTimer from './WorkoutTimer'
 import WorkoutComments from './WorkoutComments'
@@ -48,6 +48,16 @@ function bestScore(w) {
 
 function SimilarCard({ workout: s }) {
   const [open, setOpen] = useState(false)
+  const [desc, setDesc] = useState(s.description || null)
+
+  useEffect(() => {
+    if (open && !desc) {
+      supabase.from('workouts').select('description').eq('id', s.id).single().then(({ data }) => {
+        if (data) setDesc(data.description || '')
+      })
+    }
+  }, [open, desc, s.id])
+
   return (
     <div className={`similar-card${open ? ' open' : ''}`}>
       <div className="similar-hd" onClick={() => setOpen(!open)}>
@@ -65,7 +75,7 @@ function SimilarCard({ workout: s }) {
       </div>
       {open && (
         <div className="similar-body">
-          <div className="dsc" style={{ fontSize: '12px', padding: '8px 0 4px' }}>{formatDesc(s.description || '')}</div>
+          <div className="dsc" style={{ fontSize: '12px', padding: '8px 0 4px' }}>{desc ? formatDesc(desc) : <span style={{ color: 'var(--tx3)' }}>Loading...</span>}</div>
           <div className="wtg" style={{ padding: '4px 0' }}>
             {s.equipment?.filter(q => q !== 'Bodyweight').map(q => <span key={q} className="tg te">{q}</span>)}
             {s.movement_categories?.filter(m => !['General', 'Cardio'].includes(m)).slice(0, 4).map(m => <span key={m} className="tg tm">{m}</span>)}
@@ -99,11 +109,21 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const [showShareImage, setShowShareImage] = useState(false)
   const [showStoryCard, setShowStoryCard] = useState(false)
   const [lastLogScore, setLastLogScore] = useState(null)
+  const [desc, setDesc] = useState(w.description || null)
+
+  // Lazy-load description on expand
+  useEffect(() => {
+    if (expanded && !desc) {
+      supabase.from('workouts').select('description').eq('id', w.id).single().then(({ data }) => {
+        if (data) setDesc(data.description || '')
+      })
+    }
+  }, [expanded, desc, w.id])
 
   function shareWorkout() {
     let text = ''
     if (w.name) text += w.name + '\n\n'
-    text += w.description || ''
+    text += desc || ''
     if (w.estimated_duration_mins) text += `\n\n⏱ ${w.estimated_duration_mins} min`
     else if (w.estimated_duration_min && w.estimated_duration_max) text += `\n\n⏱ ${w.estimated_duration_min}-${w.estimated_duration_max} min`
     if (w.equipment?.filter(e => e !== 'Bodyweight').length) text += `\n🏋 ${w.equipment.filter(e => e !== 'Bodyweight').join(', ')}`
@@ -219,7 +239,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   function startEdit() {
     setEditForm({
       name: w.name || '',
-      description: w.description || '',
+      description: desc || '',
       score_type: w.score_type || 'None',
       estimated_duration_mins: w.estimated_duration_mins || '',
       estimated_duration_min: w.estimated_duration_min || '',
@@ -238,7 +258,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     if (!session) { onAuthRequired(); return }
     setEditForm({
       name: (w.name || 'Unnamed') + ' (My Version)',
-      description: w.description || '',
+      description: desc || '',
       score_type: w.score_type || 'None',
       estimated_duration_mins: w.estimated_duration_mins || '',
       estimated_duration_min: w.estimated_duration_min || '',
@@ -361,7 +381,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
       {expanded && (
         <div className="det" onClick={e => e.stopPropagation()}>
-          <div className="dsc">{formatDesc(cleanDesc(w))}</div>
+          <div className="dsc">{desc ? formatDesc(cleanDesc({...w, description: desc})) : <span style={{ color: 'var(--tx3)' }}>Loading...</span>}</div>
 
           <div className="plog">
             <div className="plog-hdr">

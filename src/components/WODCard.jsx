@@ -21,6 +21,16 @@ function formatDesc(text) {
 
 function SimilarCard({ workout: s }) {
   const [open, setOpen] = useState(false)
+  const [desc, setDesc] = useState(s.description || null)
+
+  useEffect(() => {
+    if (open && !desc) {
+      supabase.from('workouts').select('description').eq('id', s.id).single().then(({ data }) => {
+        if (data) setDesc(data.description || '')
+      })
+    }
+  }, [open, desc, s.id])
+
   return (
     <div className={`similar-card${open ? ' open' : ''}`}>
       <div className="similar-hd" onClick={() => setOpen(!open)}>
@@ -38,7 +48,7 @@ function SimilarCard({ workout: s }) {
       </div>
       {open && (
         <div className="similar-body">
-          <div className="dsc" style={{ fontSize: '12px', padding: '8px 0 4px' }}>{formatDesc(s.description || '')}</div>
+          <div className="dsc" style={{ fontSize: '12px', padding: '8px 0 4px' }}>{desc ? formatDesc(desc) : <span style={{ color: 'var(--tx3)' }}>Loading...</span>}</div>
           <div className="wtg" style={{ padding: '4px 0' }}>
             {s.equipment?.filter(q => q !== 'Bodyweight').map(q => <span key={q} className="tg te">{q}</span>)}
             {s.movement_categories?.filter(m => !['General', 'Cardio'].includes(m)).slice(0, 4).map(m => <span key={m} className="tg tm">{m}</span>)}
@@ -71,8 +81,16 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
   const [remixing, setRemixing] = useState(false)
   const [editForm, setEditForm] = useState(null)
   const pick = useCallback(() => {
-    const pool = workouts.filter(w => w.description && w.description.length > 40 && w.visibility !== 'private')
-    if (pool.length) setWod(pool[Math.floor(Math.random() * pool.length)])
+    const pool = workouts.filter(w => w.name && w.visibility !== 'private')
+    if (pool.length) {
+      const picked = pool[Math.floor(Math.random() * pool.length)]
+      setWod(picked)
+      supabase.from('workouts').select('description').eq('id', picked.id).single().then(({ data }) => {
+        if (data?.description) {
+          setWod(prev => prev?.id === picked.id ? { ...prev, description: data.description } : prev)
+        }
+      })
+    }
   }, [workouts])
 
   useEffect(() => {
@@ -331,7 +349,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
                 {collections.length === 0 ? (
                   <div style={{ fontSize: '11px', color: 'var(--tx3)' }}>No collections yet. Create one from the Collections tab.</div>
                 ) : collections.map(c => (
-                  <button key={c.id} className="ab" onClick={() => addToCollection(c.id)}>📁 {c.name}</button>
+                  <button key={c.id} className="coll-pick-btn" onClick={() => addToCollection(c.id)}>📁 {c.name}</button>
                 ))}
               </div>
             )}
