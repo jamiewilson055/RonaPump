@@ -257,7 +257,7 @@ function App() {
   }
 
   const isMainTab = ['all', 'done', 'queue', 'favs'].includes(tab)
-  const isFeatureTab = ['deck', 'ai', 'coach', 'timer', 'h2h', 'prs', 'activity', 'stats', 'collections'].includes(tab)
+  const isFeatureTab = ['deck', 'ai', 'timer', 'h2h', 'prs', 'activity', 'stats', 'collections'].includes(tab)
 
   return (
     <div className="app">
@@ -291,18 +291,18 @@ function App() {
         </div>
       )}
 
-      <div className={['deck','ai','coach','prs','h2h','timer'].includes(tab) ? 'mobile-hide' : ''}>
+      <div className={['deck','ai','prs','h2h','timer'].includes(tab) ? 'mobile-hide' : ''}>
         <QuoteBar isAdmin={profile?.is_admin || false} />
       </div>
 
       {/* Bigger secondary tabs — desktop only */}
-      <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} collectionsCount={collections.length} hideMainOnMobile={['deck','ai','coach','prs','h2h','timer'].includes(tab)} />
+      <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} collectionsCount={collections.length} hideMainOnMobile={['deck','ai','prs','h2h','timer'].includes(tab)} />
 
       {/* Two-column layout on desktop for main workout tabs */}
       {isMainTab ? (
         <div className="desktop-layout">
           <div className="desktop-main">
-            {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && tab !== 'activity' && tab !== 'deck' && tab !== 'ai' && tab !== 'h2h' && tab !== 'timer' && tab !== 'coach' && (
+            {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && tab !== 'activity' && tab !== 'deck' && tab !== 'ai' && tab !== 'h2h' && tab !== 'timer' && (
               <WODCard workouts={workouts} session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} favorites={favorites} toggleFavorite={toggleFavorite} />
             )}
             {(profile?.is_admin) && tab === 'all' && <AdminQueue onWorkoutsChanged={loadWorkouts} />}
@@ -379,9 +379,11 @@ function App() {
           {tab === 'deck' ? (
             <DeckOfCards session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} isAdmin={profile?.is_admin || false} />
           ) : tab === 'ai' ? (
-            <AIGenerator session={session} onAuthRequired={() => setShowAuth(true)} isAdmin={profile?.is_admin || false} onWorkoutsChanged={loadWorkouts} />
-          ) : tab === 'coach' ? (
-            <AICoach session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} />
+            <>
+              <AIGenerator session={session} onAuthRequired={() => setShowAuth(true)} isAdmin={profile?.is_admin || false} onWorkoutsChanged={loadWorkouts} />
+              <div style={{ borderTop: '1px solid var(--brd)', margin: '24px 0' }}></div>
+              <AICoach session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} />
+            </>
           ) : tab === 'h2h' ? (
             <Challenges session={session} onAuthRequired={() => setShowAuth(true)} workouts={workouts} />
           ) : tab === 'timer' ? (
