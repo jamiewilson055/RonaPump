@@ -246,7 +246,7 @@ function App() {
   if (showProfile && session) {
     return (
       <div className="app">
-        <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => { setActivityHighlight(null); setTab("activity") }} onH2HClick={() => setTab("h2h")} onCollectionsClick={() => setTab("collections")} onTimerClick={() => setTab("timer")} onNotifNavigate={(link) => { if (link.startsWith("activity:")) { const parts = link.split(":"); setActivityHighlight(parts[1]); setTab("activity") } }} />
+        <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => { setActivityHighlight(null); setTab("activity") }} onH2HClick={() => setTab("h2h")} onCollectionsClick={() => setTab("collections")} onTimerClick={() => setTab("timer")} onDeckClick={() => setTab("deck")} onNotifNavigate={(link) => { if (link.startsWith("activity:")) { const parts = link.split(":"); setActivityHighlight(parts[1]); setTab("activity") } }} />
         <Profile
           session={session}
           profile={profile}
@@ -262,7 +262,7 @@ function App() {
 
   return (
     <div className="app">
-      <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => { setActivityHighlight(null); setTab("activity") }} onH2HClick={() => setTab("h2h")} onCollectionsClick={() => setTab("collections")} onTimerClick={() => setTab("timer")} onNotifNavigate={(link) => { if (link.startsWith("activity:")) { const parts = link.split(":"); setActivityHighlight(parts[1]); setTab("activity") } }} />
+      <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => { setActivityHighlight(null); setTab("activity") }} onH2HClick={() => setTab("h2h")} onCollectionsClick={() => setTab("collections")} onTimerClick={() => setTab("timer")} onDeckClick={() => setTab("deck")} onNotifNavigate={(link) => { if (link.startsWith("activity:")) { const parts = link.split(":"); setActivityHighlight(parts[1]); setTab("activity") } }} />
       {!session && <Welcome onSignIn={() => setShowAuth(true)} />}
 
       {/* Hero Feature Cards — desktop only, on main tabs */}
@@ -304,7 +304,7 @@ function App() {
         <div className="desktop-layout">
           <div className="desktop-main">
             {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && tab !== 'activity' && tab !== 'deck' && tab !== 'ai' && tab !== 'h2h' && tab !== 'timer' && tab !== 'longevity' && (
-              <WODCard workouts={workouts} session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} favorites={favorites} toggleFavorite={toggleFavorite} />
+              <WODCard workouts={workouts} session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} favorites={favorites} toggleFavorite={toggleFavorite} isAdmin={profile?.is_admin || false} />
             )}
             {(profile?.is_admin) && tab === 'all' && <AdminQueue onWorkoutsChanged={loadWorkouts} />}
             <WorkoutList
@@ -323,6 +323,20 @@ function App() {
 
           {/* Sticky sidebar — desktop only */}
           <div className="desktop-sidebar desktop-only">
+            {/* Desktop Feature Nav */}
+            <div className="sidebar-card sidebar-nav">
+              <div className="sidebar-nav-grid">
+                <button className={`sidebar-nav-btn${tab === 'longevity' ? ' on' : ''}`} onClick={() => setTab('longevity')}>🧬 Longevity</button>
+                <button className={`sidebar-nav-btn${tab === 'prs' ? ' on' : ''}`} onClick={() => setTab('prs')}>💪 Strength</button>
+                <button className={`sidebar-nav-btn${tab === 'deck' ? ' on' : ''}`} onClick={() => setTab('deck')}>🃏 Deck</button>
+                <button className={`sidebar-nav-btn${tab === 'timer' ? ' on' : ''}`} onClick={() => setTab('timer')}>⏱ Timer</button>
+                <button className={`sidebar-nav-btn${tab === 'activity' ? ' on' : ''}`} onClick={() => { setActivityHighlight(null); setTab('activity') }}>👥 Activity</button>
+                <button className={`sidebar-nav-btn${tab === 'collections' ? ' on' : ''}`} onClick={() => setTab('collections')}>📁 Collections</button>
+                <button className={`sidebar-nav-btn${tab === 'stats' ? ' on' : ''}`} onClick={() => setTab('stats')}>📊 Stats</button>
+                <button className={`sidebar-nav-btn${tab === 'ai' ? ' on' : ''}`} onClick={() => setTab('ai')}>🤖 AI</button>
+              </div>
+            </div>
+
             {/* Body Map */}
             {session ? <BodyMap session={session} /> : <BodyMap preview />}
 

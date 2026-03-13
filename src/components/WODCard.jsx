@@ -19,7 +19,7 @@ function formatDesc(text) {
   })
 }
 
-export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsChanged, favorites, toggleFavorite }) {
+export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsChanged, favorites, toggleFavorite, isAdmin }) {
   const [wod, setWod] = useState(null)
   const [spinning, setSpinning] = useState(false)
   const [expanded, setExpanded] = useState(false)
@@ -180,6 +180,14 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
               <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
               <button className="ab" onClick={copyLink}>{copied ? '✓ Copied!' : '🔗 Link'}</button>
               <button className="ab" onClick={shareWorkout}>↗ Share Text</button>
+              <button className="ab" onClick={() => {
+                const slug = (wod.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+                window.location.href = '/workout/' + slug
+              }}>🔍 View Full Workout</button>
+              {isAdmin && <button className="ab p" onClick={() => {
+                const slug = (wod.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+                window.location.href = '/workout/' + slug
+              }}>Edit</button>}
             </div>
           </div>
         )}

@@ -6,18 +6,6 @@ export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount, 
     { key: 'favs', label: 'Favorites', short: 'Favs', count: counts.favs },
   ]
 
-  const secondaryTabs = [
-    { key: 'deck', label: 'Deck', icon: '🃏', count: null },
-    { key: 'ai', label: 'AI', icon: '🤖', count: null },
-    { key: 'timer', label: 'Timer', icon: '⏱', count: null },
-    { key: 'longevity', label: 'Longevity', icon: '🧬', count: null },
-    { key: 'prs', label: 'Strength', icon: '💪', count: prsCount },
-    { key: 'h2h', label: 'H2H', icon: '⚔️', count: null },
-    { key: 'activity', label: 'Activity', icon: '👥', count: null },
-    { key: 'collections', label: 'Collections', icon: '📁', count: collectionsCount || null },
-    { key: 'stats', label: 'Stats', icon: '📊', count: null },
-  ]
-
   // Bottom nav: 3 items
   const bottomNavTabs = [
     { key: 'longevity', label: 'Longevity', icon: '🧬' },
@@ -25,7 +13,8 @@ export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount, 
     { key: 'prs', label: 'Strength', icon: '💪' },
   ]
 
-  const isSecondary = secondaryTabs.some(t => t.key === tab)
+  const featureTabs = ['deck', 'ai', 'timer', 'longevity', 'prs', 'activity', 'stats', 'collections']
+  const isSecondary = featureTabs.includes(tab)
 
   return (
     <>
@@ -35,16 +24,6 @@ export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount, 
             <span className="tab-full">{t.label}</span>
             <span className="tab-short">{t.short}</span>
             {t.count != null && <i>{t.count}</i>}
-          </button>
-        ))}
-      </div>
-
-      <div className="tabs-secondary">
-        {secondaryTabs.map(t => (
-          <button key={t.key} className={`tab-sec${tab === t.key ? ' on' : ''}`} onClick={() => setTab(t.key)}>
-            <span className="tab-sec-icon">{t.icon}</span>
-            <span className="tab-sec-label">{t.label}</span>
-            {t.count != null && t.count > 0 && <i>{t.count}</i>}
           </button>
         ))}
       </div>
