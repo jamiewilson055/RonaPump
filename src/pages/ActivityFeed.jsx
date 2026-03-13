@@ -57,9 +57,18 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
       .order('created_at', { ascending: false })
       .limit(20)
 
+    // Load challenges involving feed users
+    const { data: challenges } = await supabase
+      .from('challenges')
+      .select('*, challenger:profiles!challenges_challenger_id_fkey(display_name), opponent:profiles!challenges_opponent_id_fkey(display_name), workouts(name)')
+      .or(`challenger_id.in.(${feedUserIds.join(',')}),opponent_id.in.(${feedUserIds.join(',')})`)
+      .order('created_at', { ascending: false })
+      .limit(10)
+
     const combined = [
       ...(logs || []).map(l => ({ ...l, feed_type: 'workout' })),
       ...(prLogs || []).map(p => ({ ...p, feed_type: 'pr' })),
+      ...(challenges || []).map(c => ({ ...c, feed_type: 'challenge', created_at: c.created_at })),
     ].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || '')).slice(0, 50)
 
     setActivities(combined)
@@ -331,7 +340,8 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
             const commentList = comments['data:' + key] || []
 
             return (
-              <div key={a.id + (a.feed_type || '')} id={`activity-${a.id}`} className={`activity-item${a.id === highlightId ? ' highlighted' : ''}`}>
+              <div key={a.id + (a.feed_type || '')} id={`activity-${a.id}`} className={`activity-item${a.id === highlightId ? ' highlighted' : ''}${a.feed_type === 'challenge' ? ' challenge-item' : ''}`}>
+                {a.feed_type !== 'challenge' ? (
                 <div className="activity-avatar" onClick={() => setViewingProfile(a.user_id)}>
                   {a.profiles?.avatar_url ? (
                     <img src={a.profiles.avatar_url} alt="" className="activity-avatar-img" />
@@ -339,8 +349,37 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
                     <div className="activity-avatar-letter">{(a.profiles?.display_name || '?')[0].toUpperCase()}</div>
                   )}
                 </div>
+                ) : (
+                <div className="activity-avatar">
+                  <div className="activity-avatar-letter">⚔️</div>
+                </div>
+                )}
                 <div className="activity-content">
                   <div className="activity-text">
+                    {a.feed_type === 'challenge' ? (
+                      <div className="activity-challenge">
+                        <div className="activity-challenge-header">
+                          <span className="activity-challenge-icon">⚔️</span>
+                          <span className="activity-name">{a.challenger?.display_name || 'Someone'}</span>
+                          <span className="activity-challenge-vs">vs</span>
+                          <span className="activity-name">{a.opponent?.display_name || 'Someone'}</span>
+                        </div>
+                        <div className="activity-challenge-workout">{a.workouts?.name || 'a workout'}</div>
+                        {a.trash_talk && <div className="activity-challenge-talk">"{a.trash_talk}"</div>}
+                        <div className="activity-challenge-status">
+                          {a.status === 'pending' && <span className="ch-status pending">⏳ Pending</span>}
+                          {a.status === 'accepted' && <span className="ch-status accepted">🤝 Accepted — awaiting scores</span>}
+                          {a.status === 'completed' && (
+                            <span className="ch-status completed">
+                              🏁 {a.challenger_score} vs {a.opponent_score}
+                              {a.winner_id === a.challenger_id ? ` — ${a.challenger?.display_name} wins! 👑` : a.winner_id === a.opponent_id ? ` — ${a.opponent?.display_name} wins! 👑` : ' — Tie!'}
+                            </span>
+                          )}
+                          {a.status === 'declined' && <span className="ch-status declined">❌ Declined</span>}
+                        </div>
+                      </div>
+                    ) : (
+                    <>
                     <span className="activity-name" onClick={() => setViewingProfile(a.user_id)}>{a.profiles?.display_name || 'Someone'}</span>
                     {a.feed_type === 'pr' ? (
                       <>
@@ -354,6 +393,8 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
                         {a.is_rx === false && <span className="scaled-tag">Scaled</span>}
                         {a.is_rx === true && a.score && <span className="rx-tag">Rx</span>}
                       </>
+                    )}
+                    </>
                     )}
                   </div>
                   {a.notes && a.notes !== 'Quick logged' && <div className="activity-notes">"{a.notes}"</div>}

@@ -1111,8 +1111,8 @@ input, select, textarea { font-family: inherit; }
   /* Sticky sidebar */
   .desktop-sidebar { position: sticky; top: 20px; display: flex; flex-direction: column; gap: 12px; }
 
-  .sidebar-card { background: var(--s1); border: 1px solid var(--brd); border-radius: 10px; padding: 14px; }
-  .sidebar-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: var(--tx3); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+  .sidebar-card { background: var(--s1); border: 1px solid var(--brd); border-radius: 12px; padding: 18px; margin-bottom: 12px; }
+  .sidebar-label { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 800; color: var(--tx); letter-spacing: .3px; margin-bottom: 10px; }
   .sidebar-ai-hint { font-size: 13px; color: var(--tx2); margin-bottom: 10px; line-height: 1.5; }
   .sidebar-ai-btn { width: 100%; background: var(--acc); border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 700; color: #fff; cursor: pointer; transition: opacity .12s; font-family: 'JetBrains Mono', monospace; }
   .sidebar-ai-btn:hover { opacity: .9; }
@@ -1249,7 +1249,7 @@ input, select, textarea { font-family: inherit; }
   .sidebar-timer-btn { background: var(--bg); border: 1px solid var(--brd); border-radius: 6px; padding: 8px; font-size: 12px; font-weight: 600; color: var(--tx2); cursor: pointer; transition: all .12s; font-family: 'JetBrains Mono', monospace; }
   .sidebar-timer-btn:hover { border-color: var(--acc); color: var(--acc); }
 
-  .sidebar-activity-item { font-size: 12px; color: var(--tx2); padding: 5px 0; border-bottom: 1px solid var(--brd); line-height: 1.4; }
+  .sidebar-activity-item { font-size: 13px; color: var(--tx2); padding: 7px 0; border-bottom: 1px solid var(--brd); line-height: 1.5; }
   .sidebar-activity-item:last-of-type { border-bottom: none; }
   .sidebar-activity-name { font-weight: 600; color: var(--tx); }
   .sidebar-activity-wod { color: var(--acc); font-weight: 600; }
@@ -1283,17 +1283,17 @@ input, select, textarea { font-family: inherit; }
 @media (min-width: 641px) {
   .sidebar-week { display: flex; gap: 4px; justify-content: space-between; margin-bottom: 8px; }
   .sidebar-day { text-align: center; flex: 1; }
-  .sidebar-day-dot { width: 28px; height: 28px; border-radius: 50%; background: var(--bg); border: 1px solid var(--brd); display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--tx3); margin: 0 auto 3px; }
+  .sidebar-day-dot { width: 34px; height: 34px; border-radius: 50%; background: var(--bg); border: 2px solid var(--brd); display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--tx3); margin: 0 auto 3px; font-weight: 700; }
   .sidebar-day-dot.active { background: var(--grn-d); border-color: var(--grn); color: var(--grn); font-weight: 700; }
   .sidebar-day-dot.multi { background: var(--acc-d); border-color: var(--acc); color: var(--acc); }
   .sidebar-day-label { font-size: 9px; color: var(--tx2); text-transform: uppercase; letter-spacing: .5px; }
-  .sidebar-week-summary { display: flex; justify-content: space-between; font-size: 12px; color: var(--tx2); font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+  .sidebar-week-summary { display: flex; justify-content: space-between; font-size: 14px; color: var(--tx); font-family: 'JetBrains Mono', monospace; font-weight: 700; }
 
   /* Sidebar: Weekly Leaders */
-  .sidebar-leader { display: flex; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--brd); font-size: 12px; }
+  .sidebar-leader { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--brd); font-size: 13px; }
   .sidebar-leader:last-child { border-bottom: none; }
-  .sidebar-leader-rank { font-size: 14px; min-width: 20px; }
-  .sidebar-leader-name { flex: 1; font-weight: 600; color: var(--tx); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .sidebar-leader-rank { font-size: 16px; min-width: 22px; }
+  .sidebar-leader-name { flex: 1; font-weight: 700; color: var(--tx); font-family: 'JetBrains Mono', monospace; font-size: 13px; }
   .sidebar-leader-count { color: var(--tx2); font-size: 11px; }
 }
 
@@ -1799,3 +1799,26 @@ input, select, textarea { font-family: inherit; }
   .sidebar-nav-btn:hover { border-color: var(--acc); color: var(--acc); }
   .sidebar-nav-btn.on { background: var(--acc-d); border-color: var(--acc); color: var(--acc); }
 }
+
+/* Vital Age box redesign */
+.lon-vital-heading { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 800; color: var(--tx); margin-bottom: 4px; }
+.lon-idx-bar { display: flex; align-items: baseline; gap: 2px; margin-bottom: 6px; }
+.lon-idx-num { font-family: 'JetBrains Mono', monospace; font-size: 32px; font-weight: 800; color: var(--acc); }
+.lon-idx-max { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--tx3); font-weight: 600; }
+.lon-vital-tested { font-size: 12px; color: var(--tx3); margin-bottom: 10px; }
+.lon-ring-tap { font-size: 8px; color: var(--tx3); text-transform: uppercase; letter-spacing: .5px; margin-top: 2px; }
+.lon-vital-diff { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+
+/* Activity Feed - Challenge cards */
+.activity-item.challenge-item { border-left: 3px solid var(--ylw); }
+.activity-challenge-header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.activity-challenge-icon { font-size: 16px; }
+.activity-challenge-vs { font-size: 10px; color: var(--tx3); font-weight: 700; text-transform: uppercase; }
+.activity-challenge-workout { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--acc); font-weight: 600; margin-top: 4px; }
+.activity-challenge-talk { font-size: 11px; color: var(--tx3); font-style: italic; margin-top: 3px; }
+.activity-challenge-status { margin-top: 4px; }
+.ch-status { font-size: 11px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+.ch-status.pending { color: var(--ylw); }
+.ch-status.accepted { color: var(--cyn); }
+.ch-status.completed { color: var(--grn); }
+.ch-status.declined { color: var(--tx3); }

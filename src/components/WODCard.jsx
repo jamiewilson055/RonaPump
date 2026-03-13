@@ -176,18 +176,32 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
               <button className="ab p" onClick={() => setShowTimer(true)} style={{ fontWeight: 600 }}>▶ Start Workout</button>
               <button className="ab p" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }} style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)' }}>{addingLog ? 'Cancel' : '✓ Complete Workout'}</button>
               {toggleFavorite && <button className={`ab ${isFav ? '' : 'g'}`} onClick={() => toggleFavorite(wod.id)}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>}
-              <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
-              <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
-              <button className="ab" onClick={copyLink}>{copied ? '✓ Copied!' : '🔗 Link'}</button>
-              <button className="ab" onClick={shareWorkout}>↗ Share Text</button>
+              <button className="ab" onClick={() => {
+                if (!session) { onAuthRequired(); return }
+                const slug = (wod.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+                window.location.href = '/workout/' + slug
+              }}>📁 Save</button>
               <button className="ab" onClick={() => {
                 const slug = (wod.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
                 window.location.href = '/workout/' + slug
-              }}>🔍 View Full Workout</button>
+              }}>🔀 Remix</button>
+              <button className="ab" onClick={() => {
+                const slug = (wod.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+                window.location.href = '/workout/' + slug
+              }}>≈ Similar</button>
+              <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
+              <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
+              <button className="ab" onClick={copyLink}>{copied ? '✓ Copied!' : '🔗 Link'}</button>
               {isAdmin && <button className="ab p" onClick={() => {
                 const slug = (wod.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
                 window.location.href = '/workout/' + slug
               }}>Edit</button>}
+              {isAdmin && <button className="ab del" onClick={async () => {
+                if (!confirm('Delete this workout?')) return
+                await supabase.from('workouts').delete().eq('id', wod.id)
+                if (onWorkoutsChanged) onWorkoutsChanged()
+                pick()
+              }}>Delete</button>}
             </div>
           </div>
         )}

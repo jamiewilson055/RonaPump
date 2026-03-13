@@ -423,27 +423,26 @@ export default function Longevity({ session, onAuthRequired }) {
   // ============= Main Dashboard =============
   return (
     <div className="lon-section">
-      {/* Vital Age Hero — clickable for analytics */}
+      {/* Vital Age Hero */}
       <div className="lon-vital">
         <div className="lon-vital-ring" onClick={() => testedCount > 0 && setShowAnalytics(true)} style={{ cursor: testedCount > 0 ? 'pointer' : 'default', borderColor: ageDiff <= -5 ? '#22d3ee' : ageDiff <= 0 ? '#4ade80' : ageDiff <= 5 ? '#e0c81e' : '#e01e1e' }}>
           <div className="lon-vital-age">{testedCount > 0 ? vitalAge : '?'}</div>
-          <div className="lon-vital-label">{testedCount > 0 ? 'Tap for analysis' : 'Vital Age'}</div>
+          {testedCount > 0 && <div className="lon-ring-tap">Tap for analysis</div>}
         </div>
         <div className="lon-vital-info">
-          <div className="lon-vital-title">🧬 Vital Age {testedCount > 0 && <span className="lon-idx-badge">{longevityIndex}/100</span>}</div>
+          <div className="lon-vital-heading">🧬 Vital Age</div>
+          {testedCount > 0 && <div className="lon-idx-bar"><span className="lon-idx-num">{longevityIndex}</span><span className="lon-idx-max">/100</span></div>}
           {testedCount > 0 ? (
-            <>
-              <div className="lon-vital-diff" style={{ color: ageDiff <= -5 ? '#22d3ee' : ageDiff <= 0 ? '#4ade80' : ageDiff <= 5 ? '#e0c81e' : '#e01e1e' }}>
-                {ageDiff < 0 ? `${Math.abs(ageDiff)} years younger` : ageDiff === 0 ? 'On track' : `${ageDiff} years older`} than age {age}
-              </div>
-              <div className="lon-vital-sub">{testedCount}/{MARKERS.length} tested</div>
-            </>
+            <div className="lon-vital-diff" style={{ color: ageDiff <= -5 ? '#22d3ee' : ageDiff <= 0 ? '#4ade80' : ageDiff <= 5 ? '#e0c81e' : '#e01e1e' }}>
+              {ageDiff < 0 ? `${Math.abs(ageDiff)} years younger` : ageDiff === 0 ? 'On track' : `${ageDiff} years older`} than age {age}
+            </div>
           ) : (
             <div className="lon-vital-sub">Complete your first test to see your Vital Age</div>
           )}
+          <div className="lon-vital-tested">{testedCount}/{MARKERS.length} markers tested</div>
           <div className="lon-vital-row">
             <button className="lon-test-day-btn" onClick={() => { setTestMode(true); setTestStep(0); setInputValue(''); setInputNotes('') }}>🧪 Test Day</button>
-            <div className="lon-age-inputs" >
+            <div className="lon-age-inputs">
               <input type="number" className="lon-age-input" placeholder="Age" value={age} onChange={e => { setAge(e.target.value); saveAge(e.target.value, gender) }} />
               <select className="lon-gender-select" value={gender} onChange={e => { setGender(e.target.value); saveAge(age, e.target.value) }}>
                 <option value="male">Male</option>

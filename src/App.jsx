@@ -243,10 +243,28 @@ function App() {
     }
   }
 
+  function handleNotifNavigate(link) {
+    if (!link) return
+    if (link.startsWith('activity:')) {
+      const parts = link.split(':')
+      setActivityHighlight(parts[1])
+      setTab('activity')
+    } else if (link === 'h2h' || link.startsWith('challenge')) {
+      setTab('activity')
+    } else if (link === 'stats') {
+      setTab('stats')
+    } else if (link.startsWith('/workout/')) {
+      window.location.href = link
+    } else {
+      setTab('all')
+    }
+    setShowProfile(false)
+  }
+
   if (showProfile && session) {
     return (
       <div className="app">
-        <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => { setActivityHighlight(null); setTab("activity") }} onH2HClick={() => setTab("h2h")} onCollectionsClick={() => setTab("collections")} onTimerClick={() => setTab("timer")} onDeckClick={() => setTab("deck")} onNotifNavigate={(link) => { if (link.startsWith("activity:")) { const parts = link.split(":"); setActivityHighlight(parts[1]); setTab("activity") } }} />
+        <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => { setActivityHighlight(null); setTab("activity") }} onH2HClick={() => setTab("h2h")} onCollectionsClick={() => setTab("collections")} onTimerClick={() => setTab("timer")} onDeckClick={() => setTab("deck")} onNotifNavigate={handleNotifNavigate} />
         <Profile
           session={session}
           profile={profile}
@@ -262,7 +280,7 @@ function App() {
 
   return (
     <div className="app">
-      <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => { setActivityHighlight(null); setTab("activity") }} onH2HClick={() => setTab("h2h")} onCollectionsClick={() => setTab("collections")} onTimerClick={() => setTab("timer")} onDeckClick={() => setTab("deck")} onNotifNavigate={(link) => { if (link.startsWith("activity:")) { const parts = link.split(":"); setActivityHighlight(parts[1]); setTab("activity") } }} />
+      <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onStatsClick={() => setTab("stats")} onActivityClick={() => { setActivityHighlight(null); setTab("activity") }} onH2HClick={() => setTab("h2h")} onCollectionsClick={() => setTab("collections")} onTimerClick={() => setTab("timer")} onDeckClick={() => setTab("deck")} onNotifNavigate={handleNotifNavigate} />
       {!session && <Welcome onSignIn={() => setShowAuth(true)} />}
 
       {/* Hero Feature Cards — desktop only, on main tabs */}
@@ -275,18 +293,18 @@ function App() {
               <div className="hero-sub">Describe what you want — we build it</div>
             </div>
           </button>
-          <button className="hero-card hero-deck" onClick={() => setTab('deck')}>
-            <span className="hero-icon">🃏</span>
+          <button className="hero-card hero-deck" onClick={() => setTab('longevity')}>
+            <span className="hero-icon">🧬</span>
             <div>
-              <div className="hero-title">Deck of Cards</div>
-              <div className="hero-sub">Flip, rep, survive the whole deck</div>
+              <div className="hero-title">Longevity</div>
+              <div className="hero-sub">Track your Vital Age & longevity markers</div>
             </div>
           </button>
-          <button className="hero-card hero-h2h" onClick={() => setTab('timer')}>
-            <span className="hero-icon">⏱</span>
+          <button className="hero-card hero-h2h" onClick={() => setTab('prs')}>
+            <span className="hero-icon">💪</span>
             <div>
-              <div className="hero-title">Workout Timer</div>
-              <div className="hero-sub">AMRAP, Tabata, EMOM & more</div>
+              <div className="hero-title">Strength</div>
+              <div className="hero-sub">PRs, 1RM calculator & records</div>
             </div>
           </button>
         </div>
