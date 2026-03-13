@@ -60,13 +60,13 @@ export default function Header({ counts, session, profile, onAuthClick, streak, 
             <button className="user-btn" onClick={onAuthClick}>
               {profile?.display_name || 'Profile'}
             </button>
-            <button className="stats-btn activity-btn" onClick={onActivityClick} title="Activity Feed">
+            <button className="stats-btn activity-btn mobile-only" onClick={onActivityClick} title="Activity Feed">
               👥 <span className="activity-label">Activity</span>
             </button>
-            <button className="stats-btn activity-btn" onClick={onTimerClick} title="Timer">
+            <button className="stats-btn activity-btn mobile-only" onClick={onTimerClick} title="Timer">
               ⏱
             </button>
-            <button className="stats-btn activity-btn" onClick={onCollectionsClick} title="Collections">
+            <button className="stats-btn activity-btn mobile-only" onClick={onCollectionsClick} title="Collections">
               📁
             </button>
           </div>
