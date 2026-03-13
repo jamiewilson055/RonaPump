@@ -14,6 +14,7 @@ export default function PRTracker({ session, onAuthRequired }) {
   const [addingEntry, setAddingEntry] = useState(null)
   const [editingGroup, setEditingGroup] = useState(null)
   const [editForm, setEditForm] = useState(null)
+  const [hubView, setHubView] = useState(null) // null = hub, 'calc', 'strength', 'cardio'
 
   useEffect(() => {
     if (session) loadPRs()
@@ -245,98 +246,173 @@ export default function PRTracker({ session, onAuthRequired }) {
   const nStr = groups.filter(g => g.type === 'strength').length
   const nCar = groups.filter(g => g.type === 'cardio').length
 
+  // Split folders by type
+  const strengthFolders = folders.filter(f => (f.isFolder ? f.type : f.singleGroup?.type) === 'strength')
+  const cardioFolders = folders.filter(f => (f.isFolder ? f.type : f.singleGroup?.type) === 'cardio')
+
+  function renderAddForm() {
+    return (
+      <div className="pr-form-wrap">
+        {prType === 'cardio' ? (
+          <>
+            <div className="pr-form">
+              <select id="pr-machine" style={{ flex: '1.5' }}>
+                <option value="">Machine...</option>
+                {CARDIO_MACHINES.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+              <input id="pr-target" placeholder="Target (e.g. 50 Cals, 2000m)" style={{ flex: '1.5' }} />
+              <input id="pr-time" placeholder="Time (e.g. 6:53)" style={{ flex: 1 }} />
+              <input id="pr-dt" type="date" defaultValue={today} style={{ flex: 1 }} />
+              <input id="pr-nt" placeholder="Notes (optional)" style={{ flex: 1 }} />
+              <button className="ab p" onClick={addPR} style={{ padding: '8px 16px' }}>Save</button>
+            </div>
+            <div className="pr-hints">Examples: Assault Bike / 50 Cals / 1:42 • Rower / 2000m / 6:53 • Run / 1 Mile / 6:45</div>
+          </>
+        ) : (
+          <>
+            <div className="pr-form">
+              <input id="pr-mv" placeholder="Movement (e.g. Back Squat)" style={{ flex: 2 }} />
+              <input id="pr-wt" placeholder="Weight (e.g. 225 lbs)" style={{ flex: 1 }} />
+              <input id="pr-sc" placeholder="Result (e.g. 5 reps)" style={{ flex: 1 }} />
+              <input id="pr-dt" type="date" defaultValue={today} style={{ flex: 1 }} />
+              <input id="pr-nt" placeholder="Notes (optional)" style={{ flex: 1 }} />
+              <button className="ab p" onClick={addPR} style={{ padding: '8px 16px' }}>Save</button>
+            </div>
+            <div className="pr-hints">Examples: Back Squat / 225 lbs / 5 reps • Bench Press / 185 lbs / 1RM • Pull-Up / BW+25 / 8 reps</div>
+          </>
+        )}
+      </div>
+    )
+  }
+
+  function renderFolder(folder) {
+    if (!folder.isFolder) {
+      const g = folder.singleGroup
+      const gKey = `${g.type}:${g.movement}:${g.target || g.weight || ''}`
+      return renderGroup(g, gKey)
+    }
+    const isFolderExp = expandedFolder === folder.movement
+    const isCardio = folder.type === 'cardio'
+    return (
+      <div key={folder.movement} className="pr-folder">
+        <div className="pr-folder-hd" onClick={() => setExpandedFolder(isFolderExp ? null : folder.movement)}>
+          <span className="pr-type-icon">{isCardio ? '⚡' : '🏋'}</span>
+          <span className={`pr-folder-arrow${isFolderExp ? '' : ' shut'}`}>▾</span>
+          <div className="pr-mv">{folder.movement}</div>
+          <span className="pr-cnt">{folder.subGroups.length} variations · {folder.totalEntries} entries</span>
+        </div>
+        {isFolderExp && (
+          <div className="pr-folder-body">
+            {folder.subGroups.map(g => {
+              const gKey = `${g.type}:${g.movement}:${g.target || g.weight || ''}`
+              return renderGroup(g, gKey, true)
+            })}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="pr-section">
-      <OneRMCalculator session={session} onAuthRequired={onAuthRequired} existingPRs={prs} />
-
-      <div style={{ borderTop: '1px solid var(--brd)', margin: '20px 0' }}></div>
-
-      <div className="pr-header">
-        <h3>PR Tracker</h3>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <select className="ssel" value={sort} onChange={e => setSort(e.target.value)} style={{ width: 'auto' }}>
-            <option value="newest">All — Recent</option>
-            <option value="name">All — By Name</option>
-            <option value="strength">Strength ({nStr})</option>
-            <option value="cardio">Cardio ({nCar})</option>
-          </select>
-          <button className="nbtn" onClick={() => { setAdding(!adding); setEditingGroup(null) }} style={{ padding: '7px 14px', fontSize: '12px' }}>
-            {adding ? 'Cancel' : '+ New PR'}
+      {/* Hub cards — always visible when no sub-view selected */}
+      {!hubView && (
+        <div className="pr-hub">
+          <button className="pr-hub-card" onClick={() => { if (!session) { onAuthRequired(); return } setHubView('calc') }}>
+            <span className="pr-hub-icon">🏋️</span>
+            <div>
+              <div className="pr-hub-name">1RM Calculator</div>
+              <div className="pr-hub-desc">Estimate max, strength levels & training %</div>
+            </div>
+            <span className="pr-hub-arrow">→</span>
           </button>
-        </div>
-      </div>
+          <button className="pr-hub-card" onClick={() => { if (!session) { onAuthRequired(); return } setHubView('strength') }}>
+            <span className="pr-hub-icon">💪</span>
+            <div>
+              <div className="pr-hub-name">Strength Records</div>
+              <div className="pr-hub-desc">{session ? `${nStr} lift${nStr !== 1 ? 's' : ''} tracked` : 'Track your lifting PRs'}</div>
+            </div>
+            <span className="pr-hub-arrow">→</span>
+          </button>
+          <button className="pr-hub-card" onClick={() => { if (!session) { onAuthRequired(); return } setHubView('cardio') }}>
+            <span className="pr-hub-icon">🏃</span>
+            <div>
+              <div className="pr-hub-name">Cardio Records</div>
+              <div className="pr-hub-desc">{session ? `${nCar} record${nCar !== 1 ? 's' : ''} tracked` : 'Track your best times'}</div>
+            </div>
+            <span className="pr-hub-arrow">→</span>
+          </button>
 
-      {adding && (
-        <div className="pr-form-wrap">
-          <div className="pr-type-tabs">
-            <button className={`pr-tt${prType === 'strength' ? ' on' : ''}`} onClick={() => setPrType('strength')}>Strength</button>
-            <button className={`pr-tt${prType === 'cardio' ? ' on' : ''}`} onClick={() => setPrType('cardio')}>Cardio</button>
-          </div>
-          {prType === 'cardio' ? (
-            <>
-              <div className="pr-form">
-                <select id="pr-machine" style={{ flex: '1.5' }}>
-                  <option value="">Machine...</option>
-                  {CARDIO_MACHINES.map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
-                <input id="pr-target" placeholder="Target (e.g. 50 Cals, 2000m)" style={{ flex: '1.5' }} />
-                <input id="pr-time" placeholder="Time (e.g. 6:53)" style={{ flex: 1 }} />
-                <input id="pr-dt" type="date" defaultValue={today} style={{ flex: 1 }} />
-                <input id="pr-nt" placeholder="Notes (optional)" style={{ flex: 1 }} />
-                <button className="ab p" onClick={addPR} style={{ padding: '8px 16px' }}>Save</button>
-              </div>
-              <div className="pr-hints">Examples: Assault Bike / 50 Cals / 1:42 • Rower / 2000m / 6:53 • Run / 1 Mile / 6:45</div>
-            </>
-          ) : (
-            <>
-              <div className="pr-form">
-                <input id="pr-mv" placeholder="Movement (e.g. Back Squat)" style={{ flex: 2 }} />
-                <input id="pr-wt" placeholder="Weight (e.g. 225 lbs)" style={{ flex: 1 }} />
-                <input id="pr-sc" placeholder="Result (e.g. 5 reps)" style={{ flex: 1 }} />
-                <input id="pr-dt" type="date" defaultValue={today} style={{ flex: 1 }} />
-                <input id="pr-nt" placeholder="Notes (optional)" style={{ flex: 1 }} />
-                <button className="ab p" onClick={addPR} style={{ padding: '8px 16px' }}>Save</button>
-              </div>
-              <div className="pr-hints">Examples: Back Squat / 225 lbs / 5 reps • Bench Press / 185 lbs / 1RM • Pull-Up / BW+25 / 8 reps</div>
-            </>
+          {!session && (
+            <div className="pr-hub-teaser">
+              <div className="pr-hub-teaser-title">🦍 Track Every PR</div>
+              <div className="pr-hub-teaser-desc">Calculate your 1RM, compare against strength standards, and log every personal record. Sign in to get started.</div>
+            </div>
           )}
         </div>
       )}
 
-      {folders.length === 0 && !adding && (
-        <div className="pr-empty">No PRs logged yet. Hit <b>+ New PR</b> to start tracking.</div>
+      {/* 1RM Calculator */}
+      {hubView === 'calc' && (
+        <>
+          <button className="pr-hub-back" onClick={() => setHubView(null)}>← Back to Records</button>
+          <OneRMCalculator session={session} onAuthRequired={onAuthRequired} existingPRs={prs} />
+        </>
       )}
 
-      {folders.map((folder) => {
-        if (!folder.isFolder) {
-          // Single group — render directly, no folder wrapper
-          const g = folder.singleGroup
-          const gKey = `${g.type}:${g.movement}:${g.target || g.weight || ''}`
-          return renderGroup(g, gKey)
-        }
-
-        // Multiple sub-groups — render as expandable folder
-        const isFolderExp = expandedFolder === folder.movement
-        const isCardio = folder.type === 'cardio'
-        return (
-          <div key={folder.movement} className="pr-folder">
-            <div className="pr-folder-hd" onClick={() => setExpandedFolder(isFolderExp ? null : folder.movement)}>
-              <span className="pr-type-icon">{isCardio ? '⚡' : '🏋'}</span>
-              <span className={`pr-folder-arrow${isFolderExp ? '' : ' shut'}`}>▾</span>
-              <div className="pr-mv">{folder.movement}</div>
-              <span className="pr-cnt">{folder.subGroups.length} variations · {folder.totalEntries} entries</span>
+      {/* Strength Records */}
+      {hubView === 'strength' && (
+        <>
+          <button className="pr-hub-back" onClick={() => setHubView(null)}>← Back to Records</button>
+          <div className="pr-header">
+            <h3>💪 Strength Records</h3>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <select className="ssel" value={sort} onChange={e => setSort(e.target.value)} style={{ width: 'auto' }}>
+                <option value="newest">Recent</option>
+                <option value="name">By Name</option>
+              </select>
+              <button className="nbtn" onClick={() => { setAdding(!adding); setPrType('strength'); setEditingGroup(null) }} style={{ padding: '7px 14px', fontSize: '12px' }}>
+                {adding ? 'Cancel' : '+ New PR'}
+              </button>
             </div>
-            {isFolderExp && (
-              <div className="pr-folder-body">
-                {folder.subGroups.map(g => {
-                  const gKey = `${g.type}:${g.movement}:${g.target || g.weight || ''}`
-                  return renderGroup(g, gKey, true)
-                })}
-              </div>
-            )}
           </div>
-        )
-      })}
+          {adding && prType === 'strength' && renderAddForm()}
+          {strengthFolders.map(folder => renderFolder(folder))}
+          {strengthFolders.length === 0 && !adding && (
+            <div className="pr-empty">
+              <div style={{ fontSize: '32px', marginBottom: '8px' }}>💪</div>
+              No strength records yet. Tap <b>+ New PR</b> to add your first lift!
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Cardio Records */}
+      {hubView === 'cardio' && (
+        <>
+          <button className="pr-hub-back" onClick={() => setHubView(null)}>← Back to Records</button>
+          <div className="pr-header">
+            <h3>🏃 Cardio Records</h3>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <select className="ssel" value={sort} onChange={e => setSort(e.target.value)} style={{ width: 'auto' }}>
+                <option value="newest">Recent</option>
+                <option value="name">By Name</option>
+              </select>
+              <button className="nbtn" onClick={() => { setAdding(!adding); setPrType('cardio'); setEditingGroup(null) }} style={{ padding: '7px 14px', fontSize: '12px' }}>
+                {adding ? 'Cancel' : '+ New PR'}
+              </button>
+            </div>
+          </div>
+          {adding && prType === 'cardio' && renderAddForm()}
+          {cardioFolders.map(folder => renderFolder(folder))}
+          {cardioFolders.length === 0 && !adding && (
+            <div className="pr-empty">
+              <div style={{ fontSize: '32px', marginBottom: '8px' }}>🏃</div>
+              No cardio records yet. Tap <b>+ New PR</b> to add your first time!
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }
