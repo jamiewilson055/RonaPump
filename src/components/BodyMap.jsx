@@ -56,7 +56,17 @@ const MUSCLE_LABELS = {
 
 function daysAgo(dateStr) {
   if (!dateStr) return 999
-  return Math.floor((new Date() - new Date(dateStr)) / (1000 * 60 * 60 * 24))
+  // Grab just the YYYY-MM-DD portion regardless of format
+  const ds = String(dateStr).slice(0, 10)
+  const parts = ds.split('-')
+  if (parts.length !== 3) return 999
+  const y = parseInt(parts[0]), m = parseInt(parts[1]) - 1, d = parseInt(parts[2])
+  if (isNaN(y) || isNaN(m) || isNaN(d) || y < 2000) return 999
+  const then = new Date(y, m, d)
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  const diff = Math.round((now - then) / (1000 * 60 * 60 * 24))
+  return diff >= 0 ? diff : 999
 }
 
 function muscleColor(days) {
