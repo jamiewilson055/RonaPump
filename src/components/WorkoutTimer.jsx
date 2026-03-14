@@ -58,6 +58,9 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
   const [timerLogRx, setTimerLogRx] = useState(true)
   const [timerLogged, setTimerLogged] = useState(false)
   const intervalRef = useRef(null)
+  const startTimeRef = useRef(null)
+  const pausedElapsedRef = useRef(0)
+  const lastBeepSecRef = useRef(-1)
   const wakeLockRef = useRef(null)
   const videoRef = useRef(null)
 
@@ -117,9 +120,15 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
       if (!success) startVideoKeepAwake()
     })
 
-    // Re-acquire on visibility change
+    // Re-acquire on visibility change + recalculate elapsed
     function handleVisibility() {
       if (document.visibilityState === 'visible' && running) {
+        // Immediately recalculate elapsed from wall clock
+        if (startTimeRef.current) {
+          const now = Date.now()
+          const totalElapsed = Math.floor((now - startTimeRef.current) / 1000) + pausedElapsedRef.current
+          setElapsed(totalElapsed)
+        }
         tryWakeLock().then(success => {
           if (!success && !videoRef.current) startVideoKeepAwake()
         })
@@ -172,6 +181,9 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
     if (countdown321 === null) return
     if (countdown321 === 0) {
       setCountdown321(null)
+      pausedElapsedRef.current = 0
+      lastBeepSecRef.current = -1
+      startTimeRef.current = Date.now()
       setRunning(true)
       setElapsed(0)
       setFinished(false)
@@ -185,50 +197,74 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
 
   useEffect(() => {
     if (running) {
+      if (!startTimeRef.current) startTimeRef.current = Date.now()
       intervalRef.current = setInterval(() => {
+        const now = Date.now()
+        const totalElapsed = Math.floor((now - startTimeRef.current) / 1000) + pausedElapsedRef.current
+        
         setElapsed(prev => {
-          const next = prev + 1
-
-          if (mode === 'countdown' && next >= totalSeconds) {
-            setRunning(false); setFinished(true); playTripleBeep(); return totalSeconds
-          }
-          if (mode === 'countdown') {
-            const remaining = totalSeconds - next
-            if (remaining === 3 || remaining === 2 || remaining === 1) playBeep(660, 0.1, 0.3)
-          }
-          if (mode === 'emom') {
-            const totalEmom = emomRounds * emomInterval
-            if (next >= totalEmom) { setRunning(false); setFinished(true); playTripleBeep(); return totalEmom }
-            if (next % emomInterval === 0) playDoubleBeep()
-            const timeInRound = next % emomInterval
-            const timeLeft = emomInterval - timeInRound
-            if (timeLeft === 3 || timeLeft === 2 || timeLeft === 1) playBeep(660, 0.1, 0.3)
-          }
-          if (mode === 'interval') {
-            const roundTime = workTime + restTime
-            const totalInt = intervalRounds * roundTime
-            if (next >= totalInt) { setRunning(false); setFinished(true); playTripleBeep(); return totalInt }
-            const posInRound = next % roundTime
-            if (posInRound === 0) playDoubleBeep()
-            if (posInRound === workTime) playBeep(440, 0.2, 0.3)
-            if (posInRound === workTime - 3 || posInRound === workTime - 2 || posInRound === workTime - 1) playBeep(660, 0.1, 0.2)
-          }
-          if (mode === 'stopwatch') {
-            if (next > 0 && next % 60 === 0) playBeep(880, 0.15, 0.3)
+          const next = totalElapsed
+          // Only play beeps for seconds we haven't beeped yet
+          if (next > lastBeepSecRef.current) {
+            for (let s = lastBeepSecRef.current + 1; s <= next; s++) {
+              if (mode === 'countdown' && s >= totalSeconds) {
+                setRunning(false); setFinished(true); playTripleBeep(); lastBeepSecRef.current = s; return totalSeconds
+              }
+              if (mode === 'countdown') {
+                const remaining = totalSeconds - s
+                if (remaining === 3 || remaining === 2 || remaining === 1) playBeep(660, 0.1, 0.3)
+              }
+              if (mode === 'emom') {
+                const totalEmom = emomRounds * emomInterval
+                if (s >= totalEmom) { setRunning(false); setFinished(true); playTripleBeep(); lastBeepSecRef.current = s; return totalEmom }
+                if (s % emomInterval === 0 && s > 0) playDoubleBeep()
+                const timeInRound = s % emomInterval
+                const timeLeft = emomInterval - timeInRound
+                if (timeLeft === 3 || timeLeft === 2 || timeLeft === 1) playBeep(660, 0.1, 0.3)
+              }
+              if (mode === 'interval') {
+                const roundTime = workTime + restTime
+                const totalInt = intervalRounds * roundTime
+                if (s >= totalInt) { setRunning(false); setFinished(true); playTripleBeep(); lastBeepSecRef.current = s; return totalInt }
+                const posInRound = s % roundTime
+                if (posInRound === 0 && s > 0) playDoubleBeep()
+                if (posInRound === workTime) playBeep(440, 0.2, 0.3)
+                if (posInRound === workTime - 3 || posInRound === workTime - 2 || posInRound === workTime - 1) playBeep(660, 0.1, 0.2)
+              }
+              if (mode === 'stopwatch') {
+                if (s > 0 && s % 60 === 0) playBeep(880, 0.15, 0.3)
+              }
+            }
+            lastBeepSecRef.current = next
           }
           return next
         })
-      }, 1000)
+      }, 250)
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
   }, [running, mode, totalSeconds, emomRounds, emomInterval, workTime, restTime, intervalRounds])
 
   function togglePause() {
-    if (!running) initAudio()
-    setRunning(!running)
+    if (!running) {
+      // Resuming — set new start time, carry over elapsed
+      initAudio()
+      pausedElapsedRef.current = elapsed
+      startTimeRef.current = Date.now()
+      setRunning(true)
+    } else {
+      // Pausing — elapsed is already correct in state
+      setRunning(false)
+    }
   }
 
-  function resetTimer() { setRunning(false); setElapsed(0); setFinished(false) }
+  function resetTimer() {
+    setRunning(false)
+    setElapsed(0)
+    setFinished(false)
+    startTimeRef.current = null
+    pausedElapsedRef.current = 0
+    lastBeepSecRef.current = -1
+  }
 
   let displayTime = '', displayLabel = '', displayRound = '', progress = 0, isRest = false
 
