@@ -194,6 +194,8 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
     setEditForm({
       name: wod.name || '', description: wod.description || '', score_type: wod.score_type || 'None',
       estimated_duration_mins: wod.estimated_duration_mins || '',
+      estimated_duration_min: wod.estimated_duration_min || '',
+      estimated_duration_max: wod.estimated_duration_max || '',
       equipment: [...(wod.equipment || [])], workout_types: [...(wod.workout_types || [])],
       categories: [...(wod.categories || [])], movement_categories: [...(wod.movement_categories || [])],
       body_parts: [...(wod.body_parts || [])],
@@ -207,6 +209,8 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
     setEditForm({
       name: (wod.name || 'Unnamed') + ' (My Version)', description: wod.description || '', score_type: wod.score_type || 'None',
       estimated_duration_mins: wod.estimated_duration_mins || '',
+      estimated_duration_min: wod.estimated_duration_min || '',
+      estimated_duration_max: wod.estimated_duration_max || '',
       equipment: [...(wod.equipment || [])], workout_types: [...(wod.workout_types || [])],
       categories: [...(wod.categories || [])], movement_categories: [...(wod.movement_categories || [])],
       body_parts: [...(wod.body_parts || [])],
@@ -230,6 +234,8 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
       const { error } = await supabase.from('workouts').insert({
         name: editForm.name.trim() || null, description: editForm.description.trim(), score_type: editForm.score_type,
         estimated_duration_mins: editForm.estimated_duration_mins ? parseInt(editForm.estimated_duration_mins) : null,
+        estimated_duration_min: editForm.estimated_duration_min ? parseInt(editForm.estimated_duration_min) : null,
+        estimated_duration_max: editForm.estimated_duration_max ? parseInt(editForm.estimated_duration_max) : null,
         equipment: editForm.equipment.length ? editForm.equipment : ['Bodyweight'],
         workout_types: editForm.workout_types.length ? editForm.workout_types : ['For Time'],
         categories: editForm.categories, movement_categories: editForm.movement_categories.length ? editForm.movement_categories : [],
@@ -240,6 +246,8 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
       const { error } = await supabase.from('workouts').update({
         name: editForm.name.trim() || null, description: editForm.description.trim(), score_type: editForm.score_type,
         estimated_duration_mins: editForm.estimated_duration_mins ? parseInt(editForm.estimated_duration_mins) : null,
+        estimated_duration_min: editForm.estimated_duration_min ? parseInt(editForm.estimated_duration_min) : null,
+        estimated_duration_max: editForm.estimated_duration_max ? parseInt(editForm.estimated_duration_max) : null,
         equipment: editForm.equipment.length ? editForm.equipment : ['Bodyweight'],
         workout_types: editForm.workout_types.length ? editForm.workout_types : ['General'],
         categories: editForm.categories, movement_categories: editForm.movement_categories.length ? editForm.movement_categories : [],
@@ -248,7 +256,6 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
       if (error) { alert('Error saving: ' + error.message); return }
     }
     setEditing(false); setEditForm(null); setRemixing(false)
-    if (!remixing) setWod(prev => prev ? { ...prev, name: editForm.name.trim(), description: editForm.description.trim() } : prev)
     if (onWorkoutsChanged) onWorkoutsChanged()
   }
 
@@ -380,15 +387,72 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
             <label>Name</label>
             <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="e.g. The Grind" />
             <label>Description / Details</label>
-            <textarea value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} placeholder="Full workout details..." style={{ minHeight: '140px' }} />
+            <div className="fmt-bar">
+              <button type="button" className="fmt-btn" onClick={() => {
+                const ta = document.getElementById('wod-edit-desc')
+                if (!ta) return
+                const start = ta.selectionStart
+                const before = editForm.description.slice(0, start)
+                const after = editForm.description.slice(start)
+                const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
+                setEditForm({ ...editForm, description: before + nl + '• ' + after })
+                setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 2 }, 0)
+              }}>• Bullet</button>
+              <button type="button" className="fmt-btn" onClick={() => {
+                const ta = document.getElementById('wod-edit-desc')
+                if (!ta) return
+                const start = ta.selectionStart
+                const before = editForm.description.slice(0, start)
+                const after = editForm.description.slice(start)
+                const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
+                setEditForm({ ...editForm, description: before + nl + '  • ' + after })
+                setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 4 }, 0)
+              }}>  ◦ Sub-bullet</button>
+              <button type="button" className="fmt-btn" onClick={() => {
+                const ta = document.getElementById('wod-edit-desc')
+                if (!ta) return
+                const start = ta.selectionStart
+                const end = ta.selectionEnd
+                const selected = editForm.description.slice(start, end)
+                if (selected) {
+                  const before = editForm.description.slice(0, start)
+                  const after = editForm.description.slice(end)
+                  setEditForm({ ...editForm, description: before + '**' + selected + '**' + after })
+                  setTimeout(() => { ta.focus(); ta.selectionStart = start; ta.selectionEnd = end + 4 }, 0)
+                } else {
+                  const before = editForm.description.slice(0, start)
+                  const after = editForm.description.slice(start)
+                  setEditForm({ ...editForm, description: before + '****' + after })
+                  setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + 2 }, 0)
+                }
+              }}><b>B</b> Bold</button>
+              <button type="button" className="fmt-btn" onClick={() => {
+                const ta = document.getElementById('wod-edit-desc')
+                if (!ta) return
+                const start = ta.selectionStart
+                const before = editForm.description.slice(0, start)
+                const after = editForm.description.slice(start)
+                const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
+                setEditForm({ ...editForm, description: before + nl + '--- ' + after })
+                setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 4 }, 0)
+              }}>— Section</button>
+            </div>
+            <textarea id="wod-edit-desc" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} placeholder="Full workout details..." style={{ minHeight: '140px' }} />
             <label>Score Type</label>
             <div className="st-sel">
               {['Time', 'Rounds + Reps', 'Reps', 'Calories', 'Distance', 'Load', 'None'].map(t => (
                 <button key={t} className={`st-opt${editForm.score_type === t ? ' on' : ''}`} onClick={() => setEditForm({ ...editForm, score_type: t })}>{t}</button>
               ))}
             </div>
-            <label>Duration (minutes)</label>
+            <label>Duration (exact minutes, if known)</label>
             <input type="number" value={editForm.estimated_duration_mins} onChange={e => setEditForm({ ...editForm, estimated_duration_mins: e.target.value })} placeholder="e.g. 30" />
+            <label>Duration Range (if exact is unknown)</label>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input type="number" value={editForm.estimated_duration_min} onChange={e => setEditForm({ ...editForm, estimated_duration_min: e.target.value })} placeholder="Min" style={{ width: '80px' }} />
+              <span style={{ color: 'var(--tx3)' }}>–</span>
+              <input type="number" value={editForm.estimated_duration_max} onChange={e => setEditForm({ ...editForm, estimated_duration_max: e.target.value })} placeholder="Max" style={{ width: '80px' }} />
+              <span style={{ color: 'var(--tx3)', fontSize: '12px' }}>minutes</span>
+            </div>
             <label>Equipment</label>
             <div className="cr">
               {['Barbell', 'Bench', 'Bike (Assault/Echo)', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Speed Rope', 'Weighted Vest'].map(eq => (
