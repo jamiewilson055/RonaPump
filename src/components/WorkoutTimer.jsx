@@ -164,6 +164,7 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
       setMode('emom')
       const dur = w.estimated_duration_mins || parseMinutes(w.description) || 10
       setEmomRounds(dur)
+      setEmomInterval(60)
     } else if (wt.includes('Interval')) {
       setMode('interval')
     } else {
@@ -176,6 +177,16 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
 
   function startTimer() {
     initAudio()
+    // Sanitize any empty inputs before starting
+    if (mode === 'emom') {
+      if (!emomRounds || emomRounds < 1) setEmomRounds(10)
+      if (!emomInterval || emomInterval < 10) setEmomInterval(60)
+    }
+    if (mode === 'interval') {
+      if (!workTime || workTime < 5) setWorkTime(30)
+      if (!restTime || restTime < 5) setRestTime(30)
+      if (!intervalRounds || intervalRounds < 1) setIntervalRounds(8)
+    }
     setCountdown321(3)
   }
 
@@ -217,21 +228,26 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
                 if (remaining === 3 || remaining === 2 || remaining === 1) playBeep(660, 0.1, 0.3)
               }
               if (mode === 'emom') {
-                const totalEmom = emomRounds * emomInterval
+                const eRounds = parseInt(emomRounds) || 10
+                const eInterval = parseInt(emomInterval) || 60
+                const totalEmom = eRounds * eInterval
                 if (s >= totalEmom) { setRunning(false); setFinished(true); playTripleBeep(); lastBeepSecRef.current = s; return totalEmom }
-                if (s % emomInterval === 0 && s > 0) playDoubleBeep()
-                const timeInRound = s % emomInterval
-                const timeLeft = emomInterval - timeInRound
+                if (s % eInterval === 0 && s > 0) playDoubleBeep()
+                const timeInRound = s % eInterval
+                const timeLeft = eInterval - timeInRound
                 if (timeLeft === 3 || timeLeft === 2 || timeLeft === 1) playBeep(660, 0.1, 0.3)
               }
               if (mode === 'interval') {
-                const roundTime = workTime + restTime
-                const totalInt = intervalRounds * roundTime
+                const wk = parseInt(workTime) || 30
+                const rs = parseInt(restTime) || 30
+                const rds = parseInt(intervalRounds) || 8
+                const roundTime = wk + rs
+                const totalInt = rds * roundTime
                 if (s >= totalInt) { setRunning(false); setFinished(true); playTripleBeep(); lastBeepSecRef.current = s; return totalInt }
                 const posInRound = s % roundTime
                 if (posInRound === 0 && s > 0) playDoubleBeep()
-                if (posInRound === workTime) playBeep(440, 0.2, 0.3)
-                if (posInRound === workTime - 3 || posInRound === workTime - 2 || posInRound === workTime - 1) playBeep(660, 0.1, 0.2)
+                if (posInRound === wk) playBeep(440, 0.2, 0.3)
+                if (posInRound === wk - 3 || posInRound === wk - 2 || posInRound === wk - 1) playBeep(660, 0.1, 0.2)
               }
               if (mode === 'stopwatch') {
                 if (s > 0 && s % 60 === 0) playBeep(880, 0.15, 0.3)
@@ -294,21 +310,26 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
     displayTime = formatTime(Math.max(totalSeconds - elapsed, 0)); displayLabel = 'Remaining'
     progress = totalSeconds > 0 ? (elapsed / totalSeconds) * 100 : 0
   } else if (mode === 'emom') {
-    const totalEmom = emomRounds * emomInterval
-    const currentRound = Math.floor(elapsed / emomInterval) + 1
-    displayTime = formatTime(emomInterval - (elapsed % emomInterval))
-    displayLabel = `Round ${Math.min(currentRound, emomRounds)} of ${emomRounds}`
-    displayRound = formatTime(Math.max(totalEmom - elapsed, 0)) + ' total'
+    const rounds = parseInt(emomRounds) || 10
+    const interval = parseInt(emomInterval) || 60
+    const totalEmom = rounds * interval
+    const currentRound = Math.floor(elapsed / interval) + 1
+    displayTime = formatTime(interval - (elapsed % interval))
+    displayLabel = `Round ${Math.min(currentRound, rounds)} of ${rounds}`
+    displayRound = formatTime(Math.max(totalEmom - elapsed, 0)) + ' remaining'
     progress = totalEmom > 0 ? (elapsed / totalEmom) * 100 : 0
   } else if (mode === 'interval') {
-    const roundTime = workTime + restTime
-    const totalInt = intervalRounds * roundTime
+    const wk = parseInt(workTime) || 30
+    const rs = parseInt(restTime) || 30
+    const rds = parseInt(intervalRounds) || 8
+    const roundTime = wk + rs
+    const totalInt = rds * roundTime
     const currentRound = Math.floor(elapsed / roundTime) + 1
     const posInRound = elapsed % roundTime
-    isRest = posInRound >= workTime
-    const timeLeft = isRest ? (roundTime - posInRound) : (workTime - posInRound)
+    isRest = posInRound >= wk
+    const timeLeft = isRest ? (roundTime - posInRound) : (wk - posInRound)
     displayTime = formatTime(timeLeft); displayLabel = isRest ? 'REST' : 'WORK'
-    displayRound = `Round ${Math.min(currentRound, intervalRounds)} of ${intervalRounds}`
+    displayRound = `Round ${Math.min(currentRound, rds)} of ${rds}`
     progress = totalInt > 0 ? (elapsed / totalInt) * 100 : 0
   }
 
@@ -356,25 +377,57 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
             {mode === 'countdown' && (
               <div className="timer-config">
                 <label>Minutes</label>
-                <input type="number" value={customMins} onChange={e => { setCustomMins(e.target.value); setTotalSeconds((parseInt(e.target.value) || 0) * 60) }} min="1" />
+                <input type="number" value={customMins} onChange={e => { setCustomMins(e.target.value); setTotalSeconds((parseInt(e.target.value) || 0) * 60) }} min="1" placeholder="e.g. 20" />
+                {parseInt(customMins) > 0 && <div style={{ fontSize: '12px', color: 'var(--tx3)', marginTop: '4px' }}>Total: {formatTime((parseInt(customMins) || 0) * 60)}</div>}
               </div>
             )}
             {mode === 'emom' && (
               <div className="timer-config">
-                <label>Rounds</label>
-                <input type="number" value={emomRounds} onChange={e => setEmomRounds(parseInt(e.target.value) || 1)} min="1" />
-                <label>Sec/round</label>
-                <input type="number" value={emomInterval} onChange={e => setEmomInterval(parseInt(e.target.value) || 60)} min="10" />
+                <label>Minutes (1 round per minute)</label>
+                <input type="number" value={emomRounds} onChange={e => {
+                  const val = e.target.value
+                  if (val === '') { setEmomRounds(''); return }
+                  const n = parseInt(val)
+                  if (!isNaN(n) && n > 0) setEmomRounds(n)
+                }} min="1" placeholder="e.g. 30" />
+                <label>Seconds per round</label>
+                <input type="number" value={emomInterval} onChange={e => {
+                  const val = e.target.value
+                  if (val === '') { setEmomInterval(''); return }
+                  const n = parseInt(val)
+                  if (!isNaN(n) && n >= 10) setEmomInterval(n)
+                }} min="10" />
+                <div style={{ fontSize: '12px', color: 'var(--tx3)', marginTop: '4px' }}>
+                  Total: {formatTime((parseInt(emomRounds) || 0) * (parseInt(emomInterval) || 60))} — {parseInt(emomRounds) || 0} rounds × {parseInt(emomInterval) || 60}s
+                </div>
               </div>
             )}
             {mode === 'interval' && (
               <div className="timer-config">
-                <label>Work</label>
-                <input type="number" value={workTime} onChange={e => setWorkTime(parseInt(e.target.value) || 10)} min="5" />
-                <label>Rest</label>
-                <input type="number" value={restTime} onChange={e => setRestTime(parseInt(e.target.value) || 10)} min="5" />
+                <label>Work (seconds)</label>
+                <input type="number" value={workTime} onChange={e => {
+                  const val = e.target.value
+                  if (val === '') { setWorkTime(''); return }
+                  const n = parseInt(val)
+                  if (!isNaN(n) && n > 0) setWorkTime(n)
+                }} min="5" />
+                <label>Rest (seconds)</label>
+                <input type="number" value={restTime} onChange={e => {
+                  const val = e.target.value
+                  if (val === '') { setRestTime(''); return }
+                  const n = parseInt(val)
+                  if (!isNaN(n) && n > 0) setRestTime(n)
+                }} min="5" />
                 <label>Rounds</label>
-                <input type="number" value={intervalRounds} onChange={e => setIntervalRounds(parseInt(e.target.value) || 1)} min="1" />
+                <input type="number" value={intervalRounds} onChange={e => {
+                  const val = e.target.value
+                  if (val === '') { setIntervalRounds(''); return }
+                  const n = parseInt(val)
+                  if (!isNaN(n) && n > 0) setIntervalRounds(n)
+                }} min="1" />
+                <div style={{ fontSize: '12px', color: 'var(--tx3)', marginTop: '4px' }}>
+                  Total: {formatTime(((parseInt(workTime) || 0) + (parseInt(restTime) || 0)) * (parseInt(intervalRounds) || 0))}
+                </div>
               </div>
             )}
 
