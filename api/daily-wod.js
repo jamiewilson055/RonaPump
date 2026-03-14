@@ -33,7 +33,7 @@ export default async function handler(req, res) {
     // Get subscribers
     const { data: subs } = await supabase
       .from('email_subscribers')
-      .select('email')
+      .select('email').eq('subscribed', true)
       .eq('subscribed', true)
 
     if (!subs || subs.length === 0) {
