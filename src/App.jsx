@@ -113,9 +113,9 @@ function App() {
 
     // Visibility filter: official + community for everyone, private/pending only for creator
     if (userId) {
-      query = query.or(`visibility.eq.official,visibility.eq.community,and(visibility.in.(private,pending),created_by.eq.${userId})`)
+      
     } else {
-      query = query.in('visibility', ['official', 'community'])
+      
     }
 
     const { data, error } = await query
