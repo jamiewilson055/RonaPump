@@ -296,9 +296,9 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
 
   return (
     <div className="pr-section">
-      <div className="pr-header" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
-        <h3>Activity Feed</h3>
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', width: '100%' }}>
+      <div style={{ marginBottom: '14px' }}>
+        <h3 style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '20px', fontWeight: 700, marginBottom: '10px' }}>Activity Feed</h3>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           <button className="nbtn" onClick={() => loadActivity()} style={{ padding: '7px 12px', fontSize: '12px' }}>↻ Refresh</button>
           <button className="nbtn" onClick={() => { setShowChallenge(!showChallenge); setShowDiscover(false) }} style={{ padding: '7px 14px', fontSize: '12px' }}>
             {showChallenge ? 'Hide' : '⚔️ Challenge'}

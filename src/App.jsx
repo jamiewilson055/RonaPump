@@ -247,8 +247,8 @@ function App() {
     if (!link) return
     if (link.startsWith('activity:')) {
       const parts = link.split(':')
-      setActivityHighlight(parts[1])
-      setTab('activity')
+      setActivityHighlight(null)
+      setTimeout(() => { setActivityHighlight(parts[1]); setTab('activity') }, 0)
     } else if (link === 'h2h' || link.startsWith('challenge')) {
       setTab('activity')
     } else if (link === 'stats') {
