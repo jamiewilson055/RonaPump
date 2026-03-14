@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import PublicProfile from './PublicProfile'
+import Challenges from '../components/Challenges'
 
-export default function ActivityFeed({ session, onAuthRequired, onNavigateToWorkout, highlightId }) {
+export default function ActivityFeed({ session, onAuthRequired, onNavigateToWorkout, highlightId, workouts }) {
   const [activities, setActivities] = useState([])
   const [loading, setLoading] = useState(true)
   const [following, setFollowing] = useState([])
   const [allUsers, setAllUsers] = useState([])
   const [showDiscover, setShowDiscover] = useState(false)
+  const [showChallenge, setShowChallenge] = useState(false)
   const [viewingProfile, setViewingProfile] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [likes, setLikes] = useState({}) // { perfId: count, prId: count }
@@ -289,7 +291,10 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
         <h3>Activity Feed</h3>
         <div style={{ display: 'flex', gap: '6px' }}>
           <button className="nbtn" onClick={() => loadActivity()} style={{ padding: '7px 12px', fontSize: '12px' }}>↻ Refresh</button>
-          <button className="nbtn" onClick={() => { setShowDiscover(!showDiscover); if (!showDiscover) loadAllUsers() }} style={{ padding: '7px 14px', fontSize: '12px' }}>
+          <button className="nbtn" onClick={() => { setShowChallenge(!showChallenge); setShowDiscover(false) }} style={{ padding: '7px 14px', fontSize: '12px' }}>
+            {showChallenge ? 'Hide' : '⚔️ Challenge'}
+          </button>
+          <button className="nbtn" onClick={() => { setShowDiscover(!showDiscover); setShowChallenge(false); if (!showDiscover) loadAllUsers() }} style={{ padding: '7px 14px', fontSize: '12px' }}>
             {showDiscover ? 'Hide' : '👥 Find Athletes'}
           </button>
         </div>
@@ -321,6 +326,10 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
             ))
           )}
         </div>
+      )}
+
+      {showChallenge && (
+        <Challenges session={session} onAuthRequired={onAuthRequired} workouts={workouts || []} />
       )}
 
       {loading ? (

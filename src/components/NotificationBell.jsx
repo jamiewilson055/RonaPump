@@ -64,6 +64,15 @@ export default function NotificationBell({ session, onNavigate }) {
 
   const icons = { approval: '✅', rejection: '❌', score: '🏆', comment: '💬', like: '❤️', challenge: '⚔️', milestone: '🎉' }
 
+  // Every notification should navigate somewhere even without an explicit link
+  function getNotifLink(n) {
+    if (n.link) return n.link
+    if (n.type === 'like' || n.type === 'comment') return 'activity::'
+    if (n.type === 'challenge') return 'h2h'
+    if (n.type === 'score' || n.type === 'milestone') return 'stats'
+    return 'all'
+  }
+
   if (!session) return null
 
   return (
@@ -86,14 +95,15 @@ export default function NotificationBell({ session, onNavigate }) {
           ) : (
             <div className="notif-list">
               {notifications.map(n => (
-                <div key={n.id} className={`notif-item${n.read ? '' : ' unread'}${n.link ? ' clickable' : ''}`}
-                  onClick={() => { if (n.link && onNavigate) { onNavigate(n.link); setOpen(false) } }}>
+                <div key={n.id} className={`notif-item${n.read ? '' : ' unread'} clickable`}
+                  onClick={() => { if (onNavigate) { onNavigate(getNotifLink(n)); setOpen(false) } }}>
                   <span className="notif-icon">{icons[n.type] || '📌'}</span>
                   <div className="notif-content">
                     <div className="notif-title">{n.title}</div>
                     {n.body && <div className="notif-body">{n.body}</div>}
                   </div>
                   <span className="notif-time">{timeAgo(n.created_at)}</span>
+                  <span style={{ color: 'var(--tx3)', fontSize: '10px', flexShrink: 0 }}>›</span>
                 </div>
               ))}
             </div>
