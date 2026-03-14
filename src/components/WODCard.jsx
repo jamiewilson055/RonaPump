@@ -248,6 +248,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
       if (error) { alert('Error saving: ' + error.message); return }
     }
     setEditing(false); setEditForm(null); setRemixing(false)
+    if (!remixing) setWod(prev => prev ? { ...prev, description: editForm.description.trim() } : prev)
     if (onWorkoutsChanged) onWorkoutsChanged()
   }
 

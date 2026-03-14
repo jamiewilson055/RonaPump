@@ -326,6 +326,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
       if (error) { alert('Error saving: ' + error.message); return }
     }
 
+    if (!remixing) setDesc(editForm.description.trim())
     setEditing(false)
     setEditForm(null)
     setRemixing(false)
