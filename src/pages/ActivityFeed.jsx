@@ -95,9 +95,18 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
         setComments(prev => ({ ...prev, ['data:' + key]: cmts || [] }))
 
         setTimeout(() => {
-          const el = document.getElementById('activity-' + match.id)
-          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        }, 200)
+          function tryScroll(attempts) {
+            const el = document.getElementById('activity-' + match.id)
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              el.style.outline = '2px solid var(--acc)'
+              setTimeout(() => { el.style.outline = '' }, 3000)
+            } else if (attempts < 10) {
+              setTimeout(() => tryScroll(attempts + 1), 200)
+            }
+          }
+          tryScroll(0)
+        }, 300)
       }
     }
 
@@ -287,9 +296,9 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
 
   return (
     <div className="pr-section">
-      <div className="pr-header">
+      <div className="pr-header" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
         <h3>Activity Feed</h3>
-        <div style={{ display: 'flex', gap: '6px' }}>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', width: '100%' }}>
           <button className="nbtn" onClick={() => loadActivity()} style={{ padding: '7px 12px', fontSize: '12px' }}>↻ Refresh</button>
           <button className="nbtn" onClick={() => { setShowChallenge(!showChallenge); setShowDiscover(false) }} style={{ padding: '7px 14px', fontSize: '12px' }}>
             {showChallenge ? 'Hide' : '⚔️ Challenge'}
