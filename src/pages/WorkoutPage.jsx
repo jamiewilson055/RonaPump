@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import WorkoutTimer from '../components/WorkoutTimer'
 import ShareImage from '../components/ShareImage'
+import StoryCard from '../components/StoryCard'
 import '../App.css'
 
 function formatDesc(text) {
@@ -20,31 +21,93 @@ function formatDesc(text) {
   })
 }
 
+function SimilarCard({ workout: s }) {
+  const [open, setOpen] = useState(false)
+  const [desc, setDesc] = useState(s.description || null)
+
+  useEffect(() => {
+    if (open && !desc) {
+      supabase.from('workouts').select('description').eq('id', s.id).single().then(({ data }) => {
+        if (data) setDesc(data.description || '')
+      })
+    }
+  }, [open, desc, s.id])
+
+  return (
+    <div className={`similar-card${open ? ' open' : ''}`}>
+      <div className="similar-hd" onClick={() => setOpen(!open)}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {s.name || 'Unnamed'}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--tx2)', marginTop: '2px' }}>
+            {s.equipment?.filter(e => e !== 'Bodyweight').slice(0, 3).join(', ')}
+            {s.estimated_duration_mins ? ` · ${s.estimated_duration_mins}m` : ''}
+            {s.score_type && s.score_type !== 'None' ? ` · ${s.score_type}` : ''}
+          </div>
+        </div>
+        <span style={{ color: 'var(--tx3)', fontSize: '10px', flexShrink: 0 }}>{open ? '▾' : '▸'}</span>
+      </div>
+      {open && (
+        <div className="similar-body">
+          <div className="dsc" style={{ fontSize: '12px', padding: '8px 0 4px' }}>{desc ? formatDesc(desc) : <span style={{ color: 'var(--tx3)' }}>Loading...</span>}</div>
+          <div className="wtg" style={{ padding: '4px 0' }}>
+            {s.equipment?.filter(q => q !== 'Bodyweight').map(q => <span key={q} className="tg te">{q}</span>)}
+            {s.movement_categories?.filter(m => !['General', 'Cardio'].includes(m)).slice(0, 4).map(m => <span key={m} className="tg tm">{m}</span>)}
+            {s.workout_types?.filter(t => t !== 'General').map(t => <span key={t} className="tg tw">{t}</span>)}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function WorkoutPage() {
   const { slug } = useParams()
   const [workout, setWorkout] = useState(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [showTimer, setShowTimer] = useState(false)
-  const [showShare, setShowShare] = useState(false)
+  const [showShareImage, setShowShareImage] = useState(false)
+  const [showStoryCard, setShowStoryCard] = useState(false)
   const [copied, setCopied] = useState(false)
   const [session, setSession] = useState(null)
+  const [profile, setProfile] = useState(null)
   const [addingLog, setAddingLog] = useState(false)
   const [logScore, setLogScore] = useState('')
   const [logDate, setLogDate] = useState(new Date().toISOString().slice(0, 10))
   const [logNotes, setLogNotes] = useState('')
   const [logRx, setLogRx] = useState(true)
-  const [logged, setLogged] = useState(false)
+  const [lastLogScore, setLastLogScore] = useState(null)
   const [isFav, setIsFav] = useState(false)
   const [similar, setSimilar] = useState([])
   const [showSimilar, setShowSimilar] = useState(false)
-  const [remixSaved, setRemixSaved] = useState(false)
+  const [showCollections, setShowCollections] = useState(false)
+  const [collections, setCollections] = useState([])
+  const [editing, setEditing] = useState(false)
+  const [remixing, setRemixing] = useState(false)
+  const [editForm, setEditForm] = useState(null)
+
+  const isAdmin = profile?.is_admin || false
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: s } }) => setSession(s))
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      setSession(s)
+      if (s) loadProfile(s.user.id)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
+      setSession(s)
+      if (s) loadProfile(s.user.id)
+    })
     return () => subscription.unsubscribe()
   }, [])
+
+  async function loadProfile(userId) {
+    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
+    if (data) setProfile(data)
+    const { data: colls } = await supabase.from('user_collections').select('*').eq('user_id', userId).order('name')
+    if (colls) setCollections(colls)
+  }
 
   useEffect(() => { loadWorkout() }, [slug])
   useEffect(() => { if (session && workout) checkFavorite() }, [session, workout])
@@ -98,52 +161,107 @@ export default function WorkoutPage() {
 
   async function saveLog() {
     if (!session || !workout) return
+    const scoreVal = logScore.trim() || null
     await supabase.from('performance_log').insert({
       user_id: session.user.id, workout_id: workout.id,
-      completed_at: logDate, score: logScore.trim() || null,
+      completed_at: logDate, score: scoreVal,
       notes: logNotes.trim() || null, is_rx: logRx,
     })
-    setAddingLog(false); setLogScore(''); setLogNotes(''); setLogged(true)
-  }
-
-  async function remixWorkout() {
-    if (!session || !workout) return
-    const { error } = await supabase.from('workouts').insert({
-      name: (workout.name || 'Workout') + ' (My Version)',
-      description: workout.description,
-      score_type: workout.score_type,
-      estimated_duration_mins: workout.estimated_duration_mins,
-      estimated_duration_min: workout.estimated_duration_min,
-      estimated_duration_max: workout.estimated_duration_max,
-      equipment: workout.equipment || ['Bodyweight'],
-      workout_types: workout.workout_types || [],
-      categories: workout.categories || [],
-      movement_categories: workout.movement_categories || [],
-      body_parts: workout.body_parts || [],
-      created_by: session.user.id,
-      visibility: 'private',
-      source: 'remix-of-' + workout.id,
-    })
-    if (error) { alert('Error: ' + error.message); return }
-    setRemixSaved(true)
-    setTimeout(() => setRemixSaved(false), 3000)
-  }
-
-  function shareWorkout() {
-    const text = `${workout.name}\n\n${workout.description?.slice(0, 200)}${workout.description?.length > 200 ? '...' : ''}\n\n🦍 ronapump.com`
-    navigator.share?.({ title: workout.name, text }) || navigator.clipboard.writeText(text)
-    setCopied(true); setTimeout(() => setCopied(false), 2000)
+    setLastLogScore(scoreVal)
+    setAddingLog(false); setLogScore(''); setLogNotes(''); setLogRx(true)
+    setShowStoryCard(true)
+    loadWorkout()
   }
 
   function copyLink() {
-    navigator.clipboard.writeText(window.location.href)
-    setCopied(true); setTimeout(() => setCopied(false), 2000)
+    const url = window.location.href
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }).catch(() => {
+      const ta = document.createElement('textarea')
+      ta.value = url
+      ta.style.cssText = 'position:fixed;opacity:0;left:-9999px'
+      document.body.appendChild(ta)
+      ta.focus()
+      ta.select()
+      try { document.execCommand('copy'); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {}
+      document.body.removeChild(ta)
+    })
   }
 
-  function previewDesc(desc, max) {
-    if (!desc) return ''
-    const clean = desc.replace(/\*\*/g, '').replace(/^•\s*/gm, '').replace(/\n+/g, ' ').trim()
-    return clean.length > max ? clean.slice(0, max) + '...' : clean
+  function startEdit() {
+    setEditForm({
+      name: workout.name || '', description: workout.description || '', score_type: workout.score_type || 'None',
+      estimated_duration_mins: workout.estimated_duration_mins || '',
+      equipment: [...(workout.equipment || [])], workout_types: [...(workout.workout_types || [])],
+      categories: [...(workout.categories || [])], movement_categories: [...(workout.movement_categories || [])],
+      body_parts: [...(workout.body_parts || [])],
+    })
+    setRemixing(false)
+    setEditing(true)
+  }
+
+  function startRemix() {
+    if (!session) return
+    setEditForm({
+      name: (workout.name || 'Unnamed') + ' (My Version)', description: workout.description || '', score_type: workout.score_type || 'None',
+      estimated_duration_mins: workout.estimated_duration_mins || '',
+      equipment: [...(workout.equipment || [])], workout_types: [...(workout.workout_types || [])],
+      categories: [...(workout.categories || [])], movement_categories: [...(workout.movement_categories || [])],
+      body_parts: [...(workout.body_parts || [])],
+    })
+    setRemixing(true)
+    setEditing(true)
+  }
+
+  function toggleEditArray(field, val) {
+    setEditForm(prev => {
+      const arr = [...prev[field]]
+      const idx = arr.indexOf(val)
+      if (idx >= 0) arr.splice(idx, 1); else arr.push(val)
+      return { ...prev, [field]: arr }
+    })
+  }
+
+  async function saveEdit() {
+    if (!editForm.description.trim()) { alert('Description is required.'); return }
+    if (remixing) {
+      const { error } = await supabase.from('workouts').insert({
+        name: editForm.name.trim() || null, description: editForm.description.trim(), score_type: editForm.score_type,
+        estimated_duration_mins: editForm.estimated_duration_mins ? parseInt(editForm.estimated_duration_mins) : null,
+        equipment: editForm.equipment.length ? editForm.equipment : ['Bodyweight'],
+        workout_types: editForm.workout_types.length ? editForm.workout_types : ['For Time'],
+        categories: editForm.categories, movement_categories: editForm.movement_categories.length ? editForm.movement_categories : [],
+        body_parts: editForm.body_parts || [], created_by: session.user.id, visibility: 'private', source: 'remix-of-' + workout.id,
+      })
+      if (error) { alert('Error saving: ' + error.message); return }
+    } else {
+      const { error } = await supabase.from('workouts').update({
+        name: editForm.name.trim() || null, description: editForm.description.trim(), score_type: editForm.score_type,
+        estimated_duration_mins: editForm.estimated_duration_mins ? parseInt(editForm.estimated_duration_mins) : null,
+        equipment: editForm.equipment.length ? editForm.equipment : ['Bodyweight'],
+        workout_types: editForm.workout_types.length ? editForm.workout_types : ['General'],
+        categories: editForm.categories, movement_categories: editForm.movement_categories.length ? editForm.movement_categories : [],
+        body_parts: editForm.body_parts || [], auto_named: false,
+      }).eq('id', workout.id)
+      if (error) { alert('Error saving: ' + error.message); return }
+    }
+    setEditing(false); setEditForm(null); setRemixing(false)
+    loadWorkout()
+  }
+
+  async function deleteWorkout() {
+    if (!confirm('Permanently delete this workout? This cannot be undone.')) return
+    await supabase.from('workouts').delete().eq('id', workout.id)
+    window.location.href = '/'
+  }
+
+  async function addToCollection(collId) {
+    if (!session || !workout) return
+    const { error } = await supabase.from('collection_workouts').insert({ collection_id: collId, workout_id: workout.id })
+    if (error && error.code === '23505') { alert('Already in this collection!'); return }
+    setShowCollections(false)
   }
 
   if (loading) return <div className="app"><div className="loading">Loading workout...</div></div>
@@ -167,6 +285,7 @@ export default function WorkoutPage() {
     : (w.estimated_duration_min && w.estimated_duration_max)
       ? `${w.estimated_duration_min}-${w.estimated_duration_max}m`
       : null
+  const scoreLabel = w.score_type === 'Time' ? 'Time' : w.score_type === 'Rounds + Reps' ? 'Score' : w.score_type === 'Calories' ? 'Cals' : 'Result'
 
   return (
     <div className="app">
@@ -201,55 +320,15 @@ export default function WorkoutPage() {
           {w.movement_categories?.length > 0 && <span>Movements: {w.movement_categories.join(', ')}</span>}
         </div>
 
-        <div className="wp-actions">
-          <button className="ab p" onClick={() => setShowTimer(true)} style={{ fontSize: '14px', padding: '10px 20px' }}>▶ Start Workout</button>
-          {session && (
-            <button className="ab p" onClick={() => setAddingLog(!addingLog)}
-              style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)', fontSize: '14px', padding: '10px 20px' }}>
-              {logged ? '✓ Logged!' : addingLog ? 'Cancel' : '✓ Complete Workout'}
-            </button>
-          )}
-        </div>
-
-        <div className="wp-actions-secondary">
-          {session && (
-            <button className={`ab${isFav ? ' p' : ''}`} onClick={toggleFavorite}>
-              {isFav ? '★ Favorited' : '☆ Favorite'}
-            </button>
-          )}
-          <button className="ab" onClick={() => setShowShare(!showShare)}>📸 Instagram</button>
-          <button className="ab" onClick={shareWorkout}>{copied ? '✓ Copied!' : '↗ Share'}</button>
-          <button className="ab" onClick={copyLink}>🔗 Link</button>
-          {session && w.created_by !== session.user.id && (
-            <button className="ab" onClick={remixWorkout}>{remixSaved ? '✓ Saved!' : '🔀 Remix'}</button>
-          )}
-          {similar.length > 0 && (
-            <button className="ab" onClick={() => setShowSimilar(!showSimilar)}>
-              🔍 Similar ({similar.length})
-            </button>
-          )}
-        </div>
-
-        {showShare && <ShareImage workout={w} onClose={() => setShowShare(false)} />}
-
-        {addingLog && session && (
-          <div className="plog-form" style={{ marginTop: '10px' }}>
-            <input placeholder="Score (optional)" value={logScore} onChange={e => setLogScore(e.target.value)} />
-            <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} />
-            <input placeholder="Notes (optional)" value={logNotes} onChange={e => setLogNotes(e.target.value)} />
-            <label className="rx-toggle" title="Rx = prescribed weights/movements">
-              <input type="checkbox" checked={logRx} onChange={e => setLogRx(e.target.checked)} />
-              <span className={logRx ? 'rx-on' : 'rx-off'}>Rx</span>
-            </label>
-            <button className="ab p" onClick={saveLog}>Save</button>
+        {/* Performance Log */}
+        <div className="plog">
+          <div className="plog-hdr">
+            <h4>Leaderboard {w.score_type !== 'None' && <span className="st-badge">{w.score_type}</span>}</h4>
+            <span className="plog-add" onClick={() => { if (!session) return; setAddingLog(!addingLog) }}>{addingLog ? 'Cancel' : '+ Log Result'}</span>
           </div>
-        )}
-
-        {w.performance_log?.length > 0 && (
-          <div className="wp-leaderboard">
-            <h4 style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', marginBottom: '8px' }}>Leaderboard</h4>
+          {w.performance_log?.filter(p => p.score).length > 0 && (
             <table className="plog-table">
-              <thead><tr><th></th><th>Athlete</th><th>{w.score_type === 'Time' ? 'Time' : 'Score'}</th></tr></thead>
+              <thead><tr><th>Athlete</th><th>Date</th><th>{scoreLabel}</th></tr></thead>
               <tbody>
                 {w.performance_log
                   .filter(p => p.score)
@@ -257,35 +336,74 @@ export default function WorkoutPage() {
                   .slice(0, 10)
                   .map((p, i) => (
                     <tr key={p.id}>
-                      <td>{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}</td>
-                      <td>{p.profiles?.display_name || 'Anonymous'}</td>
-                      <td>{p.score}{p.is_rx === true ? ' Rx' : p.is_rx === false ? ' Scaled' : ''}</td>
+                      <td className="lb-name">
+                        {i === 0 && <span className="lb-medal">🥇</span>}
+                        {i === 1 && <span className="lb-medal">🥈</span>}
+                        {i === 2 && <span className="lb-medal">🥉</span>}
+                        {p.profiles?.display_name || 'Anonymous'}
+                      </td>
+                      <td>{p.completed_at || '—'}</td>
+                      <td>
+                        {p.score}
+                        {p.is_rx === true && <span className="rx-tag">Rx</span>}
+                        {p.is_rx === false && <span className="scaled-tag">Scaled</span>}
+                      </td>
                     </tr>
                   ))}
               </tbody>
             </table>
+          )}
+          {addingLog && session && (
+            <div className="plog-form" style={{ marginTop: '6px' }}>
+              <input placeholder={`${scoreLabel} (optional)`} value={logScore} onChange={e => setLogScore(e.target.value)} />
+              <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} />
+              <input placeholder="Notes (optional)" value={logNotes} onChange={e => setLogNotes(e.target.value)} />
+              <label className="rx-toggle" title="Rx = prescribed weights/movements">
+                <input type="checkbox" checked={logRx} onChange={e => setLogRx(e.target.checked)} />
+                <span className={logRx ? 'rx-on' : 'rx-off'}>Rx</span>
+              </label>
+              <button className="ab p" onClick={saveLog}>Save</button>
+            </div>
+          )}
+        </div>
+
+        {/* BUTTONS — identical order to WODCard and WorkoutCard:
+            Start, Complete, Favorite, Save, Remix, Similar, Instagram, Story Card, Link, Edit (admin), Delete (admin) */}
+        <div className="acts">
+          <button className="ab p" onClick={() => setShowTimer(true)} style={{ fontWeight: 600 }}>▶ Start Workout</button>
+          <button className="ab p" onClick={() => { if (!session) return; setAddingLog(!addingLog) }} style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)' }}>{addingLog ? 'Cancel' : '✓ Complete Workout'}</button>
+          <button className={`ab ${isFav ? '' : 'g'}`} onClick={toggleFavorite}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>
+          <button className="ab" onClick={() => { if (!session) return; setShowCollections(!showCollections) }}>{showCollections ? 'Hide' : '📁 Save'}</button>
+          <button className="ab" onClick={startRemix}>🔀 Remix</button>
+          <button className="ab" onClick={() => setShowSimilar(!showSimilar)}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
+          <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
+          <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
+          <button className="ab" onClick={copyLink}>{copied ? '✓ Copied!' : '🔗 Link'}</button>
+          {isAdmin && <button className="ab p" onClick={startEdit}>Edit</button>}
+          {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}
+        </div>
+
+        {/* Collections picker */}
+        {showCollections && (
+          <div className="coll-picker">
+            <div style={{ fontSize: '11px', color: 'var(--tx3)', marginBottom: '4px' }}>Add to collection:</div>
+            {collections.length === 0 ? (
+              <div style={{ fontSize: '11px', color: 'var(--tx3)' }}>No collections yet. Create one from the Collections tab.</div>
+            ) : collections.map(c => (
+              <button key={c.id} className="ab" onClick={() => addToCollection(c.id)}>📁 {c.name}</button>
+            ))}
           </div>
         )}
 
-        {showSimilar && similar.length > 0 && (
-          <div className="wp-similar">
-            <h4 style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', marginBottom: '8px' }}>Similar Workouts</h4>
-            {similar.map(s => {
-              const sSlug = s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-              return (
-                <Link key={s.id} to={`/workout/${sSlug}`} className="wp-similar-item" onClick={() => { window.scrollTo(0, 0); setShowSimilar(false) }}>
-                  <div style={{ flex: 1 }}>
-                    <div className="wp-similar-name">{s.name}</div>
-                    <div className="wp-similar-preview">{previewDesc(s.description, 160)}</div>
-                    <div className="wp-similar-meta">
-                      {s.estimated_duration_mins && <span className="wdr">{s.estimated_duration_mins}m</span>}
-                      {s.score_type !== 'None' && <span className="wst">{s.score_type}</span>}
-                      {s.equipment?.filter(e => e !== 'Bodyweight').slice(0, 3).map(e => <span key={e} className="tg te">{e}</span>)}
-                    </div>
-                  </div>
-                </Link>
-              )
-            })}
+        {/* Similar workouts — expandable cards matching WODCard and WorkoutCard */}
+        {showSimilar && (
+          <div className="similar-section">
+            <h4 style={{ fontSize: '12px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--tx3)', marginBottom: '6px' }}>Similar Workouts</h4>
+            {similar.length === 0 ? (
+              <div style={{ fontSize: '11px', color: 'var(--tx3)' }}>No similar workouts found.</div>
+            ) : similar.map(s => (
+              <SimilarCard key={s.id} workout={s} />
+            ))}
           </div>
         )}
 
@@ -303,7 +421,64 @@ export default function WorkoutPage() {
         <Link to="/">www.ronapump.com</Link>
       </div>
 
-      {showTimer && <WorkoutTimer workout={w} onClose={() => setShowTimer(false)} session={session} onWorkoutsChanged={() => { setLogged(true) }} />}
+      {showTimer && <WorkoutTimer workout={w} onClose={() => setShowTimer(false)} session={session} onWorkoutsChanged={loadWorkout} />}
+      {showShareImage && <ShareImage workout={w} onClose={() => setShowShareImage(false)} />}
+      {showStoryCard && <StoryCard workout={w} score={lastLogScore} session={session} onClose={() => setShowStoryCard(false)} />}
+
+      {editing && editForm && (
+        <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) { setEditing(false); setEditForm(null); setRemixing(false) } }}>
+          <div className="mc">
+            <h2>{remixing ? '🔀 Remix Workout' : 'Edit Workout'}</h2>
+            {remixing && <div style={{ fontSize: '12px', color: 'var(--tx3)', marginBottom: '10px', lineHeight: 1.5 }}>Modify this workout to fit your equipment or preferences. It'll be saved as a private copy.</div>}
+            <label>Name</label>
+            <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="e.g. The Grind" />
+            <label>Description / Details</label>
+            <textarea value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} placeholder="Full workout details..." style={{ minHeight: '140px' }} />
+            <label>Score Type</label>
+            <div className="st-sel">
+              {['Time', 'Rounds + Reps', 'Reps', 'Calories', 'Distance', 'Load', 'None'].map(t => (
+                <button key={t} className={`st-opt${editForm.score_type === t ? ' on' : ''}`} onClick={() => setEditForm({ ...editForm, score_type: t })}>{t}</button>
+              ))}
+            </div>
+            <label>Duration (minutes)</label>
+            <input type="number" value={editForm.estimated_duration_mins} onChange={e => setEditForm({ ...editForm, estimated_duration_mins: e.target.value })} placeholder="e.g. 30" />
+            <label>Equipment</label>
+            <div className="cr">
+              {['Barbell', 'Bench', 'Bike (Assault/Echo)', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Speed Rope', 'Weighted Vest'].map(eq => (
+                <button key={eq} className={`ch${editForm.equipment.includes(eq) ? ' on' : ''}`} onClick={() => toggleEditArray('equipment', eq)}>{eq}</button>
+              ))}
+            </div>
+            <label>Workout Type</label>
+            <div className="cr">
+              {['AMRAP', 'EMOM', 'For Calories', 'For Distance', 'For Time', 'Interval', 'Ladder', 'Rounds', 'Strength'].map(t => (
+                <button key={t} className={`ch${editForm.workout_types.includes(t) ? ' on' : ''}`} onClick={() => toggleEditArray('workout_types', t)}>{t}</button>
+              ))}
+            </div>
+            <label>Category</label>
+            <div className="cr">
+              {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Outdoor', 'Track Workouts'].map(c => (
+                <button key={c} className={`ch${editForm.categories.includes(c) ? ' on' : ''}`} onClick={() => toggleEditArray('categories', c)}>{c}</button>
+              ))}
+            </div>
+            <label>Movement Type</label>
+            <div className="cr">
+              {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat'].map(m => (
+                <button key={m} className={`ch${editForm.movement_categories.includes(m) ? ' on' : ''}`} onClick={() => toggleEditArray('movement_categories', m)}>{m}</button>
+              ))}
+            </div>
+            <label>Body Part</label>
+            <div className="cr">
+              {['Upper Body', 'Lower Body', 'Full Body'].map(b => (
+                <button key={b} className={`ch${editForm.body_parts.includes(b) ? ' on' : ''}`} onClick={() => toggleEditArray('body_parts', b)}>{b}</button>
+              ))}
+            </div>
+            <div className="mf">
+              <button className="ab" onClick={() => { setEditing(false); setEditForm(null); setRemixing(false) }}>Cancel</button>
+              <button className="ab p" onClick={saveEdit}>{remixing ? '🔀 Save My Version' : 'Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
