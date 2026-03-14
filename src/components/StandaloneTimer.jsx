@@ -50,6 +50,9 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
   const [fullscreen, setFullscreen] = useState(false)
   const intervalRef = useRef(null)
   const wakeLockRef = useRef(null)
+  const startTimeRef = useRef(null)
+  const pausedElapsedRef = useRef(0)
+  const lastSecRef = useRef(-1)
 
   // Settings per mode
   const [amrapMins, setAmrapMins] = useState(12)
@@ -129,13 +132,48 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
   }
   function releaseWakeLock() { wakeLockRef.current?.release(); wakeLockRef.current = null }
 
+  function getWallElapsed() {
+    if (!startTimeRef.current) return 0
+    return Math.floor((Date.now() - startTimeRef.current) / 1000) + pausedElapsedRef.current
+  }
+
+  function resetWallClock() {
+    startTimeRef.current = null; pausedElapsedRef.current = 0; lastSecRef.current = -1
+  }
+
+  function startWallClock() {
+    pausedElapsedRef.current = 0; lastSecRef.current = -1; startTimeRef.current = Date.now()
+  }
+
+  function pauseWallClock(currentElapsed) {
+    pausedElapsedRef.current = currentElapsed; startTimeRef.current = null
+  }
+
+  function resumeWallClock() {
+    startTimeRef.current = Date.now()
+  }
+
+  // Recalculate on return from background
+  useEffect(() => {
+    function handleVis() {
+      if (document.visibilityState === 'visible' && running && startTimeRef.current) {
+        const elapsed = getWallElapsed()
+        setTime(elapsed)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVis)
+    return () => document.removeEventListener('visibilitychange', handleVis)
+  }, [running])
+
   useEffect(() => { return () => { releaseWakeLock(); clearInterval(intervalRef.current) } }, [])
 
   // ============= Stopwatch =============
   function startStopwatch() {
     setPhase('running'); setTime(0); setRunning(true); setLaps([])
-    requestWakeLock()
-    intervalRef.current = setInterval(() => setTime(t => t + 1), 1000)
+    requestWakeLock(); startWallClock()
+    intervalRef.current = setInterval(() => {
+      setTime(getWallElapsed())
+    }, 250)
   }
 
   function lapStopwatch() {
@@ -147,16 +185,22 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
     const total = amrapMins * 60
     runCountdown(() => {
       setPhase('running'); setTime(total); setTotalTime(total); setRounds(0); setTapCount(0); setRunning(true)
-      requestWakeLock()
+      requestWakeLock(); startWallClock()
       intervalRef.current = setInterval(() => {
-        setTime(t => {
-          if (t <= 1) { clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock(); return 0 }
-          if (t === 4 && sound) playCountdown()
-          if (t === 3 && sound) playCountdown()
-          if (t === 2 && sound) playCountdown()
-          return t - 1
-        })
-      }, 1000)
+        const elapsed = getWallElapsed()
+        const remaining = Math.max(total - elapsed, 0)
+        setTime(remaining)
+        if (remaining <= 0 && lastSecRef.current !== -999) {
+          lastSecRef.current = -999
+          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock(); return
+        }
+        if (elapsed !== lastSecRef.current && sound) {
+          lastSecRef.current = elapsed
+          if (remaining === 3) playCountdown()
+          if (remaining === 2) playCountdown()
+          if (remaining === 1) playCountdown()
+        }
+      }, 250)
     })
   }
 
@@ -165,13 +209,15 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
     const cap = fortimeCap * 60
     runCountdown(() => {
       setPhase('running'); setTime(0); setTotalTime(cap); setRounds(0); setTapCount(0); setRunning(true)
-      requestWakeLock()
+      requestWakeLock(); startWallClock()
       intervalRef.current = setInterval(() => {
-        setTime(t => {
-          if (t + 1 >= cap) { clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock(); return cap }
-          return t + 1
-        })
-      }, 1000)
+        const elapsed = getWallElapsed()
+        setTime(Math.min(elapsed, cap))
+        if (elapsed >= cap && lastSecRef.current !== -999) {
+          lastSecRef.current = -999
+          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
+        }
+      }, 250)
     })
   }
 
@@ -183,26 +229,28 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
   function startEmom() {
     runCountdown(() => {
       setPhase('running'); setCurrentRound(1); setIntervalTimeLeft(emomInterval); setTapCount(0); setRunning(true)
-      requestWakeLock()
-      let round = 1, timeLeft = emomInterval
+      requestWakeLock(); startWallClock()
+      const totalEmom = emomRounds * emomInterval
       intervalRef.current = setInterval(() => {
-        timeLeft--
-        if (timeLeft === 3 && sound) playCountdown()
-        if (timeLeft === 2 && sound) playCountdown()
-        if (timeLeft === 1 && sound) playCountdown()
-        if (timeLeft <= 0) {
-          round++
-          if (round > emomRounds) {
-            clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
-            setCurrentRound(emomRounds); setIntervalTimeLeft(0); return
-          }
-          timeLeft = emomInterval
-          if (sound) playGo()
-          setCurrentRound(round)
+        const elapsed = getWallElapsed()
+        setTime(elapsed)
+        if (elapsed >= totalEmom && lastSecRef.current < totalEmom) {
+          lastSecRef.current = totalEmom
+          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
+          setCurrentRound(emomRounds); setIntervalTimeLeft(0); return
         }
-        setIntervalTimeLeft(timeLeft)
-        setTime(t => t + 1)
-      }, 1000)
+        const round = Math.min(Math.floor(elapsed / emomInterval) + 1, emomRounds)
+        const timeInRound = elapsed % emomInterval
+        const timeLeft = emomInterval - timeInRound
+        setCurrentRound(round); setIntervalTimeLeft(timeLeft)
+        if (elapsed !== lastSecRef.current && sound) {
+          lastSecRef.current = elapsed
+          if (timeInRound === 0 && elapsed > 0) playGo()
+          if (timeLeft === 3) playCountdown()
+          if (timeLeft === 2) playCountdown()
+          if (timeLeft === 1) playCountdown()
+        }
+      }, 250)
     })
   }
 
@@ -210,46 +258,48 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
   function startTabata() {
     runCountdown(() => {
       setPhase('running'); setCurrentRound(1); setCurrentSet(1); setIntervalTimeLeft(tabataWork); setTapCount(0); setRunning(true)
-      requestWakeLock()
-      let round = 1, set = 1, timeLeft = tabataWork, isWork = true
+      requestWakeLock(); startWallClock()
       if (sound) playGo()
+      const roundDur = tabataWork + tabataRest
+      const setDur = tabataRounds * roundDur
+      const totalDur = tabataSets * setDur + (tabataSets > 1 ? (tabataSets - 1) * tabataSetRest : 0)
 
       intervalRef.current = setInterval(() => {
-        timeLeft--
-        if (timeLeft === 3 && sound) playCountdown()
-        if (timeLeft <= 0) {
-          if (isWork) {
-            // Switch to rest
-            if (round >= tabataRounds && set >= tabataSets) {
-              clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
-              setIntervalTimeLeft(0); return
-            }
-            isWork = false; timeLeft = tabataRest
-            setPhase('rest')
-            if (sound) playRest()
-          } else {
-            // Switch to work
-            round++
-            if (round > tabataRounds) {
-              set++; round = 1
-              if (set > tabataSets) {
-                clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
-                setIntervalTimeLeft(0); return
-              }
-              // Set rest
-              timeLeft = tabataSetRest; isWork = false
-              setCurrentSet(set); setCurrentRound(1); setPhase('rest')
-              if (sound) playRest()
-              setIntervalTimeLeft(timeLeft); setTime(t => t + 1); return
-            }
-            isWork = true; timeLeft = tabataWork
-            setPhase('running'); setCurrentRound(round)
-            if (sound) playGo()
-          }
+        const elapsed = getWallElapsed()
+        setTime(elapsed)
+        if (elapsed >= totalDur && lastSecRef.current < totalDur) {
+          lastSecRef.current = totalDur
+          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
+          setIntervalTimeLeft(0); return
         }
-        setIntervalTimeLeft(timeLeft)
-        setTime(t => t + 1)
-      }, 1000)
+        // Figure out which set/round/phase from elapsed
+        let remaining = elapsed, set = 1
+        while (set < tabataSets) {
+          if (remaining < setDur) break
+          remaining -= setDur
+          if (remaining < tabataSetRest) {
+            // In set rest
+            setCurrentSet(set + 1); setCurrentRound(1)
+            setPhase('rest'); setIntervalTimeLeft(tabataSetRest - remaining)
+            if (elapsed !== lastSecRef.current && sound) { lastSecRef.current = elapsed; if (tabataSetRest - remaining === 3) playCountdown() }
+            return
+          }
+          remaining -= tabataSetRest; set++
+        }
+        const posInSet = Math.min(remaining, setDur - 1)
+        const round = Math.floor(posInSet / roundDur) + 1
+        const posInRound = posInSet % roundDur
+        const isWork = posInRound < tabataWork
+        const timeLeft = isWork ? (tabataWork - posInRound) : (roundDur - posInRound)
+        setCurrentSet(set); setCurrentRound(Math.min(round, tabataRounds))
+        setPhase(isWork ? 'running' : 'rest'); setIntervalTimeLeft(timeLeft)
+        if (elapsed !== lastSecRef.current && sound) {
+          lastSecRef.current = elapsed
+          if (timeLeft === 3) playCountdown()
+          if (posInRound === 0 && elapsed > 0) playGo()
+          if (posInRound === tabataWork) playRest()
+        }
+      }, 250)
     })
   }
 
@@ -259,31 +309,35 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
     runCountdown(() => {
       setPhase(customIntervals[0].type === 'rest' ? 'rest' : 'running')
       setCurrentRound(1); setCurrentIntervalIdx(0); setIntervalTimeLeft(customIntervals[0].duration); setTapCount(0); setRunning(true)
-      requestWakeLock()
-      let round = 1, idx = 0, timeLeft = customIntervals[0].duration
+      requestWakeLock(); startWallClock()
       if (sound) playGo()
+      const roundDur = customIntervals.reduce((a, c) => a + c.duration, 0)
+      const totalDur = roundDur * customRounds
 
       intervalRef.current = setInterval(() => {
-        timeLeft--
-        if (timeLeft === 3 && sound) playCountdown()
-        if (timeLeft <= 0) {
-          idx++
-          if (idx >= customIntervals.length) {
-            round++
-            if (round > customRounds) {
-              clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
-              setIntervalTimeLeft(0); return
-            }
-            idx = 0; setCurrentRound(round)
-          }
-          timeLeft = customIntervals[idx].duration
-          setCurrentIntervalIdx(idx)
-          setPhase(customIntervals[idx].type === 'rest' ? 'rest' : 'running')
-          if (sound) { customIntervals[idx].type === 'rest' ? playRest() : playGo() }
+        const elapsed = getWallElapsed()
+        setTime(elapsed)
+        if (elapsed >= totalDur && lastSecRef.current < totalDur) {
+          lastSecRef.current = totalDur
+          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
+          setIntervalTimeLeft(0); return
         }
-        setIntervalTimeLeft(timeLeft)
-        setTime(t => t + 1)
-      }, 1000)
+        const posInTotal = Math.min(elapsed, totalDur - 1)
+        const round = Math.floor(posInTotal / roundDur) + 1
+        let posInRound = posInTotal % roundDur
+        let idx = 0
+        while (idx < customIntervals.length - 1 && posInRound >= customIntervals[idx].duration) {
+          posInRound -= customIntervals[idx].duration; idx++
+        }
+        const timeLeft = customIntervals[idx].duration - posInRound
+        setCurrentRound(Math.min(round, customRounds)); setCurrentIntervalIdx(idx); setIntervalTimeLeft(timeLeft)
+        setPhase(customIntervals[idx].type === 'rest' ? 'rest' : 'running')
+        if (elapsed !== lastSecRef.current && sound) {
+          lastSecRef.current = elapsed
+          if (timeLeft === 3) playCountdown()
+          if (posInRound === 0 && elapsed > 0) { customIntervals[idx].type === 'rest' ? playRest() : playGo() }
+        }
+      }, 250)
     })
   }
 
@@ -303,29 +357,108 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
   // ============= Controls =============
   function pause() {
     clearInterval(intervalRef.current); setRunning(false)
+    pauseWallClock(getWallElapsed())
   }
 
   function resume() {
     if (phase === 'done' || phase === 'setup') return
+    resumeWallClock()
     setRunning(true)
     if (mode === 'stopwatch') {
-      intervalRef.current = setInterval(() => setTime(t => t + 1), 1000)
+      intervalRef.current = setInterval(() => setTime(getWallElapsed()), 250)
     } else if (mode === 'amrap') {
+      const total = amrapMins * 60
       intervalRef.current = setInterval(() => {
-        setTime(t => {
-          if (t <= 1) { clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); return 0 }
-          return t - 1
-        })
-      }, 1000)
+        const elapsed = getWallElapsed()
+        const remaining = Math.max(total - elapsed, 0)
+        setTime(remaining)
+        if (remaining <= 0 && lastSecRef.current !== -999) {
+          lastSecRef.current = -999
+          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
+        }
+        if (elapsed !== lastSecRef.current && sound) {
+          lastSecRef.current = elapsed
+          if (remaining === 3 || remaining === 2 || remaining === 1) playCountdown()
+        }
+      }, 250)
+    } else if (mode === 'fortime') {
+      const cap = fortimeCap * 60
+      intervalRef.current = setInterval(() => {
+        const elapsed = getWallElapsed()
+        setTime(Math.min(elapsed, cap))
+        if (elapsed >= cap && lastSecRef.current !== -999) {
+          lastSecRef.current = -999
+          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
+        }
+      }, 250)
+    } else if (mode === 'emom') {
+      const totalEmom = emomRounds * emomInterval
+      intervalRef.current = setInterval(() => {
+        const elapsed = getWallElapsed()
+        setTime(elapsed)
+        if (elapsed >= totalEmom && lastSecRef.current < totalEmom) {
+          lastSecRef.current = totalEmom
+          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
+          setCurrentRound(emomRounds); setIntervalTimeLeft(0); return
+        }
+        const round = Math.min(Math.floor(elapsed / emomInterval) + 1, emomRounds)
+        const timeInRound = elapsed % emomInterval
+        const timeLeft = emomInterval - timeInRound
+        setCurrentRound(round); setIntervalTimeLeft(timeLeft)
+        if (elapsed !== lastSecRef.current && sound) { lastSecRef.current = elapsed; if (timeLeft === 3) playCountdown(); if (timeInRound === 0 && elapsed > 0) playGo() }
+      }, 250)
+    } else if (mode === 'tabata') {
+      const roundDur = tabataWork + tabataRest
+      const setDur = tabataRounds * roundDur
+      const totalDur = tabataSets * setDur + (tabataSets > 1 ? (tabataSets - 1) * tabataSetRest : 0)
+      intervalRef.current = setInterval(() => {
+        const elapsed = getWallElapsed()
+        setTime(elapsed)
+        if (elapsed >= totalDur && lastSecRef.current < totalDur) {
+          lastSecRef.current = totalDur
+          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
+          setIntervalTimeLeft(0); return
+        }
+        let rem = elapsed, set = 1
+        while (set < tabataSets) {
+          if (rem < setDur) break; rem -= setDur
+          if (rem < tabataSetRest) { setCurrentSet(set + 1); setCurrentRound(1); setPhase('rest'); setIntervalTimeLeft(tabataSetRest - rem); return }
+          rem -= tabataSetRest; set++
+        }
+        const posInSet = Math.min(rem, setDur - 1)
+        const rnd = Math.floor(posInSet / roundDur) + 1
+        const posInRound = posInSet % roundDur
+        const isWork = posInRound < tabataWork
+        const timeLeft = isWork ? (tabataWork - posInRound) : (roundDur - posInRound)
+        setCurrentSet(set); setCurrentRound(Math.min(rnd, tabataRounds)); setPhase(isWork ? 'running' : 'rest'); setIntervalTimeLeft(timeLeft)
+      }, 250)
+    } else if (mode === 'custom') {
+      const roundDur = customIntervals.reduce((a, c) => a + c.duration, 0)
+      const totalDur = roundDur * customRounds
+      intervalRef.current = setInterval(() => {
+        const elapsed = getWallElapsed()
+        setTime(elapsed)
+        if (elapsed >= totalDur && lastSecRef.current < totalDur) {
+          lastSecRef.current = totalDur
+          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
+          setIntervalTimeLeft(0); return
+        }
+        const posInTotal = Math.min(elapsed, totalDur - 1)
+        const round = Math.floor(posInTotal / roundDur) + 1
+        let posInRound = posInTotal % roundDur
+        let idx = 0
+        while (idx < customIntervals.length - 1 && posInRound >= customIntervals[idx].duration) { posInRound -= customIntervals[idx].duration; idx++ }
+        setCurrentRound(Math.min(round, customRounds)); setCurrentIntervalIdx(idx); setIntervalTimeLeft(customIntervals[idx].duration - posInRound)
+        setPhase(customIntervals[idx].type === 'rest' ? 'rest' : 'running')
+      }, 250)
     }
-    // For other modes, resuming is complex — simplified here
   }
 
   function reset() {
     clearInterval(intervalRef.current); setRunning(false); setPhase('setup')
     setTime(0); setRounds(0); setTapCount(0); setLaps([])
     setCurrentRound(0); setCurrentSet(0); setIntervalTimeLeft(0); setCurrentIntervalIdx(0)
-    releaseWakeLock()
+    resetWallClock(); releaseWakeLock()
   }
 
   function addRound() { setRounds(r => r + 1); if (sound) playBeep(660, 0.1, 0.3) }
