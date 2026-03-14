@@ -105,10 +105,18 @@ function App() {
 
   async function loadWorkouts() {
     setLoading(true)
+    const userId = session?.user?.id
     let query = supabase
       .from('workouts')
-      .select('*, performance_log(*, profiles(display_name))')
+      .select('id,name,score_type,equipment,workout_types,movement_categories,categories,body_parts,visibility,created_by,source,estimated_duration_mins,estimated_duration_min,estimated_duration_max,original_date,original_date_display,auto_named,my_log_count,created_at,submitted_at, performance_log(*, profiles(display_name))')
       .order('original_date', { ascending: false, nullsFirst: false })
+
+    // Visibility filter: official + community for everyone, private/pending only for creator
+    if (userId) {
+      query = query.or(`visibility.eq.official,visibility.eq.community,and(visibility.in.(private,pending),created_by.eq.${userId})`)
+    } else {
+      query = query.in('visibility', ['official', 'community'])
+    }
 
     const { data, error } = await query
 

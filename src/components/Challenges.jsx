@@ -61,6 +61,7 @@ export default function Challenges({ session, onAuthRequired, workouts }) {
       type: 'challenge',
       title: `${name} challenged you!`,
       body: `Head-to-head on ${selectedWorkout.name}`,
+      link: 'h2h',
     })
 
     setCreating(false)

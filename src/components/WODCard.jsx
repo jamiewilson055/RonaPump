@@ -113,17 +113,25 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
     text += wod.description || ''
     if (wod.estimated_duration_mins) text += `\n\n⏱ ${wod.estimated_duration_mins} min`
     if (wod.equipment?.filter(e => e !== 'Bodyweight').length) text += `\n🏋 ${wod.equipment.filter(e => e !== 'Bodyweight').join(', ')}`
-    text += '\n\n🦍 — RonaPump | www.ronapump.com'
+    text += '\n\n🦍 — RonaPump | https://www.ronapump.com'
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
+    }).catch(() => {
+      const ta = document.createElement('textarea')
+      ta.value = text
+      ta.style.cssText = 'position:fixed;opacity:0;left:-9999px'
+      document.body.appendChild(ta)
+      ta.focus()
+      ta.select()
+      try { document.execCommand('copy'); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {}
+      document.body.removeChild(ta)
     })
   }
 
   async function addLog() {
     if (!session) { onAuthRequired(); return }
-    if (!logScore.trim()) return
-    const scoreVal = logScore.trim()
+    const scoreVal = logScore.trim() || null
     await supabase.from('performance_log').insert({
       user_id: session.user.id,
       workout_id: wod.id,
@@ -256,6 +264,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
       if (error) { alert('Error saving: ' + error.message); return }
     }
     setEditing(false); setEditForm(null); setRemixing(false)
+    if (!remixing) setWod(prev => prev ? { ...prev, name: editForm.name.trim(), description: editForm.description.trim() } : prev)
     if (onWorkoutsChanged) onWorkoutsChanged()
   }
 
@@ -357,7 +366,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
                 {collections.length === 0 ? (
                   <div style={{ fontSize: '11px', color: 'var(--tx3)' }}>No collections yet. Create one from the Collections tab.</div>
                 ) : collections.map(c => (
-                  <button key={c.id} className="coll-pick-btn" onClick={() => addToCollection(c.id)}>📁 {c.name}</button>
+                  <button key={c.id} className="ab" onClick={() => addToCollection(c.id)}>📁 {c.name}</button>
                 ))}
               </div>
             )}

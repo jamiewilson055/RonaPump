@@ -67,6 +67,8 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
   const timerRef = useRef(null)
   const wakeLockRef = useRef(null)
   const videoRef = useRef(null)
+  const startTimeRef = useRef(null)
+  const pausedElapsedRef = useRef(0)
 
   useEffect(() => {
     loadPresets()
@@ -86,8 +88,17 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
 
   useEffect(() => {
     if (running && !paused) {
-      timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000)
-    } else { clearInterval(timerRef.current) }
+      if (!startTimeRef.current) startTimeRef.current = Date.now()
+      timerRef.current = setInterval(() => {
+        setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000) + pausedElapsedRef.current)
+      }, 250)
+    } else {
+      clearInterval(timerRef.current)
+      if (paused && startTimeRef.current) {
+        pausedElapsedRef.current = Math.floor((Date.now() - startTimeRef.current) / 1000) + pausedElapsedRef.current
+        startTimeRef.current = null
+      }
+    }
     return () => clearInterval(timerRef.current)
   }, [running, paused])
 
@@ -174,6 +185,7 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
     setDeck(d); setCurrentIdx(-1); setElapsed(0); setTotalReps(0)
     setSuitReps({ '♠': 0, '♥': 0, '♦': 0, '♣': 0, '🃏': 0 })
     setLogged(false); setPaused(false); setPhase('playing'); setRunning(true)
+    startTimeRef.current = Date.now(); pausedElapsedRef.current = 0
     requestWakeLock()
     setTimeout(() => flipNext(d, -1), 400)
   }
