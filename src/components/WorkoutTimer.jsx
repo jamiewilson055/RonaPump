@@ -152,6 +152,7 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
 
   const w = workout
   const wt = w.workout_types || []
+  const isTimeScore = w.score_type === 'Time' || wt.includes('For Time')
 
   useEffect(() => {
     if (wt.includes('AMRAP')) {
@@ -166,6 +167,7 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
     } else if (wt.includes('Interval')) {
       setMode('interval')
     } else {
+      // For Time, Rounds, For Calories, For Distance, Strength — all use stopwatch
       setMode('stopwatch')
     }
   }, [])
@@ -264,7 +266,25 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
     startTimeRef.current = null
     pausedElapsedRef.current = 0
     lastBeepSecRef.current = -1
+    setTimerLogScore('')
   }
+
+  function finishTimer() {
+    setRunning(false)
+    setFinished(true)
+    playTripleBeep()
+    // Auto-fill score with elapsed time for time-based workouts
+    if (isTimeScore || mode === 'stopwatch') {
+      setTimerLogScore(formatTime(elapsed))
+    }
+  }
+
+  // Also auto-fill when countdown/emom/interval finish naturally
+  useEffect(() => {
+    if (finished && !timerLogScore && (isTimeScore || mode === 'stopwatch')) {
+      setTimerLogScore(formatTime(elapsed))
+    }
+  }, [finished])
 
   let displayTime = '', displayLabel = '', displayRound = '', progress = 0, isRest = false
 
@@ -385,7 +405,7 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
               <div className="timer-log-prompt" onClick={e => e.stopPropagation()}>
                 <div style={{ fontSize: '13px', color: 'var(--tx2)', marginBottom: '6px' }}>Log your result?</div>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <input placeholder="Score (optional)" value={timerLogScore} onChange={e => setTimerLogScore(e.target.value)}
+                  <input placeholder={isTimeScore ? 'Time' : 'Score (optional)'} value={timerLogScore} onChange={e => setTimerLogScore(e.target.value)}
                     style={{ background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.2)', borderRadius: '5px', padding: '7px 10px', color: '#fff', fontSize: '13px', width: '120px', outline: 'none' }} />
                   <input placeholder="Notes (optional)" value={timerLogNotes} onChange={e => setTimerLogNotes(e.target.value)}
                     style={{ background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.2)', borderRadius: '5px', padding: '7px 10px', color: '#fff', fontSize: '13px', width: '120px', outline: 'none' }} />
@@ -419,6 +439,9 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
                 <button className="timer-ctrl-btn" onClick={togglePause}>
                   {running ? '⏸ Pause' : '▶ Resume'}
                 </button>
+              )}
+              {!finished && mode === 'stopwatch' && elapsed > 0 && (
+                <button className="timer-ctrl-btn" onClick={finishTimer} style={{ background: 'var(--grn)', color: '#fff' }}>🏁 Finish</button>
               )}
               <button className="timer-ctrl-btn sec" onClick={resetTimer}>↺ Reset</button>
             </div>
