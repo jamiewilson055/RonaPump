@@ -48,52 +48,10 @@ function playTripleBeep() {
 
 function playGorillaGrunt() {
   try {
-    const ctx = getAudioCtx()
-    const t = ctx.currentTime
-
-    // Deep chest-beat thuds (3 rapid hits)
-    for (let i = 0; i < 3; i++) {
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.connect(gain)
-      gain.connect(ctx.destination)
-      osc.type = 'sawtooth'
-      osc.frequency.setValueAtTime(90, t + i * 0.12)
-      osc.frequency.exponentialRampToValueAtTime(45, t + i * 0.12 + 0.15)
-      gain.gain.setValueAtTime(0.5, t + i * 0.12)
-      gain.gain.exponentialRampToValueAtTime(0.01, t + i * 0.12 + 0.15)
-      osc.start(t + i * 0.12)
-      osc.stop(t + i * 0.12 + 0.15)
-    }
-
-    // Low growl underneath
-    const growl = ctx.createOscillator()
-    const growlGain = ctx.createGain()
-    growl.connect(growlGain)
-    growlGain.connect(ctx.destination)
-    growl.type = 'sawtooth'
-    growl.frequency.setValueAtTime(70, t)
-    growl.frequency.linearRampToValueAtTime(50, t + 0.5)
-    growlGain.gain.setValueAtTime(0.3, t)
-    growlGain.gain.linearRampToValueAtTime(0.15, t + 0.25)
-    growlGain.gain.exponentialRampToValueAtTime(0.01, t + 0.5)
-    growl.start(t)
-    growl.stop(t + 0.5)
-
-    // Rising roar on top
-    const roar = ctx.createOscillator()
-    const roarGain = ctx.createGain()
-    roar.connect(roarGain)
-    roarGain.connect(ctx.destination)
-    roar.type = 'square'
-    roar.frequency.setValueAtTime(120, t + 0.1)
-    roar.frequency.exponentialRampToValueAtTime(200, t + 0.3)
-    roar.frequency.exponentialRampToValueAtTime(80, t + 0.5)
-    roarGain.gain.setValueAtTime(0.15, t + 0.1)
-    roarGain.gain.linearRampToValueAtTime(0.25, t + 0.25)
-    roarGain.gain.exponentialRampToValueAtTime(0.01, t + 0.5)
-    roar.start(t + 0.1)
-    roar.stop(t + 0.5)
+    const audio = new Audio('/gorilla.mp3')
+    audio.volume = 0.7
+    audio.play().catch(() => {})
+    setTimeout(() => { audio.pause(); audio.currentTime = 0 }, 2000)
   } catch (e) {}
 }
 
