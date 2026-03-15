@@ -21,6 +21,13 @@ function playCountdown() { playBeep(660, 0.1, 0.3) }
 function playGo() { playBeep(880, 0.3, 0.5); setTimeout(() => playBeep(1100, 0.3, 0.5), 150) }
 function playRest() { playBeep(440, 0.2, 0.35) }
 function playDone() { for (let i = 0; i < 3; i++) setTimeout(() => playBeep(1100, 0.2, 0.5), i * 200) }
+function playGorillaGrunt() {
+  try {
+    const audio = new Audio('/gorilla.mp3')
+    audio.volume = 0.7
+    audio.play().catch(() => {})
+  } catch (e) {}
+}
 
 function fmt(s) {
   const m = Math.floor(Math.abs(s) / 60)
@@ -259,7 +266,6 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
     runCountdown(() => {
       setPhase('running'); setCurrentRound(1); setCurrentSet(1); setIntervalTimeLeft(tabataWork); setTapCount(0); setRunning(true)
       requestWakeLock(); startWallClock()
-      if (sound) playGo()
       const roundDur = tabataWork + tabataRest
       const setDur = tabataRounds * roundDur
       const totalDur = tabataSets * setDur + (tabataSets > 1 ? (tabataSets - 1) * tabataSetRest : 0)
@@ -310,7 +316,6 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
       setPhase(customIntervals[0].type === 'rest' ? 'rest' : 'running')
       setCurrentRound(1); setCurrentIntervalIdx(0); setIntervalTimeLeft(customIntervals[0].duration); setTapCount(0); setRunning(true)
       requestWakeLock(); startWallClock()
-      if (sound) playGo()
       const roundDur = customIntervals.reduce((a, c) => a + c.duration, 0)
       const totalDur = roundDur * customRounds
 
@@ -350,7 +355,7 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
       c--
       if (sound) playCountdown()
       setTime(c)
-      if (c <= 0) { clearInterval(cd); onDone() }
+      if (c <= 0) { clearInterval(cd); if (sound) playGorillaGrunt(); onDone() }
     }, 1000)
   }
 
