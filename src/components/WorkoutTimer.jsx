@@ -51,7 +51,6 @@ function playGorillaGrunt() {
     const audio = new Audio('/gorilla.mp3')
     audio.volume = 0.7
     audio.play().catch(() => {})
-    setTimeout(() => { audio.pause(); audio.currentTime = 0 }, 2000)
   } catch (e) {}
 }
 
