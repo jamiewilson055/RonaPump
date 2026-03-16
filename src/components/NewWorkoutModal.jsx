@@ -17,6 +17,23 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
     movement_categories: [],
     body_parts: [],
   })
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const EMOJI_CATEGORIES = [
+    { label: '💪 Fitness', emojis: ['💪', '🏋️', '🏃', '🔥', '⏱', '🦍', '💀', '😤', '🫡', '🎯', '🏆', '⚡', '🧨', '💣', '🚀', '👊', '✅', '❌', '⬆️', '⬇️'] },
+    { label: '🔢 Numbers', emojis: ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '🔟', '💯', '0️⃣'] },
+    { label: '⚙️ Gear', emojis: ['🏋️‍♂️', '🏋️‍♀️', '🚴', '🚣', '🏊', '⛷️', '🧗', '🤸', '🏃‍♂️', '🏃‍♀️', '🥇', '🥈', '🥉', '🎽'] },
+    { label: '😀 Faces', emojis: ['😀', '😎', '🤯', '😈', '🥵', '😮‍💨', '🫠', '💀', '👀', '🙌', '👏', '🤝', '✊', '🤘'] },
+    { label: '📝 Misc', emojis: ['📌', '📝', '📊', '🗓️', '⭐', '💡', '🔄', '⏩', '▶️', '⏸️', '🟢', '🔴', '🟡', '⚪', '🔵', '➡️', '⬅️'] },
+  ]
+  function insertEmoji(emoji) {
+    const ta = document.getElementById('wk-desc')
+    if (!ta) return
+    const start = ta.selectionStart
+    const before = form.description.slice(0, start)
+    const after = form.description.slice(start)
+    setForm({ ...form, description: before + emoji + after })
+    setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + emoji.length }, 0)
+  }
 
   function toggleArray(field, val) {
     setForm(prev => {
@@ -121,7 +138,25 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
             setForm({ ...form, description: before + insert + after })
             setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + insert.length }, 0)
           }}>— Section</button>
+          <button type="button" className="fmt-btn" style={showEmojiPicker ? { background: 'var(--acc)', color: '#fff', borderColor: 'var(--acc)' } : {}} onClick={() => setShowEmojiPicker(!showEmojiPicker)}>😀 Emoji</button>
         </div>
+        {showEmojiPicker && (
+          <div style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: '6px', padding: '8px', marginBottom: '6px', maxHeight: '200px', overflowY: 'auto' }}>
+            {EMOJI_CATEGORIES.map(cat => (
+              <div key={cat.label} style={{ marginBottom: '6px' }}>
+                <div style={{ fontSize: '10px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: '4px' }}>{cat.label}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px' }}>
+                  {cat.emojis.map((em, i) => (
+                    <button key={i} type="button" onClick={() => insertEmoji(em)} style={{ background: 'none', border: '1px solid transparent', borderRadius: '4px', cursor: 'pointer', fontSize: '18px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.08)'; e.currentTarget.style.borderColor = 'var(--brd)' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.borderColor = 'transparent' }}
+                    >{em}</button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         <textarea id="wk-desc" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Full workout details...&#10;&#10;Use the toolbar above to add bullet points" style={{ minHeight: '140px' }} />
 
         <label>Score Type</label>
