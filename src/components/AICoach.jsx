@@ -10,6 +10,7 @@ const MOVEMENT_TO_MUSCLES = {
   'Lunge': ['quads', 'glutes', 'hamstrings'],
   'Run': ['quads', 'calves', 'hamstrings'],
   'Shoulder Press': ['shoulders', 'triceps', 'core'],
+  'Thruster': ['quads', 'glutes', 'shoulders', 'triceps', 'core'],
   'Burpee': ['chest', 'quads', 'shoulders', 'core', 'calves'],
   'Jump': ['quads', 'calves', 'glutes'],
   'DB Snatch': ['shoulders', 'back', 'core', 'quads'],
@@ -215,7 +216,7 @@ Respond ONLY in valid JSON, no markdown, no backticks:
     if (onWorkoutsChanged) onWorkoutsChanged()
   }
 
-  const ALL_EQUIPMENT = ['Barbell', 'Bench', 'Bike (Assault/Echo)', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Speed Rope', 'Weighted Vest']
+  const ALL_EQUIPMENT = ['Air Bike', 'Barbell', 'Bench', 'Bodyweight', 'Box', 'Dumbbell', 'Jump Rope', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Weighted Vest']
   const ALL_TYPES = ['AMRAP', 'EMOM', 'For Calories', 'For Distance', 'For Time', 'Interval', 'Ladder', 'Rounds', 'Strength']
   const ALL_BODY_PARTS = ['Upper Body', 'Lower Body', 'Full Body']
   const SCORE_TYPES = ['Time', 'Rounds + Reps', 'Reps', 'Calories', 'Distance', 'Load', 'None']

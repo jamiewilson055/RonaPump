@@ -113,25 +113,17 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
     text += wod.description || ''
     if (wod.estimated_duration_mins) text += `\n\n⏱ ${wod.estimated_duration_mins} min`
     if (wod.equipment?.filter(e => e !== 'Bodyweight').length) text += `\n🏋 ${wod.equipment.filter(e => e !== 'Bodyweight').join(', ')}`
-    text += '\n\n🦍 — RonaPump | https://www.ronapump.com'
+    text += '\n\n🦍 — RonaPump | www.ronapump.com'
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    }).catch(() => {
-      const ta = document.createElement('textarea')
-      ta.value = text
-      ta.style.cssText = 'position:fixed;opacity:0;left:-9999px'
-      document.body.appendChild(ta)
-      ta.focus()
-      ta.select()
-      try { document.execCommand('copy'); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {}
-      document.body.removeChild(ta)
     })
   }
 
   async function addLog() {
     if (!session) { onAuthRequired(); return }
-    const scoreVal = logScore.trim() || null
+    if (!logScore.trim()) return
+    const scoreVal = logScore.trim()
     await supabase.from('performance_log').insert({
       user_id: session.user.id,
       workout_id: wod.id,
@@ -264,7 +256,6 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
       if (error) { alert('Error saving: ' + error.message); return }
     }
     setEditing(false); setEditForm(null); setRemixing(false)
-    if (!remixing) setWod(prev => prev ? { ...prev, name: editForm.name.trim(), description: editForm.description.trim() } : prev)
     if (onWorkoutsChanged) onWorkoutsChanged()
   }
 
@@ -366,7 +357,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
                 {collections.length === 0 ? (
                   <div style={{ fontSize: '11px', color: 'var(--tx3)' }}>No collections yet. Create one from the Collections tab.</div>
                 ) : collections.map(c => (
-                  <button key={c.id} className="ab" onClick={() => addToCollection(c.id)}>📁 {c.name}</button>
+                  <button key={c.id} className="coll-pick-btn" onClick={() => addToCollection(c.id)}>📁 {c.name}</button>
                 ))}
               </div>
             )}
@@ -464,7 +455,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
             </div>
             <label>Equipment</label>
             <div className="cr">
-              {['Barbell', 'Bench', 'Bike (Assault/Echo)', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Speed Rope', 'Weighted Vest'].map(eq => (
+              {['Air Bike', 'Barbell', 'Bench', 'Bodyweight', 'Box', 'Dumbbell', 'Jump Rope', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Weighted Vest'].map(eq => (
                 <button key={eq} className={`ch${editForm.equipment.includes(eq) ? ' on' : ''}`} onClick={() => toggleEditArray('equipment', eq)}>{eq}</button>
               ))}
             </div>
@@ -482,7 +473,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
             </div>
             <label>Movement Type</label>
             <div className="cr">
-              {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat'].map(m => (
+              {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat', 'Thruster'].map(m => (
                 <button key={m} className={`ch${editForm.movement_categories.includes(m) ? ' on' : ''}`} onClick={() => toggleEditArray('movement_categories', m)}>{m}</button>
               ))}
             </div>

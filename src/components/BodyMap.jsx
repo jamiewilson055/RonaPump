@@ -10,6 +10,7 @@ const MOVEMENT_TO_MUSCLES = {
   'Lunge': ['quads', 'glutes', 'hamstrings'],
   'Run': ['quads', 'calves', 'hamstrings'],
   'Shoulder Press': ['shoulders', 'triceps', 'core'],
+  'Thruster': ['quads', 'glutes', 'shoulders', 'triceps', 'core'],
   'Burpee': ['chest', 'quads', 'shoulders', 'core', 'calves'],
   'Jump': ['quads', 'calves', 'glutes'],
   'DB Snatch': ['shoulders', 'back', 'core', 'quads'],
