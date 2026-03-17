@@ -5,11 +5,86 @@ export default function NotificationBell({ session, onNavigate }) {
   const [notifications, setNotifications] = useState([])
   const [open, setOpen] = useState(false)
   const [unread, setUnread] = useState(0)
+  const [pushEnabled, setPushEnabled] = useState(false)
+  const [pushLoading, setPushLoading] = useState(false)
   const ref = useRef(null)
 
+  const VAPID_PUBLIC_KEY = 'BGFL_JTNnVAo-fL5DkGLL3ugry4HrT5uZPz6-BSnFZWp6d3Ys3S1j5o_mKTVJ9NcG_PJt0jGs5oBHc0qK0FGaCw'
+
   useEffect(() => {
-    if (session) loadNotifications()
+    if (session) {
+      loadNotifications()
+      checkPushStatus()
+    }
   }, [session])
+
+  async function checkPushStatus() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+    try {
+      const reg = await navigator.serviceWorker.getRegistration('/sw.js')
+      if (reg) {
+        const sub = await reg.pushManager.getSubscription()
+        setPushEnabled(!!sub)
+      }
+    } catch {}
+  }
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4)
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+    const raw = window.atob(base64)
+    const arr = new Uint8Array(raw.length)
+    for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i)
+    return arr
+  }
+
+  async function togglePush() {
+    if (!session) return
+    setPushLoading(true)
+    try {
+      if (pushEnabled) {
+        // Unsubscribe
+        const reg = await navigator.serviceWorker.getRegistration('/sw.js')
+        if (reg) {
+          const sub = await reg.pushManager.getSubscription()
+          if (sub) {
+            const endpoint = sub.endpoint
+            await sub.unsubscribe()
+            await supabase.from('push_subscriptions').delete()
+              .eq('user_id', session.user.id)
+              .eq('endpoint', endpoint)
+          }
+        }
+        setPushEnabled(false)
+      } else {
+        // Subscribe
+        const permission = await Notification.requestPermission()
+        if (permission !== 'granted') {
+          alert('Push notifications were blocked. Enable them in your browser settings.')
+          setPushLoading(false)
+          return
+        }
+        const reg = await navigator.serviceWorker.register('/sw.js')
+        await navigator.serviceWorker.ready
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        })
+        const subJson = sub.toJSON()
+        await supabase.from('push_subscriptions').upsert({
+          user_id: session.user.id,
+          endpoint: subJson.endpoint,
+          p256dh: subJson.keys.p256dh,
+          auth: subJson.keys.auth,
+        }, { onConflict: 'user_id,endpoint' })
+        setPushEnabled(true)
+      }
+    } catch (err) {
+      console.error('Push toggle error:', err)
+      alert('Could not toggle push notifications. Your browser may not support them.')
+    }
+    setPushLoading(false)
+  }
 
   // Close on outside click
   useEffect(() => {
@@ -106,6 +181,24 @@ export default function NotificationBell({ session, onNavigate }) {
                   <span style={{ color: 'var(--tx3)', fontSize: '10px', flexShrink: 0 }}>›</span>
                 </div>
               ))}
+            </div>
+          )}
+          {'serviceWorker' in navigator && 'PushManager' in window && (
+            <div style={{ borderTop: '1px solid var(--brd)', padding: '8px 12px' }}>
+              <button
+                onClick={togglePush}
+                disabled={pushLoading}
+                style={{
+                  width: '100%', padding: '6px 10px', fontSize: '11px',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  background: pushEnabled ? 'var(--grn-d)' : 'var(--bg2)',
+                  color: pushEnabled ? 'var(--grn)' : 'var(--tx3)',
+                  border: '1px solid ' + (pushEnabled ? 'var(--grn)' : 'var(--brd)'),
+                  borderRadius: '4px', cursor: 'pointer',
+                }}
+              >
+                {pushLoading ? '...' : pushEnabled ? '🔔 Push Notifications On' : '🔕 Enable Push Notifications'}
+              </button>
             </div>
           )}
         </div>
