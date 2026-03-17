@@ -10,8 +10,8 @@ self.addEventListener('push', function(event) {
 
   const options = {
     body: data.body || '',
-    icon: '/gorilla-192.png',
-    badge: '/gorilla-192.png',
+    icon: '/logo-192.png',
+    badge: '/logo-192.png',
     data: { url: data.url || 'https://www.ronapump.com' },
     vibrate: [200, 100, 200],
     tag: data.tag || 'ronapump-' + Date.now(),
