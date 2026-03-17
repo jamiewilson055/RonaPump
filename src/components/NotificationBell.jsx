@@ -161,9 +161,27 @@ export default function NotificationBell({ session, onNavigate }) {
         <div className="notif-panel">
           <div className="notif-header">
             <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', fontWeight: 600 }}>Notifications</span>
-            {notifications.length > 0 && (
-              <button className="notif-clear" onClick={clearAll}>Clear all</button>
-            )}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {'serviceWorker' in navigator && 'PushManager' in window && (
+                <button
+                  onClick={togglePush}
+                  disabled={pushLoading}
+                  style={{
+                    padding: '2px 8px', fontSize: '10px',
+                    fontFamily: "'JetBrains Mono', monospace",
+                    background: pushEnabled ? 'var(--grn-d)' : 'var(--bg2)',
+                    color: pushEnabled ? 'var(--grn)' : 'var(--tx3)',
+                    border: '1px solid ' + (pushEnabled ? 'var(--grn)' : 'var(--brd)'),
+                    borderRadius: '3px', cursor: 'pointer', whiteSpace: 'nowrap',
+                  }}
+                >
+                  {pushLoading ? '...' : pushEnabled ? '🔔 On' : '🔕 Off'}
+                </button>
+              )}
+              {notifications.length > 0 && (
+                <button className="notif-clear" onClick={clearAll}>Clear all</button>
+              )}
+            </div>
           </div>
           {notifications.length === 0 ? (
             <div className="notif-empty">No notifications yet</div>
@@ -181,24 +199,6 @@ export default function NotificationBell({ session, onNavigate }) {
                   <span style={{ color: 'var(--tx3)', fontSize: '10px', flexShrink: 0 }}>›</span>
                 </div>
               ))}
-            </div>
-          )}
-          {'serviceWorker' in navigator && 'PushManager' in window && (
-            <div style={{ borderTop: '1px solid var(--brd)', padding: '8px 12px' }}>
-              <button
-                onClick={togglePush}
-                disabled={pushLoading}
-                style={{
-                  width: '100%', padding: '6px 10px', fontSize: '11px',
-                  fontFamily: "'JetBrains Mono', monospace",
-                  background: pushEnabled ? 'var(--grn-d)' : 'var(--bg2)',
-                  color: pushEnabled ? 'var(--grn)' : 'var(--tx3)',
-                  border: '1px solid ' + (pushEnabled ? 'var(--grn)' : 'var(--brd)'),
-                  borderRadius: '4px', cursor: 'pointer',
-                }}
-              >
-                {pushLoading ? '...' : pushEnabled ? '🔔 Push Notifications On' : '🔕 Enable Push Notifications'}
-              </button>
             </div>
           )}
         </div>
