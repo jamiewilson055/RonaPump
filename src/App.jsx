@@ -91,6 +91,16 @@ function App() {
     setProfile(data)
     loadFavorites(userId)
     loadCollections(userId)
+    // Auto-subscribe to daily WOD email if not already subscribed (silent, never blocks)
+    try {
+      const email = (await supabase.auth.getUser())?.data?.user?.email
+      if (email) {
+        await supabase.from('email_subscribers').upsert(
+          { user_id: userId, email, subscribed: true },
+          { onConflict: 'user_id', ignoreDuplicates: true }
+        )
+      }
+    } catch {}
   }
 
   async function loadFavorites(userId) {
