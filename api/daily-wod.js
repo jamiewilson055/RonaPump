@@ -87,7 +87,7 @@ export default async function handler(req, res) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${resendKey}` },
           body: JSON.stringify({
-            from: 'RonaPump <wod@ronapump.com>',
+            from: 'RonaPump 🦍 <harambe@ronapump.com>',
             to: [sub.email],
             subject: `🦍 WOD: ${wod.name}`,
             html: html,
