@@ -256,6 +256,22 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
       if (error) { alert('Error saving: ' + error.message); return }
     }
     setEditing(false); setEditForm(null); setRemixing(false)
+    if (!remixing) {
+      setWod(prev => prev ? {
+        ...prev,
+        name: editForm.name.trim() || null,
+        description: editForm.description.trim(),
+        score_type: editForm.score_type,
+        estimated_duration_mins: editForm.estimated_duration_mins ? parseInt(editForm.estimated_duration_mins) : null,
+        estimated_duration_min: editForm.estimated_duration_min ? parseInt(editForm.estimated_duration_min) : null,
+        estimated_duration_max: editForm.estimated_duration_max ? parseInt(editForm.estimated_duration_max) : null,
+        equipment: editForm.equipment.length ? editForm.equipment : ['Bodyweight'],
+        workout_types: editForm.workout_types.length ? editForm.workout_types : ['General'],
+        categories: editForm.categories,
+        movement_categories: editForm.movement_categories.length ? editForm.movement_categories : [],
+        body_parts: editForm.body_parts || [],
+      } : prev)
+    }
     if (onWorkoutsChanged) onWorkoutsChanged()
   }
 
@@ -467,7 +483,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
             </div>
             <label>Category</label>
             <div className="cr">
-              {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Outdoor', 'Track Workouts'].map(c => (
+              {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Track Workouts'].map(c => (
                 <button key={c} className={`ch${editForm.categories.includes(c) ? ' on' : ''}`} onClick={() => toggleEditArray('categories', c)}>{c}</button>
               ))}
             </div>
