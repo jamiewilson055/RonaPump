@@ -226,7 +226,21 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
       </div>
 
       <div className="wl">
-        {items.map(w => (
+        {workouts.length === 0 && !query ? (
+          Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="skeleton-card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div className="skeleton-line" style={{ width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0, marginBottom: 0 }}></div>
+                <div className="skeleton-line title" style={{ marginBottom: 0 }}></div>
+              </div>
+              <div className="skeleton-tags" style={{ paddingLeft: '16px' }}>
+                <div className="skeleton-line tag"></div>
+                <div className="skeleton-line tag" style={{ width: '45px' }}></div>
+                <div className="skeleton-line tag" style={{ width: '55px' }}></div>
+              </div>
+            </div>
+          ))
+        ) : items.map(w => (
           <WorkoutCard
             key={w.id}
             workout={w}

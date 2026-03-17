@@ -12,7 +12,11 @@ export default function ThemeToggle() {
   }, [dark])
 
   return (
-    <button className="theme-toggle" onClick={() => setDark(!dark)} title={dark ? 'Light mode' : 'Dark mode'}>
+    <button className="theme-toggle" onClick={() => {
+      document.documentElement.classList.add('theme-transitioning')
+      setDark(!dark)
+      setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 300)
+    }} title={dark ? 'Light mode' : 'Dark mode'}>
       {dark ? '☀️' : '🌙'}
     </button>
   )

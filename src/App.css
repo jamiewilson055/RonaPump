@@ -1822,3 +1822,42 @@ input, select, textarea { font-family: inherit; }
 .ch-status.accepted { color: var(--cyn); }
 .ch-status.completed { color: var(--grn); }
 .ch-status.declined { color: var(--tx3); }
+
+/* === VISUAL POLISH === */
+
+/* 1. Smooth card expand/collapse animation */
+@keyframes detailSlideIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.det { animation: detailSlideIn .2s ease-out; }
+.wc { transition: border-color .15s, box-shadow .2s; }
+.wc.exp { box-shadow: 0 2px 12px rgba(0,0,0,.15); }
+.wod-card { transition: all .15s, box-shadow .2s; }
+.wod-card.wod-exp { box-shadow: 0 2px 12px rgba(0,0,0,.15); }
+
+/* 2. Skeleton loading cards */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton-card {
+  background: var(--s1); border: 1px solid var(--brd); border-radius: 7px;
+  padding: 10px 12px; margin-bottom: 4px; overflow: hidden;
+}
+.skeleton-line {
+  height: 12px; border-radius: 4px; margin-bottom: 8px;
+  background: linear-gradient(90deg, var(--s2) 25%, var(--s3) 50%, var(--s2) 75%);
+  background-size: 800px 100%; animation: shimmer 1.5s infinite linear;
+}
+.skeleton-line.title { width: 55%; height: 14px; margin-bottom: 10px; }
+.skeleton-line.tag { width: 60px; height: 10px; display: inline-block; margin-right: 6px; margin-bottom: 0; border-radius: 3px; }
+.skeleton-tags { display: flex; gap: 6px; padding-top: 4px; }
+
+/* 3. Smooth dark/light theme transition */
+.theme-transitioning,
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
+  transition: background-color .25s ease, color .25s ease, border-color .25s ease, box-shadow .25s ease !important;
+}
