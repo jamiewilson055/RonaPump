@@ -27,15 +27,16 @@ export default function AIGenerator({ session, profile, onAuthRequired, isAdmin,
   const [editForm, setEditForm] = useState(null)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  const [useMyGym, setUseMyGym] = useState(false)
 
   async function generate(customPrompt) {
     if (!session) { onAuthRequired(); return }
     const p = customPrompt || prompt
     if (!p.trim()) return
 
-    // Append equipment constraints from My Gym profile
+    // Append equipment constraints from My Gym profile only if opted in
     let fullPrompt = p
-    if (profile?.my_equipment?.length > 0) {
+    if (useMyGym && profile?.my_equipment?.length > 0) {
       fullPrompt += `\n\nIMPORTANT: Only use equipment from this list (my available equipment): ${profile.my_equipment.join(', ')}, Bodyweight. Do not include any equipment I don't have.`
     }
     setGenerating(true)
@@ -168,9 +169,10 @@ export default function AIGenerator({ session, profile, onAuthRequired, isAdmin,
       </div>
 
       {profile?.my_equipment?.length > 0 && (
-        <div style={{ fontSize: '11px', color: 'var(--tx3)', textAlign: 'center', padding: '4px 0' }}>
-          🏠 Using My Gym: {profile.my_equipment.join(', ')}
-        </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: useMyGym ? 'var(--tx)' : 'var(--tx3)', justifyContent: 'center', padding: '6px 0', cursor: 'pointer' }}>
+          <input type="checkbox" checked={useMyGym} onChange={e => setUseMyGym(e.target.checked)} />
+          <span>🏠 Only use My Gym equipment ({profile.my_equipment.join(', ')})</span>
+        </label>
       )}
 
       <div className="ai-quick-prompts">

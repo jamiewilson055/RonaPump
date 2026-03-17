@@ -197,8 +197,12 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
           }
           setPage(1)
         }}>✈️ Traveling</button>
-        {session && profile?.my_equipment?.length > 0 && (
+        {session && (
           <button className={`sf-btn sf-mygym${sourceFilter === 'mygym' ? ' on' : ''}`} onClick={() => {
+            if (!profile?.my_equipment?.length) {
+              alert('Set up My Gym first! Go to your Profile → Edit Profile and select the equipment you have.')
+              return
+            }
             setSourceFilter(sourceFilter === 'mygym' ? 'all' : 'mygym')
             if (sourceFilter !== 'mygym') setFilters({ eq: [], eqEx: [], mv: [], mvEx: [], cat: [], wt: [], bp: [], durMin: null, durMax: null, includeNoDur: true })
             setPage(1)

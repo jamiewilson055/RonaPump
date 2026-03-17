@@ -127,6 +127,21 @@ export default function PublicProfile({ userId, onClose, session }) {
           </div>
         )}
 
+        {profile.my_equipment?.length > 0 && (
+          <div style={{ margin: '12px 0', padding: '10px', background: 'var(--bg)', borderRadius: '6px' }}>
+            <div style={{ fontSize: '11px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: '6px' }}>🏠 My Gym</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+              {profile.my_equipment.map(eq => <span key={eq} className="tg te">{eq}</span>)}
+            </div>
+          </div>
+        )}
+        {isOwnProfile && (!profile.my_equipment || profile.my_equipment.length === 0) && (
+          <div style={{ margin: '12px 0', padding: '10px', background: 'var(--bg)', borderRadius: '6px', textAlign: 'center' }}>
+            <div style={{ fontSize: '12px', color: 'var(--tx3)', marginBottom: '6px' }}>🏠 Set up My Gym to filter workouts to your equipment</div>
+            <button className="ab p" style={{ fontSize: '11px', padding: '4px 12px' }} onClick={onClose}>Edit Profile →</button>
+          </div>
+        )}
+
         {stats && (
           <div className="pp-stats">
             <div className="pp-stat">
