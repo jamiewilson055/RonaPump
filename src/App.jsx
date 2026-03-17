@@ -322,7 +322,7 @@ function App() {
         <div className="desktop-layout">
           <div className="desktop-main">
             {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && tab !== 'activity' && tab !== 'deck' && tab !== 'ai' && tab !== 'h2h' && tab !== 'timer' && tab !== 'longevity' && (
-              <WODCard workouts={workouts} session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} favorites={favorites} toggleFavorite={toggleFavorite} isAdmin={profile?.is_admin || false} collections={collections} onCollectionsChanged={() => session && loadCollections(session.user.id)} />
+              <WODCard workouts={workouts} session={session} profile={profile} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} favorites={favorites} toggleFavorite={toggleFavorite} isAdmin={profile?.is_admin || false} collections={collections} onCollectionsChanged={() => session && loadCollections(session.user.id)} />
             )}
             {(profile?.is_admin) && tab === 'all' && <AdminQueue onWorkoutsChanged={loadWorkouts} />}
             <WorkoutList
@@ -331,6 +331,7 @@ function App() {
               favorites={favorites}
               toggleFavorite={toggleFavorite}
               session={session}
+              profile={profile}
               isAdmin={profile?.is_admin || false}
               onAuthRequired={() => setShowAuth(true)}
               onWorkoutsChanged={loadWorkouts}
@@ -413,7 +414,7 @@ function App() {
             <DeckOfCards session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} isAdmin={profile?.is_admin || false} />
           ) : tab === 'ai' ? (
             <>
-              <AIGenerator session={session} onAuthRequired={() => setShowAuth(true)} isAdmin={profile?.is_admin || false} onWorkoutsChanged={loadWorkouts} />
+              <AIGenerator session={session} profile={profile} onAuthRequired={() => setShowAuth(true)} isAdmin={profile?.is_admin || false} onWorkoutsChanged={loadWorkouts} />
               <div style={{ borderTop: '1px solid var(--brd)', margin: '24px 0' }}></div>
               <AICoach session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} />
             </>

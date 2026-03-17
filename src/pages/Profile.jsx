@@ -11,6 +11,7 @@ export default function Profile({ session, profile, onClose, onProfileUpdated })
     hometown: '',
     bio: '',
     weekly_digest: true,
+    my_equipment: [],
   })
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
@@ -28,6 +29,7 @@ export default function Profile({ session, profile, onClose, onProfileUpdated })
         hometown: profile.hometown || '',
         bio: profile.bio || '',
         weekly_digest: profile.weekly_digest !== false,
+        my_equipment: profile.my_equipment || [],
       })
     }
     if (session) loadWodSub()
@@ -68,6 +70,7 @@ export default function Profile({ session, profile, onClose, onProfileUpdated })
         hometown: form.hometown || null,
         bio: form.bio || null,
         weekly_digest: form.weekly_digest,
+        my_equipment: form.my_equipment.length ? form.my_equipment : [],
       })
       .eq('id', session.user.id)
 
@@ -166,6 +169,20 @@ export default function Profile({ session, profile, onClose, onProfileUpdated })
             <label>Bio</label>
             <textarea value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} placeholder="Tell us about yourself..." style={{ minHeight: '80px' }} />
 
+            <label>🏠 My Gym — Equipment I Have</label>
+            <div style={{ fontSize: '11px', color: 'var(--tx3)', marginBottom: '6px' }}>Select the equipment you have access to. This filters the WOD shuffle, AI generator, and workout list.</div>
+            <div className="cr">
+              {['Air Bike', 'Barbell', 'Bench', 'Bodyweight', 'Box', 'Dumbbell', 'Jump Rope', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Weighted Vest'].map(eq => (
+                <button key={eq} className={`ch${form.my_equipment.includes(eq) ? ' on' : ''}`}
+                  onClick={() => {
+                    const arr = [...form.my_equipment]
+                    const idx = arr.indexOf(eq)
+                    if (idx >= 0) arr.splice(idx, 1); else arr.push(eq)
+                    setForm({ ...form, my_equipment: arr })
+                  }}>{eq}</button>
+              ))}
+            </div>
+
             <div className="prof-digest-toggle">
               <label>
                 <input type="checkbox" checked={form.weekly_digest} onChange={e => setForm({ ...form, weekly_digest: e.target.checked })} />
@@ -205,6 +222,16 @@ export default function Profile({ session, profile, onClose, onProfileUpdated })
             <div className="prof-row">
               <span className="prof-label">Weekly Digest</span>
               <span className="prof-value">{profile?.weekly_digest !== false ? '✅ Subscribed' : '❌ Not subscribed'}</span>
+            </div>
+            <div className="prof-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+              <span className="prof-label">🏠 My Gym</span>
+              {profile?.my_equipment?.length > 0 ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                  {profile.my_equipment.map(eq => <span key={eq} className="tg te">{eq}</span>)}
+                </div>
+              ) : (
+                <span className="prof-value" style={{ fontSize: '12px', color: 'var(--tx3)' }}>Not set — edit profile to add your equipment</span>
+              )}
             </div>
             <div className="prof-row">
               <span className="prof-label">Daily WOD Email</span>

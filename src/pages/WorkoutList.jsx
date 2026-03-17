@@ -5,7 +5,7 @@ import NewWorkoutModal from '../components/NewWorkoutModal'
 
 const PP = 30
 
-export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, session, isAdmin, onAuthRequired, onWorkoutsChanged, collections, onCollectionsChanged }) {
+export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, session, profile, isAdmin, onAuthRequired, onWorkoutsChanged, collections, onCollectionsChanged }) {
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState('added')
   const [page, setPage] = useState(1)
@@ -33,6 +33,12 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
     if (sourceFilter === 'official') w = w.filter(x => x.visibility === 'official')
     else if (sourceFilter === 'community') w = w.filter(x => x.visibility === 'community')
     else if (sourceFilter === 'mine') w = w.filter(x => x.created_by === session?.user?.id && x.visibility !== 'official' && x.visibility !== 'community')
+
+    // My Gym filter — only show workouts where all equipment is in user's gym
+    if (sourceFilter === 'mygym' && profile?.my_equipment?.length > 0) {
+      const myGym = new Set([...profile.my_equipment, 'Bodyweight'])
+      w = w.filter(x => (x.equipment || []).every(eq => myGym.has(eq)))
+    }
 
     if (query) {
       const q = query.toLowerCase()
@@ -96,7 +102,7 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
     else if (sort === 'dur_l') w.sort((a, b) => (effDur(b) || 0) - (effDur(a) || 0))
 
     return w
-  }, [workouts, tab, query, filters, sort, favorites, sourceFilter, session])
+  }, [workouts, tab, query, filters, sort, favorites, sourceFilter, session, profile])
 
   const totalPages = Math.ceil(filtered.length / PP)
   const items = filtered.slice((page - 1) * PP, page * PP)
@@ -191,6 +197,13 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
           }
           setPage(1)
         }}>✈️ Traveling</button>
+        {session && profile?.my_equipment?.length > 0 && (
+          <button className={`sf-btn sf-mygym${sourceFilter === 'mygym' ? ' on' : ''}`} onClick={() => {
+            setSourceFilter(sourceFilter === 'mygym' ? 'all' : 'mygym')
+            if (sourceFilter !== 'mygym') setFilters({ eq: [], eqEx: [], mv: [], mvEx: [], cat: [], wt: [], bp: [], durMin: null, durMax: null, includeNoDur: true })
+            setPage(1)
+          }}>🏠 My Gym</button>
+        )}
       </div>
 
       <div className="rbar">

@@ -14,12 +14,12 @@ const QUICK_PROMPTS = [
 
 const ALL_EQUIPMENT = ['Air Bike', 'Barbell', 'Bench', 'Bodyweight', 'Box', 'Dumbbell', 'Jump Rope', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Weighted Vest']
 const ALL_TYPES = ['AMRAP', 'EMOM', 'For Calories', 'For Distance', 'For Time', 'Interval', 'Ladder', 'Rounds', 'Strength']
-const ALL_CATEGORIES = ['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Outdoor', 'Track Workouts']
+const ALL_CATEGORIES = ['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Track Workouts']
 const ALL_MOVEMENTS = ['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat', 'Thruster']
 const ALL_BODY_PARTS = ['Upper Body', 'Lower Body', 'Full Body']
 const SCORE_TYPES = ['Time', 'Rounds + Reps', 'Reps', 'Calories', 'Distance', 'Load', 'None']
 
-export default function AIGenerator({ session, onAuthRequired, isAdmin, onWorkoutsChanged }) {
+export default function AIGenerator({ session, profile, onAuthRequired, isAdmin, onWorkoutsChanged }) {
   const [prompt, setPrompt] = useState('')
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState(null)
@@ -32,6 +32,12 @@ export default function AIGenerator({ session, onAuthRequired, isAdmin, onWorkou
     if (!session) { onAuthRequired(); return }
     const p = customPrompt || prompt
     if (!p.trim()) return
+
+    // Append equipment constraints from My Gym profile
+    let fullPrompt = p
+    if (profile?.my_equipment?.length > 0) {
+      fullPrompt += `\n\nIMPORTANT: Only use equipment from this list (my available equipment): ${profile.my_equipment.join(', ')}, Bodyweight. Do not include any equipment I don't have.`
+    }
     setGenerating(true)
     setResult(null)
     setEditForm(null)
@@ -43,7 +49,7 @@ export default function AIGenerator({ session, onAuthRequired, isAdmin, onWorkou
       const response = await fetch('/api/generate-workout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: p })
+        body: JSON.stringify({ prompt: fullPrompt })
       })
       const text = await response.text()
       let data
@@ -160,6 +166,12 @@ export default function AIGenerator({ session, onAuthRequired, isAdmin, onWorkou
           {generating ? '⏳' : '🦍'} {generating ? 'Generating...' : 'Generate'}
         </button>
       </div>
+
+      {profile?.my_equipment?.length > 0 && (
+        <div style={{ fontSize: '11px', color: 'var(--tx3)', textAlign: 'center', padding: '4px 0' }}>
+          🏠 Using My Gym: {profile.my_equipment.join(', ')}
+        </div>
+      )}
 
       <div className="ai-quick-prompts">
         <div className="doc-label">Or try one of these</div>

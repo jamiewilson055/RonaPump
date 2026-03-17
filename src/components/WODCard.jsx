@@ -60,7 +60,7 @@ function SimilarCard({ workout: s }) {
   )
 }
 
-export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsChanged, favorites, toggleFavorite, isAdmin, collections, onCollectionsChanged }) {
+export default function WODCard({ workouts, session, profile, onAuthRequired, onWorkoutsChanged, favorites, toggleFavorite, isAdmin, collections, onCollectionsChanged }) {
   const [wod, setWod] = useState(null)
   const [spinning, setSpinning] = useState(false)
   const [expanded, setExpanded] = useState(false)
@@ -281,6 +281,10 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
   const pl = wod.performance_log || []
   const scoreLabel = wod.score_type === 'Time' ? 'Time' : wod.score_type === 'Rounds + Reps' ? 'Score' : wod.score_type === 'Calories' ? 'Cals' : 'Result'
 
+  // Equipment mismatch check
+  const myGym = profile?.my_equipment?.length > 0 ? new Set([...profile.my_equipment, 'Bodyweight']) : null
+  const missingEquipment = myGym ? (wod.equipment || []).filter(eq => !myGym.has(eq)) : []
+
   return (
     <>
       <div className={`wod-card${expanded ? ' wod-exp' : ''}`} onMouseDown={(e) => { e._clickX = e.clientX; e._clickY = e.clientY }} onClick={(e) => {
@@ -292,6 +296,9 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
         <div className="wod-top">
           <div className="wod-label-inline">WOD</div>
           <div className="wod-name">{wod.name || 'Unnamed Workout'}</div>
+          {missingEquipment.length > 0 && (
+            <span title={`You need: ${missingEquipment.join(', ')}`} style={{ fontSize: '10px', background: 'rgba(255,180,0,.15)', color: 'var(--ylw)', padding: '1px 6px', borderRadius: '3px', fontFamily: "'JetBrains Mono', monospace", whiteSpace: 'nowrap' }}>⚠️ {missingEquipment.join(', ')}</span>
+          )}
           {wod.estimated_duration_mins && <span className="wdr">{wod.estimated_duration_mins}m</span>}
           <button
             className={`wod-roll${spinning ? ' spin' : ''}`}
