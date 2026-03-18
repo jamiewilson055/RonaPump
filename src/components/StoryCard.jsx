@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase'
 export default function StoryCard({ workout, score, session, onClose }) {
   const canvasRef = useRef(null)
   const [profile, setProfile] = useState(null)
-  const [streak, setStreak] = useState(0)
   const [downloaded, setDownloaded] = useState(false)
   const [style, setStyle] = useState(0)
 
@@ -21,32 +20,11 @@ export default function StoryCard({ workout, score, session, onClose }) {
 
   useEffect(() => {
     drawCard()
-  }, [profile, streak, style, workout, score])
+  }, [profile, style, workout, score])
 
   async function loadData() {
     const { data: p } = await supabase.from('profiles').select('display_name, gorilla_rank, xp').eq('id', session.user.id).single()
     if (p) setProfile(p)
-
-    // Compute streak
-    const { data: logs } = await supabase
-      .from('performance_log')
-      .select('completed_at')
-      .eq('user_id', session.user.id)
-      .order('completed_at', { ascending: false })
-      .limit(60)
-
-    if (logs) {
-      const dates = new Set(logs.map(l => l.completed_at))
-      let s = 0
-      const today = new Date()
-      for (let i = 0; i < 365; i++) {
-        const d = new Date(today); d.setDate(d.getDate() - i)
-        const ds = d.toISOString().slice(0, 10)
-        if (dates.has(ds)) s++
-        else if (i > 0) break
-      }
-      setStreak(s)
-    }
   }
 
   function drawCard() {
@@ -68,7 +46,7 @@ export default function StoryCard({ workout, score, session, onClose }) {
     ctx.fillRect(0, 0, W, H)
 
     // Subtle grid pattern
-    ctx.strokeStyle = `${s.accent}10`
+    ctx.strokeStyle = s.accent + '10'
     ctx.lineWidth = 1
     for (let i = 0; i < W; i += 60) {
       ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, H); ctx.stroke()
@@ -81,32 +59,29 @@ export default function StoryCard({ workout, score, session, onClose }) {
     ctx.fillStyle = s.accent
     ctx.fillRect(0, 0, W, 6)
 
-    // RONAPUMP logo
+    // RONAPUMP logo — one word, big
     ctx.textAlign = 'center'
-    ctx.font = 'bold 42px monospace'
-    ctx.fillStyle = s.text
-    ctx.fillText('RONA', W / 2 - 60, 100)
+    ctx.font = 'bold 72px monospace'
     ctx.fillStyle = s.accent
-    ctx.fillText('PUMP', W / 2 + 60, 100)
+    ctx.fillText('RONAPUMP', W / 2, 100)
 
     // Gorilla emoji
     ctx.font = '120px serif'
-    ctx.fillText('🦍', W / 2, 260)
+    ctx.fillText('\u{1F98D}', W / 2, 260)
 
     // "WORKOUT COMPLETE"
-    ctx.font = 'bold 52px monospace'
+    ctx.font = 'bold 48px monospace'
     ctx.fillStyle = s.accent
-    ctx.fillText('WORKOUT COMPLETE', W / 2, 370)
+    ctx.fillText('WORKOUT COMPLETE', W / 2, 360)
 
     // Divider
     ctx.fillStyle = s.accent
-    ctx.fillRect(W / 2 - 200, 400, 400, 3)
+    ctx.fillRect(W / 2 - 200, 390, 400, 3)
 
     // Workout name
     const wName = workout?.name || 'Workout'
-    ctx.font = 'bold 64px monospace'
+    ctx.font = 'bold 60px monospace'
     ctx.fillStyle = s.text
-    // Word wrap for long names
     const words = wName.split(' ')
     let lines = []
     let line = ''
@@ -121,17 +96,16 @@ export default function StoryCard({ workout, score, session, onClose }) {
     }
     if (line) lines.push(line)
 
-    let y = 480
+    let y = 470
     for (const l of lines) {
       ctx.fillText(l, W / 2, y)
-      y += 72
+      y += 68
     }
 
     // Score box
     if (score) {
-      y += 20
-      // Score box background
-      ctx.fillStyle = `${s.accent}20`
+      y += 16
+      ctx.fillStyle = s.accent + '20'
       const boxW = 500, boxH = 140
       ctx.beginPath()
       ctx.roundRect(W / 2 - boxW / 2, y - 10, boxW, boxH, 20)
@@ -140,52 +114,81 @@ export default function StoryCard({ workout, score, session, onClose }) {
       ctx.lineWidth = 2
       ctx.stroke()
 
-      ctx.font = '32px monospace'
+      ctx.font = '30px monospace'
       ctx.fillStyle = s.sub
-      ctx.fillText('SCORE', W / 2, y + 40)
+      ctx.fillText('SCORE', W / 2, y + 38)
 
-      ctx.font = 'bold 72px monospace'
+      ctx.font = 'bold 68px monospace'
       ctx.fillStyle = s.text
-      ctx.fillText(score, W / 2, y + 110)
+      ctx.fillText(score, W / 2, y + 108)
       y += boxH + 30
     } else {
-      y += 40
+      y += 30
     }
 
-    // Stats row
-    const statsY = Math.max(y + 40, 900)
-
-    // Duration
-    if (workout?.estimated_duration_mins) {
-      drawStatBox(ctx, W / 2 - 280, statsY, 160, `${workout.estimated_duration_mins}`, 'MIN', s)
+    // Meta tags row (duration + type)
+    const metaTags = []
+    if (workout?.estimated_duration_mins) metaTags.push('\u23F1 ' + workout.estimated_duration_mins + ' min')
+    if (workout?.workout_types?.length) {
+      const wt = workout.workout_types.filter(t => t !== 'General')
+      if (wt.length) metaTags.push(wt[0])
     }
+    if (workout?.score_type && workout.score_type !== 'None') metaTags.push(workout.score_type)
 
-    // Streak
-    drawStatBox(ctx, W / 2 - 80, statsY, 160, `${streak}`, 'STREAK', s)
-
-    // Score type
-    if (workout?.score_type && workout.score_type !== 'None') {
-      drawStatBox(ctx, W / 2 + 120, statsY, 160, workout.score_type.toUpperCase().slice(0, 6), 'TYPE', s)
-    }
-
-    // Equipment tags
-    const eqList = (workout?.equipment || []).filter(e => e !== 'Bodyweight').slice(0, 4)
-    if (eqList.length > 0) {
-      const tagY = statsY + 180
-      ctx.font = '28px monospace'
-      const totalW = eqList.reduce((a, e) => a + ctx.measureText(e).width + 40, -12)
+    if (metaTags.length) {
+      ctx.font = 'bold 26px monospace'
+      const totalW = metaTags.reduce((a, t) => a + ctx.measureText(t).width + 40, -12)
       let tagX = W / 2 - totalW / 2
-
-      for (const eq of eqList) {
-        const tw = ctx.measureText(eq).width + 40
-        ctx.fillStyle = `${s.accent}25`
+      for (const tag of metaTags) {
+        const tw = ctx.measureText(tag).width + 28
+        ctx.fillStyle = s.accent + '20'
         ctx.beginPath()
-        ctx.roundRect(tagX, tagY - 28, tw, 44, 8)
+        ctx.roundRect(tagX, y - 18, tw, 36, 6)
         ctx.fill()
         ctx.fillStyle = s.accent
         ctx.textAlign = 'center'
-        ctx.fillText(eq, tagX + tw / 2, tagY + 8)
+        ctx.fillText(tag, tagX + tw / 2, y + 8)
         tagX += tw + 12
+      }
+      y += 50
+    }
+
+    // Workout description
+    y += 20
+    ctx.textAlign = 'left'
+    ctx.font = '28px sans-serif'
+    ctx.fillStyle = s.sub
+    const descText = (workout?.description || '').replace(/\*\*/g, '')
+    const descLines = descText.split('\n').filter(l => l.trim())
+    const maxDescY = H - 460
+    for (const dl of descLines) {
+      if (y > maxDescY) {
+        ctx.fillText('...', 100, y)
+        y += 36
+        break
+      }
+      const cleaned = dl.replace(/^  [•]\s*/, '     \u2022  ').replace(/^[•]\s*/, '  \u2022  ')
+      y = wrapText(ctx, cleaned, 100, y, W - 200, 36)
+    }
+
+    // Equipment tags
+    ctx.textAlign = 'center'
+    const eqList = (workout?.equipment || []).filter(e => e !== 'Bodyweight').slice(0, 4)
+    if (eqList.length > 0) {
+      const tagY = Math.max(y + 30, H - 420)
+      ctx.font = '26px monospace'
+      const totalEqW = eqList.reduce((a, e) => a + ctx.measureText(e).width + 36, -12)
+      let eqX = W / 2 - totalEqW / 2
+
+      for (const eq of eqList) {
+        const tw = ctx.measureText(eq).width + 36
+        ctx.fillStyle = s.accent + '20'
+        ctx.beginPath()
+        ctx.roundRect(eqX, tagY - 24, tw, 40, 8)
+        ctx.fill()
+        ctx.fillStyle = s.accent
+        ctx.fillText(eq, eqX + tw / 2, tagY + 6)
+        eqX += tw + 12
       }
     }
 
@@ -196,17 +199,17 @@ export default function StoryCard({ workout, score, session, onClose }) {
     ctx.textAlign = 'center'
     ctx.font = 'bold 40px monospace'
     ctx.fillStyle = s.text
-    ctx.fillText(userName, W / 2, H - 340)
+    ctx.fillText(userName, W / 2, H - 310)
 
     ctx.font = '28px monospace'
     ctx.fillStyle = s.accent
-    ctx.fillText(rank, W / 2, H - 290)
+    ctx.fillText(rank, W / 2, H - 260)
 
     // Date
     const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
     ctx.font = '26px monospace'
     ctx.fillStyle = s.sub
-    ctx.fillText(dateStr, W / 2, H - 240)
+    ctx.fillText(dateStr, W / 2, H - 210)
 
     // Bottom bar
     ctx.fillStyle = s.accent
@@ -221,27 +224,32 @@ export default function StoryCard({ workout, score, session, onClose }) {
     ctx.fillText('@ronapump', W / 2, H - 35)
   }
 
-  function drawStatBox(ctx, x, y, w, value, label, s) {
-    ctx.fillStyle = `${s.accent}15`
-    ctx.beginPath()
-    ctx.roundRect(x, y, w, 120, 16)
-    ctx.fill()
-
-    ctx.textAlign = 'center'
-    ctx.font = 'bold 48px monospace'
-    ctx.fillStyle = s.text
-    ctx.fillText(value, x + w / 2, y + 58)
-
-    ctx.font = '22px monospace'
-    ctx.fillStyle = s.sub
-    ctx.fillText(label, x + w / 2, y + 98)
+  function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+    const words = text.split(' ')
+    let line = ''
+    let curY = y
+    for (const word of words) {
+      const test = line + word + ' '
+      if (ctx.measureText(test).width > maxWidth && line) {
+        ctx.fillText(line.trim(), x, curY)
+        line = word + ' '
+        curY += lineHeight
+      } else {
+        line = test
+      }
+    }
+    if (line.trim()) {
+      ctx.fillText(line.trim(), x, curY)
+      curY += lineHeight
+    }
+    return curY
   }
 
   function downloadImage() {
     drawCard()
     const canvas = canvasRef.current
     const link = document.createElement('a')
-    link.download = `ronapump-${(workout?.name || 'workout').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.png`
+    link.download = 'ronapump-' + (workout?.name || 'workout').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.png'
     link.href = canvas.toDataURL('image/png')
     link.click()
     setDownloaded(true)
@@ -264,7 +272,7 @@ export default function StoryCard({ workout, score, session, onClose }) {
   return (
     <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="mc" style={{ maxWidth: '440px' }}>
-        <h2 style={{ marginBottom: '4px' }}>📸 Share to Instagram</h2>
+        <h2 style={{ marginBottom: '4px' }}>{'\u{1F4F8}'} Share to Instagram</h2>
         <p style={{ fontSize: '12px', color: 'var(--tx3)', marginBottom: '10px' }}>
           Download or copy this story card to share on Instagram.
         </p>
@@ -272,7 +280,7 @@ export default function StoryCard({ workout, score, session, onClose }) {
         {/* Style picker */}
         <div className="story-styles">
           {STYLES.map((s, i) => (
-            <button key={i} className={`story-style-btn${style === i ? ' on' : ''}`}
+            <button key={i} className={'story-style-btn' + (style === i ? ' on' : '')}
               style={{ background: s.bg, borderColor: style === i ? s.accent : 'var(--brd)' }}
               onClick={() => setStyle(i)}>
               <span style={{ color: s.accent, fontSize: '10px', fontWeight: 700 }}>{s.name}</span>
@@ -286,8 +294,8 @@ export default function StoryCard({ workout, score, session, onClose }) {
         {/* Actions */}
         <div className="mf" style={{ marginTop: '10px' }}>
           <button className="ab" onClick={onClose}>Close</button>
-          <button className="ab" onClick={copyImage}>{downloaded ? '✓ Copied!' : '📋 Copy'}</button>
-          <button className="ab p" onClick={downloadImage}>{downloaded ? '✓ Done!' : '📥 Download'}</button>
+          <button className="ab" onClick={copyImage}>{downloaded ? '\u2713 Copied!' : '\u{1F4CB} Copy'}</button>
+          <button className="ab p" onClick={downloadImage}>{downloaded ? '\u2713 Done!' : '\u{1F4E5} Download'}</button>
         </div>
       </div>
     </div>
