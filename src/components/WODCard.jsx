@@ -74,6 +74,7 @@ export default function WODCard({ workouts, session, profile, onAuthRequired, on
   const [showShareImage, setShowShareImage] = useState(false)
   const [showStoryCard, setShowStoryCard] = useState(false)
   const [lastLogScore, setLastLogScore] = useState(null)
+  const [showPR, setShowPR] = useState(false)
   const [showCollections, setShowCollections] = useState(false)
   const [showSimilar, setShowSimilar] = useState(false)
   const [similarResults, setSimilarResults] = useState([])
@@ -124,6 +125,23 @@ export default function WODCard({ workouts, session, profile, onAuthRequired, on
     if (!session) { onAuthRequired(); return }
     if (!logScore.trim()) return
     const scoreVal = logScore.trim()
+    // Check for PR before inserting
+    let isPR = false
+    if (wod.score_type && wod.score_type !== 'None') {
+      const myPrevScores = (wod.performance_log || []).filter(p => p.user_id === session.user.id && p.score).map(p => p.score)
+      if (myPrevScores.length > 0) {
+        if (wod.score_type === 'Time') {
+          const best = myPrevScores.sort()[0]
+          isPR = scoreVal < best
+        } else {
+          const nums = myPrevScores.map(s => parseFloat(s)).filter(n => !isNaN(n))
+          const newNum = parseFloat(scoreVal)
+          if (nums.length > 0 && !isNaN(newNum)) isPR = newNum > Math.max(...nums)
+        }
+      } else {
+        isPR = true
+      }
+    }
     await supabase.from('performance_log').insert({
       user_id: session.user.id,
       workout_id: wod.id,
@@ -137,6 +155,10 @@ export default function WODCard({ workouts, session, profile, onAuthRequired, on
     setLogScore('')
     setLogNotes('')
     setLogRx(true)
+    if (isPR) {
+      setShowPR(true)
+      setTimeout(() => setShowPR(false), 4000)
+    }
     setShowStoryCard(true)
     if (onWorkoutsChanged) onWorkoutsChanged()
   }
@@ -402,6 +424,11 @@ export default function WODCard({ workouts, session, profile, onAuthRequired, on
       {showTimer && <WorkoutTimer workout={wod} onClose={() => setShowTimer(false)} session={session} onWorkoutsChanged={onWorkoutsChanged} />}
       {showShareImage && <ShareImage workout={wod} onClose={() => setShowShareImage(false)} />}
       {showStoryCard && <StoryCard workout={wod} score={lastLogScore} session={session} onClose={() => setShowStoryCard(false)} />}
+      {showPR && (
+        <div style={{ position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999, background: 'linear-gradient(135deg, #fbbf24, #f59e0b)', color: '#000', padding: '14px 28px', borderRadius: '12px', fontFamily: "'JetBrains Mono', monospace", fontSize: '16px', fontWeight: 700, boxShadow: '0 4px 24px rgba(245,158,11,.4)', animation: 'prPop .4s cubic-bezier(.34,1.56,.64,1)', textAlign: 'center', pointerEvents: 'none' }}>
+          🎉 NEW PR! 🎉
+        </div>
+      )}
       {editing && editForm && (
         <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) { setEditing(false); setEditForm(null); setRemixing(false) } }}>
           <div className="mc">

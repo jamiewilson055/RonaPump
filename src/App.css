@@ -1861,3 +1861,10 @@ input, select, textarea { font-family: inherit; }
 .theme-transitioning *::after {
   transition: background-color .25s ease, color .25s ease, border-color .25s ease, box-shadow .25s ease !important;
 }
+
+/* PR celebration pop animation */
+@keyframes prPop {
+  0% { opacity: 0; transform: translateX(-50%) scale(.5); }
+  60% { opacity: 1; transform: translateX(-50%) scale(1.1); }
+  100% { opacity: 1; transform: translateX(-50%) scale(1); }
+}

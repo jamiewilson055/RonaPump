@@ -109,6 +109,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const [showShareImage, setShowShareImage] = useState(false)
   const [showStoryCard, setShowStoryCard] = useState(false)
   const [lastLogScore, setLastLogScore] = useState(null)
+  const [showPR, setShowPR] = useState(false)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const EMOJI_CATEGORIES = [
     { label: '💪 Fitness', emojis: ['💪', '🏋️', '🏃', '🔥', '⏱', '🦍', '💀', '😤', '🫡', '🎯', '🏆', '⚡', '🧨', '💣', '🚀', '👊', '✅', '❌', '⬆️', '⬇️'] },
@@ -213,6 +214,24 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   async function addLog() {
     if (!session) { onAuthRequired(); return }
     const scoreVal = logScore.trim() || null
+    // Check for PR before inserting
+    let isPR = false
+    if (scoreVal && w.score_type && w.score_type !== 'None') {
+      const myPrevScores = (w.performance_log || []).filter(p => p.is_mine && p.score).map(p => p.score)
+      if (myPrevScores.length > 0) {
+        if (w.score_type === 'Time') {
+          const best = myPrevScores.sort()[0]
+          isPR = scoreVal < best
+        } else {
+          const nums = myPrevScores.map(s => parseFloat(s)).filter(n => !isNaN(n))
+          const newNum = parseFloat(scoreVal)
+          if (nums.length > 0 && !isNaN(newNum)) isPR = newNum > Math.max(...nums)
+        }
+      } else {
+        // First scored log = first PR
+        isPR = true
+      }
+    }
     await supabase.from('performance_log').insert({
       user_id: session.user.id,
       workout_id: w.id,
@@ -226,6 +245,10 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     setLogScore('')
     setLogNotes('')
     setLogRx(true)
+    if (isPR) {
+      setShowPR(true)
+      setTimeout(() => setShowPR(false), 4000)
+    }
     setShowStoryCard(true)
     onWorkoutsChanged()
   }
@@ -712,6 +735,11 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     {viewingProfile && <PublicProfile userId={viewingProfile} onClose={() => setViewingProfile(null)} session={session} />}
     {showShareImage && <ShareImage workout={w} onClose={() => setShowShareImage(false)} />}
     {showStoryCard && <StoryCard workout={w} score={lastLogScore} session={session} onClose={() => setShowStoryCard(false)} />}
+    {showPR && (
+      <div style={{ position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999, background: 'linear-gradient(135deg, #fbbf24, #f59e0b)', color: '#000', padding: '14px 28px', borderRadius: '12px', fontFamily: "'JetBrains Mono', monospace", fontSize: '16px', fontWeight: 700, boxShadow: '0 4px 24px rgba(245,158,11,.4)', animation: 'prPop .4s cubic-bezier(.34,1.56,.64,1)', textAlign: 'center', pointerEvents: 'none' }}>
+        🎉 NEW PR! 🎉
+      </div>
+    )}
     </>
   )
 }
