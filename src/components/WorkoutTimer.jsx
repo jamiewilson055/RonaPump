@@ -46,11 +46,34 @@ function playTripleBeep() {
   setTimeout(() => playBeep(1100, 0.25, 0.5), 400)
 }
 
+let gorillaBuffer = null
 function playGorillaGrunt() {
   try {
-    const audio = new Audio('/gorilla.mp3')
-    audio.volume = 0.7
-    audio.play().catch(() => {})
+    const ctx = getAudioCtx()
+    if (gorillaBuffer) {
+      const source = ctx.createBufferSource()
+      const gain = ctx.createGain()
+      gain.gain.value = 0.7
+      source.buffer = gorillaBuffer
+      source.connect(gain)
+      gain.connect(ctx.destination)
+      source.start(0)
+    } else {
+      fetch('/gorilla.mp3')
+        .then(r => r.arrayBuffer())
+        .then(buf => ctx.decodeAudioData(buf))
+        .then(decoded => {
+          gorillaBuffer = decoded
+          const source = ctx.createBufferSource()
+          const gain = ctx.createGain()
+          gain.gain.value = 0.7
+          source.buffer = decoded
+          source.connect(gain)
+          gain.connect(ctx.destination)
+          source.start(0)
+        })
+        .catch(() => {})
+    }
   } catch (e) {}
 }
 
