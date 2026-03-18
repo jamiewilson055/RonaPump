@@ -701,7 +701,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
           <label>Category</label>
           <div className="cr">
-            {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Track Workouts'].map(c => (
+            {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Partner', 'Track Workouts'].map(c => (
               <button key={c} className={`ch${editForm.categories.includes(c) ? ' on' : ''}`}
                 onClick={() => toggleEditArray('categories', c)}>{c}</button>
             ))}
