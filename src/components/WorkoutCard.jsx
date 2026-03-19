@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import WorkoutTimer from './WorkoutTimer'
 import WorkoutComments from './WorkoutComments'
@@ -48,16 +48,6 @@ function bestScore(w) {
 
 function SimilarCard({ workout: s }) {
   const [open, setOpen] = useState(false)
-  const [desc, setDesc] = useState(s.description || null)
-
-  useEffect(() => {
-    if (open && !desc) {
-      supabase.from('workouts').select('description').eq('id', s.id).single().then(({ data }) => {
-        if (data) setDesc(data.description || '')
-      })
-    }
-  }, [open, desc, s.id])
-
   return (
     <div className={`similar-card${open ? ' open' : ''}`}>
       <div className="similar-hd" onClick={() => setOpen(!open)}>
@@ -75,7 +65,7 @@ function SimilarCard({ workout: s }) {
       </div>
       {open && (
         <div className="similar-body">
-          <div className="dsc" style={{ fontSize: '12px', padding: '8px 0 4px' }}>{desc ? formatDesc(desc) : <span style={{ color: 'var(--tx3)' }}>Loading...</span>}</div>
+          <div className="dsc" style={{ fontSize: '12px', padding: '8px 0 4px' }}>{formatDesc(s.description || '')}</div>
           <div className="wtg" style={{ padding: '4px 0' }}>
             {s.equipment?.filter(q => q !== 'Bodyweight').map(q => <span key={q} className="tg te">{q}</span>)}
             {s.movement_categories?.filter(m => !['General', 'Cardio'].includes(m)).slice(0, 4).map(m => <span key={m} className="tg tm">{m}</span>)}
@@ -109,39 +99,11 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const [showShareImage, setShowShareImage] = useState(false)
   const [showStoryCard, setShowStoryCard] = useState(false)
   const [lastLogScore, setLastLogScore] = useState(null)
-  const [showPR, setShowPR] = useState(false)
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
-  const EMOJI_CATEGORIES = [
-    { label: '💪 Fitness', emojis: ['💪', '🏋️', '🏃', '🔥', '⏱', '🦍', '💀', '😤', '🫡', '🎯', '🏆', '⚡', '🧨', '💣', '🚀', '👊', '✅', '❌', '⬆️', '⬇️'] },
-    { label: '🔢 Numbers', emojis: ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '🔟', '💯', '0️⃣'] },
-    { label: '⚙️ Gear', emojis: ['🏋️‍♂️', '🏋️‍♀️', '🚴', '🚣', '🏊', '⛷️', '🧗', '🤸', '🏃‍♂️', '🏃‍♀️', '🥇', '🥈', '🥉', '🎽'] },
-    { label: '😀 Faces', emojis: ['😀', '😎', '🤯', '😈', '🥵', '😮‍💨', '🫠', '💀', '👀', '🙌', '👏', '🤝', '✊', '🤘'] },
-    { label: '📝 Misc', emojis: ['📌', '📝', '📊', '🗓️', '⭐', '💡', '🔄', '⏩', '▶️', '⏸️', '🟢', '🔴', '🟡', '⚪', '🔵', '➡️', '⬅️'] },
-  ]
-  function insertEmoji(emoji) {
-    const ta = document.getElementById('wk-edit-desc')
-    if (!ta) return
-    const start = ta.selectionStart
-    const before = editForm.description.slice(0, start)
-    const after = editForm.description.slice(start)
-    setEditForm({ ...editForm, description: before + emoji + after })
-    setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + emoji.length }, 0)
-  }
-  const [desc, setDesc] = useState(w.description || null)
-
-  // Lazy-load description on expand
-  useEffect(() => {
-    if (expanded && !desc) {
-      supabase.from('workouts').select('description').eq('id', w.id).single().then(({ data }) => {
-        if (data) setDesc(data.description || '')
-      })
-    }
-  }, [expanded, desc, w.id])
 
   function shareWorkout() {
     let text = ''
     if (w.name) text += w.name + '\n\n'
-    text += desc || ''
+    text += w.description || ''
     if (w.estimated_duration_mins) text += `\n\n⏱ ${w.estimated_duration_mins} min`
     else if (w.estimated_duration_min && w.estimated_duration_max) text += `\n\n⏱ ${w.estimated_duration_min}-${w.estimated_duration_max} min`
     if (w.equipment?.filter(e => e !== 'Bodyweight').length) text += `\n🏋 ${w.equipment.filter(e => e !== 'Bodyweight').join(', ')}`
@@ -155,20 +117,9 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
   function copyLink() {
     const slug = w.name ? w.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : w.id
-    const url = `https://www.ronapump.com/workout/${slug}`
-    navigator.clipboard.writeText(url).then(() => {
+    navigator.clipboard.writeText(`www.ronapump.com/workout/${slug}`).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    }).catch(() => {
-      // Mobile fallback
-      const ta = document.createElement('textarea')
-      ta.value = url
-      ta.style.cssText = 'position:fixed;opacity:0;left:-9999px'
-      document.body.appendChild(ta)
-      ta.focus()
-      ta.select()
-      try { document.execCommand('copy'); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {}
-      document.body.removeChild(ta)
     })
   }
 
@@ -214,24 +165,6 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   async function addLog() {
     if (!session) { onAuthRequired(); return }
     const scoreVal = logScore.trim() || null
-    // Check for PR before inserting
-    let isPR = false
-    if (scoreVal && w.score_type && w.score_type !== 'None') {
-      const myPrevScores = (w.performance_log || []).filter(p => p.is_mine && p.score).map(p => p.score)
-      if (myPrevScores.length > 0) {
-        if (w.score_type === 'Time') {
-          const best = myPrevScores.sort()[0]
-          isPR = scoreVal < best
-        } else {
-          const nums = myPrevScores.map(s => parseFloat(s)).filter(n => !isNaN(n))
-          const newNum = parseFloat(scoreVal)
-          if (nums.length > 0 && !isNaN(newNum)) isPR = newNum > Math.max(...nums)
-        }
-      } else {
-        // First scored log = first PR
-        isPR = true
-      }
-    }
     await supabase.from('performance_log').insert({
       user_id: session.user.id,
       workout_id: w.id,
@@ -245,10 +178,6 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     setLogScore('')
     setLogNotes('')
     setLogRx(true)
-    if (isPR) {
-      setShowPR(true)
-      setTimeout(() => setShowPR(false), 4000)
-    }
     setShowStoryCard(true)
     onWorkoutsChanged()
   }
@@ -279,7 +208,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   function startEdit() {
     setEditForm({
       name: w.name || '',
-      description: desc || '',
+      description: w.description || '',
       score_type: w.score_type || 'None',
       estimated_duration_mins: w.estimated_duration_mins || '',
       estimated_duration_min: w.estimated_duration_min || '',
@@ -298,7 +227,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     if (!session) { onAuthRequired(); return }
     setEditForm({
       name: (w.name || 'Unnamed') + ' (My Version)',
-      description: desc || '',
+      description: w.description || '',
       score_type: w.score_type || 'None',
       estimated_duration_mins: w.estimated_duration_mins || '',
       estimated_duration_min: w.estimated_duration_min || '',
@@ -366,7 +295,6 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
       if (error) { alert('Error saving: ' + error.message); return }
     }
 
-    if (!remixing) setDesc(editForm.description.trim())
     setEditing(false)
     setEditForm(null)
     setRemixing(false)
@@ -422,7 +350,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
       {expanded && (
         <div className="det" onClick={e => e.stopPropagation()}>
-          <div className="dsc">{desc ? formatDesc(cleanDesc({...w, description: desc})) : <span style={{ color: 'var(--tx3)' }}>Loading...</span>}</div>
+          <div className="dsc">{formatDesc(cleanDesc(w))}</div>
 
           <div className="plog">
             <div className="plog-hdr">
@@ -515,11 +443,13 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
             <button className="ab p" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }} style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)' }}>{addingLog ? 'Cancel' : '✓ Complete Workout'}</button>
             <button className={`ab ${isFav ? '' : 'g'}`} onClick={() => toggleFavorite(w.id)}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>
             <button className="ab" onClick={() => { if (!session) { onAuthRequired(); return } setShowCollections(!showCollections) }}>{showCollections ? 'Hide' : '📁 Save'}</button>
-            <button className="ab" onClick={startRemix}>🔀 Remix</button>
+            {session && w.created_by !== session?.user?.id && (
+              <button className="ab" onClick={startRemix}>🔀 Remix</button>
+            )}
             <button className="ab" onClick={() => setShowSimilar(!showSimilar)}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
             <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
             <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
-            <button className="ab" onClick={copyLink}>{copied ? '✓ Copied!' : '🔗 Link'}</button>
+            <button className="ab" onClick={copyLink}>🔗 Link</button>
             {isAdmin && <button className="ab p" onClick={startEdit}>Edit</button>}
             {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}
             {!isAdmin && w.created_by === session?.user?.id && w.visibility === 'private' && (
@@ -643,25 +573,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
               setEditForm({ ...editForm, description: before + nl + '--- ' + after })
               setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 4 }, 0)
             }}>— Section</button>
-            <button type="button" className="fmt-btn" style={showEmojiPicker ? { background: 'var(--acc)', color: '#fff', borderColor: 'var(--acc)' } : {}} onClick={() => setShowEmojiPicker(!showEmojiPicker)}>😀 Emoji</button>
           </div>
-          {showEmojiPicker && (
-            <div style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: '6px', padding: '8px', marginBottom: '6px', maxHeight: '200px', overflowY: 'auto' }}>
-              {EMOJI_CATEGORIES.map(cat => (
-                <div key={cat.label} style={{ marginBottom: '6px' }}>
-                  <div style={{ fontSize: '10px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: '4px' }}>{cat.label}</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px' }}>
-                    {cat.emojis.map((em, i) => (
-                      <button key={i} type="button" onClick={() => insertEmoji(em)} style={{ background: 'none', border: '1px solid transparent', borderRadius: '4px', cursor: 'pointer', fontSize: '18px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.08)'; e.currentTarget.style.borderColor = 'var(--brd)' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.borderColor = 'transparent' }}
-                      >{em}</button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
           <textarea id="wk-edit-desc" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} placeholder="Full workout details..." style={{ minHeight: '140px' }} />
 
           <label>Score Type</label>
@@ -685,7 +597,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
           <label>Equipment</label>
           <div className="cr">
-            {['Air Bike', 'Barbell', 'Bench', 'Bodyweight', 'Box', 'Dumbbell', 'Jump Rope', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Weighted Vest'].map(eq => (
+            {['Barbell', 'Bench', 'Bike (Assault/Echo)', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Speed Rope', 'Weighted Vest'].map(eq => (
               <button key={eq} className={`ch${editForm.equipment.includes(eq) ? ' on' : ''}`}
                 onClick={() => toggleEditArray('equipment', eq)}>{eq}</button>
             ))}
@@ -701,7 +613,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
           <label>Category</label>
           <div className="cr">
-            {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Partner', 'Track Workouts'].map(c => (
+            {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Outdoor', 'Track Workouts'].map(c => (
               <button key={c} className={`ch${editForm.categories.includes(c) ? ' on' : ''}`}
                 onClick={() => toggleEditArray('categories', c)}>{c}</button>
             ))}
@@ -709,7 +621,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
           <label>Movement Type</label>
           <div className="cr">
-            {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat', 'Thruster'].map(m => (
+            {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'KB Swing', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat'].map(m => (
               <button key={m} className={`ch${editForm.movement_categories.includes(m) ? ' on' : ''}`}
                 onClick={() => toggleEditArray('movement_categories', m)}>{m}</button>
             ))}
@@ -735,11 +647,6 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     {viewingProfile && <PublicProfile userId={viewingProfile} onClose={() => setViewingProfile(null)} session={session} />}
     {showShareImage && <ShareImage workout={w} onClose={() => setShowShareImage(false)} />}
     {showStoryCard && <StoryCard workout={w} score={lastLogScore} session={session} onClose={() => setShowStoryCard(false)} />}
-    {showPR && (
-      <div style={{ position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999, background: 'linear-gradient(135deg, #fbbf24, #f59e0b)', color: '#000', padding: '14px 28px', borderRadius: '12px', fontFamily: "'JetBrains Mono', monospace", fontSize: '16px', fontWeight: 700, boxShadow: '0 4px 24px rgba(245,158,11,.4)', animation: 'prPop .4s cubic-bezier(.34,1.56,.64,1)', textAlign: 'center', pointerEvents: 'none' }}>
-        🎉 NEW PR! 🎉
-      </div>
-    )}
     </>
   )
 }
