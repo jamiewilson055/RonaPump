@@ -107,11 +107,12 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
   const totalPages = Math.ceil(filtered.length / PP)
   const items = filtered.slice((page - 1) * PP, page * PP)
 
-  const hasFilters = filters.eq.length || filters.eqEx?.length || filters.mv.length || filters.mvEx?.length || filters.cat.length || filters.wt.length || filters.bp?.length || filters.durMin != null || filters.durMax != null
+  const hasFilters = query || sourceFilter !== 'all' || filters.eq.length || filters.eqEx?.length || filters.mv.length || filters.mvEx?.length || filters.cat.length || filters.wt.length || filters.bp?.length || filters.durMin != null || filters.durMax != null
 
   function clearFilters() {
     setFilters({ eq: [], eqEx: [], mv: [], mvEx: [], cat: [], wt: [], bp: [], durMin: null, durMax: null, includeNoDur: true })
     setQuery('')
+    setSourceFilter('all')
     setPage(1)
   }
 
