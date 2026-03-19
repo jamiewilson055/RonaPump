@@ -1868,3 +1868,25 @@ input, select, textarea { font-family: inherit; }
   60% { opacity: 1; transform: translateX(-50%) scale(1.1); }
   100% { opacity: 1; transform: translateX(-50%) scale(1); }
 }
+
+/* ============= Challenge Enhancements ============= */
+.ch-record { text-align: center; margin-top: 6px; }
+.ch-record-label { font-size: 10px; color: var(--tx3); text-transform: uppercase; letter-spacing: .5px; margin-right: 4px; }
+.ch-record-score { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: var(--tx); }
+.ch-record-score.ahead { color: var(--grn); }
+.ch-record-score.behind { color: var(--acc); }
+.ch-comments-section { padding: 6px 10px; margin: 6px 0; background: var(--bg); border-radius: 6px; }
+.ch-score-comment { font-size: 12px; color: var(--tx2); font-style: italic; padding: 2px 0; }
+.ch-sc-name { font-weight: 600; color: var(--tx); font-style: normal; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+.ch-decline-reason { text-align: center; font-size: 12px; color: var(--tx3); font-style: italic; margin: 6px 0; }
+.ch-decline-form { display: flex; gap: 6px; align-items: center; flex: 1; flex-wrap: wrap; }
+.ch-edit-form { flex: 1; }
+.ch-submit-form { flex: 1; }
+.ch-thread-toggle { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--brd); }
+.ch-card-time { font-size: 10px; color: var(--tx3); }
+.ch-thread { margin-top: 8px; padding: 8px; background: var(--bg); border-radius: 8px; }
+.ch-thread-msg { display: flex; align-items: baseline; gap: 4px; flex-wrap: wrap; padding: 3px 0; font-size: 12px; }
+.ch-thread-name { font-weight: 600; color: var(--tx); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+.ch-thread-body { color: var(--tx2); }
+.ch-thread-time { color: var(--tx3); font-size: 10px; }
+.ch-thread-form { display: flex; gap: 6px; margin-top: 6px; }

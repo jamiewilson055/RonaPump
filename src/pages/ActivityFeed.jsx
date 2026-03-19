@@ -62,8 +62,8 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
     // Load challenges involving feed users
     const { data: challenges } = await supabase
       .from('challenges')
-      .select('*, challenger:profiles!challenges_challenger_id_fkey(display_name), opponent:profiles!challenges_opponent_id_fkey(display_name), workouts(name)')
-      .or(`challenger_id.in.(${feedUserIds.join(',')}),opponent_id.in.(${feedUserIds.join(',')})`)
+      .select('*, challenger:profiles!challenges_challenger_id_fkey(display_name), challenged:profiles!challenges_challenged_id_fkey(display_name), workouts(name)')
+      .or(`challenger_id.in.(${feedUserIds.join(',')}),challenged_id.in.(${feedUserIds.join(',')})`)
       .order('created_at', { ascending: false })
       .limit(10)
 
@@ -380,21 +380,28 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
                           <span className="activity-challenge-icon">⚔️</span>
                           <span className="activity-name">{a.challenger?.display_name || 'Someone'}</span>
                           <span className="activity-challenge-vs">vs</span>
-                          <span className="activity-name">{a.opponent?.display_name || 'Someone'}</span>
+                          <span className="activity-name">{a.challenged?.display_name || 'Someone'}</span>
                         </div>
                         <div className="activity-challenge-workout">{a.workouts?.name || 'a workout'}</div>
-                        {a.trash_talk && <div className="activity-challenge-talk">"{a.trash_talk}"</div>}
+                        {a.message && <div className="activity-challenge-talk">"{a.message}"</div>}
                         <div className="activity-challenge-status">
                           {a.status === 'pending' && <span className="ch-status pending">⏳ Pending</span>}
                           {a.status === 'accepted' && <span className="ch-status accepted">🤝 Accepted — awaiting scores</span>}
                           {a.status === 'completed' && (
                             <span className="ch-status completed">
-                              🏁 {a.challenger_score} vs {a.opponent_score}
-                              {a.winner_id === a.challenger_id ? ` — ${a.challenger?.display_name} wins! 👑` : a.winner_id === a.opponent_id ? ` — ${a.opponent?.display_name} wins! 👑` : ' — Tie!'}
+                              🏁 {a.challenger_score} vs {a.challenged_score}
+                              {a.winner_id === a.challenger_id ? ` — ${a.challenger?.display_name} wins! 👑` : a.winner_id === a.challenged_id ? ` — ${a.challenged?.display_name} wins! 👑` : ' — Tie!'}
                             </span>
                           )}
                           {a.status === 'declined' && <span className="ch-status declined">❌ Declined</span>}
+                          {a.status === 'declined' && a.decline_reason && <div className="activity-challenge-talk">"{a.decline_reason}"</div>}
                         </div>
+                        {a.status === 'completed' && (a.challenger_comment || a.challenged_comment) && (
+                          <div style={{ marginTop: '4px' }}>
+                            {a.challenger_comment && <div className="activity-challenge-talk">{a.challenger?.display_name}: "{a.challenger_comment}"</div>}
+                            {a.challenged_comment && <div className="activity-challenge-talk">{a.challenged?.display_name}: "{a.challenged_comment}"</div>}
+                          </div>
+                        )}
                       </div>
                     ) : (
                     <>
