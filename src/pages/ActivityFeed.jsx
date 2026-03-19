@@ -395,6 +395,7 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
                           )}
                           {a.status === 'declined' && <span className="ch-status declined">❌ Declined</span>}
                           {a.status === 'declined' && a.decline_reason && <div className="activity-challenge-talk">"{a.decline_reason}"</div>}
+                          {a.status === 'cancelled' && <span className="ch-status declined">🚫 Cancelled</span>}
                         </div>
                         {a.status === 'completed' && (a.challenger_comment || a.challenged_comment) && (
                           <div style={{ marginTop: '4px' }}>

@@ -93,7 +93,7 @@ export default function Challenges({ session, onAuthRequired, workouts }) {
   async function cancelChallenge(id) {
     const c = challenges.find(ch => ch.id === id)
     if (!c) return
-    await supabase.from('challenges').delete().eq('id', id)
+    await supabase.from('challenges').update({ status: 'cancelled' }).eq('id', id)
     if (c.challenged_id) {
       await supabase.from('notifications').insert({
         user_id: c.challenged_id,
@@ -294,7 +294,7 @@ export default function Challenges({ session, onAuthRequired, workouts }) {
   }
 
   const active = challenges.filter(c => c.status === 'pending' || c.status === 'accepted')
-  const completed = challenges.filter(c => c.status === 'completed' || c.status === 'declined' || c.status === 'expired')
+  const completed = challenges.filter(c => c.status === 'completed' || c.status === 'declined' || c.status === 'expired' || c.status === 'cancelled')
   const shown = tab === 'active' ? active : completed
 
   function getWinner(c) {
@@ -402,7 +402,7 @@ export default function Challenges({ session, onAuthRequired, workouts }) {
         const isThreadOpen = threadOpen === c.id
 
         return (
-          <div key={c.id} className={`ch-card${c.status === 'completed' || c.status === 'declined' ? ' done' : ''}`}>
+          <div key={c.id} className={`ch-card${c.status === 'completed' || c.status === 'declined' || c.status === 'cancelled' ? ' done' : ''}`}>
             <div className="ch-card-top">
               <div className="ch-matchup">
                 <span className="ch-player">{isChallenger ? 'You' : c.challenger?.display_name}</span>
@@ -564,6 +564,10 @@ export default function Challenges({ session, onAuthRequired, workouts }) {
                   <span style={{ fontSize: '12px', color: 'var(--tx3)' }}>❌ Declined</span>
                   {isChallenger && <button className="ab" onClick={() => startRematch(c)} style={{ padding: '4px 10px', fontSize: '11px' }}>🔄 Try again</button>}
                 </div>
+              )}
+
+              {c.status === 'cancelled' && (
+                <span style={{ fontSize: '12px', color: 'var(--tx3)' }}>🚫 Cancelled</span>
               )}
 
               {c.status === 'completed' && (
