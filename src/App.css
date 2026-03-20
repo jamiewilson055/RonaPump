@@ -1903,3 +1903,12 @@ input, select, textarea { font-family: inherit; }
 
 /* Sidebar nav group labels */
 .sidebar-nav-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; color: var(--tx3); text-transform: uppercase; letter-spacing: .5px; padding: 2px 0; }
+
+/* ============= Resume Workout Banner ============= */
+.resume-banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--s1); border: 1px solid var(--acc); border-left: 4px solid var(--acc); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; animation: resumeSlide .3s ease-out; }
+.resume-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.resume-icon { font-size: 22px; flex-shrink: 0; }
+.resume-title { font-size: 11px; color: var(--tx3); font-weight: 500; }
+.resume-name { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700; color: var(--tx); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.resume-actions { display: flex; gap: 6px; flex-shrink: 0; }
+@keyframes resumeSlide { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }

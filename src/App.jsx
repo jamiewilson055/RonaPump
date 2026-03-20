@@ -60,6 +60,23 @@ function App() {
   const [recentActivity, setRecentActivity] = useState([])
   const [weeklyLeaders, setWeeklyLeaders] = useState([])
   const [totalCompleted, setTotalCompleted] = useState(0)
+  const [activeWorkout, setActiveWorkout] = useState(null)
+
+  // Check for active workout from previous session
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('ronapump_active_workout')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        // Only show if less than 24 hours old
+        if (parsed.startedAt && Date.now() - parsed.startedAt < 86400000) {
+          setActiveWorkout(parsed)
+        } else {
+          localStorage.removeItem('ronapump_active_workout')
+        }
+      }
+    } catch {}
+  }, [])
 
   async function loadCollections(userId) {
     if (!userId) { setCollections([]); return }
@@ -292,6 +309,28 @@ function App() {
     <div className="app">
       <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onNotifNavigate={handleNotifNavigate} />
       {!session && <Welcome onSignIn={() => setShowAuth(true)} />}
+
+      {/* Continue where you left off banner */}
+      {activeWorkout && (
+        <div className="resume-banner">
+          <div className="resume-left">
+            <span className="resume-icon">🏋</span>
+            <div>
+              <div className="resume-title">Pick up where you left off</div>
+              <div className="resume-name">{activeWorkout.name}</div>
+            </div>
+          </div>
+          <div className="resume-actions">
+            <button className="ab p" onClick={() => {
+              window.location.href = `/workout/${activeWorkout.slug}`
+            }} style={{ padding: '6px 14px', fontSize: '12px' }}>Resume</button>
+            <button className="ab" onClick={() => {
+              setActiveWorkout(null)
+              try { localStorage.removeItem('ronapump_active_workout') } catch {}
+            }} style={{ padding: '6px 10px', fontSize: '12px' }}>✕</button>
+          </div>
+        </div>
+      )}
 
       {/* Hero Feature Cards — desktop only, on main tabs */}
       {isMainTab && (

@@ -177,6 +177,7 @@ export default function WODCard({ workouts, session, profile, onAuthRequired, on
       setTimeout(() => setShowPR(false), 4000)
     }
     setShowStoryCard(true)
+    try { localStorage.removeItem('ronapump_active_workout') } catch {}
     if (onWorkoutsChanged) onWorkoutsChanged()
   }
 
@@ -213,6 +214,12 @@ export default function WODCard({ workouts, session, profile, onAuthRequired, on
       return { ...w, matchScore: score }
     }).filter(w => w.matchScore > 0).sort((a, b) => b.matchScore - a.matchScore).slice(0, 4)
     setSimilarResults(results)
+  }
+
+  function saveActiveWorkout() {
+    if (!wod) return
+    const slug = (wod.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    try { localStorage.setItem('ronapump_active_workout', JSON.stringify({ id: wod.id, name: wod.name || 'Workout', slug, startedAt: Date.now() })) } catch {}
   }
 
   async function addToCollection(collId) {
@@ -399,7 +406,7 @@ export default function WODCard({ workouts, session, profile, onAuthRequired, on
             </div>
 
             <div className="acts">
-              <button className="ab p" onClick={() => setShowTimer(true)} style={{ fontWeight: 600 }}>▶ Start Workout</button>
+              <button className="ab p" onClick={() => { saveActiveWorkout(); setShowTimer(true) }} style={{ fontWeight: 600 }}>▶ Start Workout</button>
               <button className="ab p" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }} style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)' }}>{addingLog ? 'Cancel' : '✓ Complete Workout'}</button>
               {toggleFavorite && <button className={`ab ${isFav ? '' : 'g'}`} onClick={() => toggleFavorite(wod.id)}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>}
               <button className="ab" onClick={() => { if (!session) { onAuthRequired(); return } setShowCollections(!showCollections) }}>{showCollections ? 'Hide' : '📁 Save'}</button>
@@ -407,6 +414,7 @@ export default function WODCard({ workouts, session, profile, onAuthRequired, on
               <button className="ab" onClick={findSimilar}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
               <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
               <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
+              <button className="ab" onClick={shareWorkout}>📋 Share</button>
               <button className="ab" onClick={copyLink}>{copied ? '✓ Copied!' : '🔗 Link'}</button>
               {isAdmin && <button className="ab p" onClick={startEdit}>Edit</button>}
               {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}

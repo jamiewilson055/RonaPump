@@ -140,6 +140,11 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     })
   }
 
+  function saveActiveWorkout() {
+    const slug = w.name ? w.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : w.id
+    try { localStorage.setItem('ronapump_active_workout', JSON.stringify({ id: w.id, name: w.name || 'Workout', slug, startedAt: Date.now() })) } catch {}
+  }
+
   const hasDone = w.my_log_count > 0
   const bs = bestScore(w)
   const pl = w.performance_log || []
@@ -196,6 +201,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     setLogNotes('')
     setLogRx(true)
     setShowStoryCard(true)
+    try { localStorage.removeItem('ronapump_active_workout') } catch {}
     onWorkoutsChanged()
   }
 
@@ -456,7 +462,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
           <WorkoutComments workoutId={w.id} session={session} onAuthRequired={onAuthRequired} />
 
           <div className="acts">
-            <button className="ab p" onClick={() => setShowTimer(true)} style={{ fontWeight: 600 }}>▶ Start Workout</button>
+            <button className="ab p" onClick={() => { saveActiveWorkout(); setShowTimer(true) }} style={{ fontWeight: 600 }}>▶ Start Workout</button>
             <button className="ab p" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }} style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)' }}>{addingLog ? 'Cancel' : '✓ Complete Workout'}</button>
             <button className={`ab ${isFav ? '' : 'g'}`} onClick={() => toggleFavorite(w.id)}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>
             <button className="ab" onClick={() => { if (!session) { onAuthRequired(); return } setShowCollections(!showCollections) }}>{showCollections ? 'Hide' : '📁 Save'}</button>
@@ -466,6 +472,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
             <button className="ab" onClick={() => setShowSimilar(!showSimilar)}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
             <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
             <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
+            <button className="ab" onClick={shareWorkout}>📋 Share</button>
             <button className="ab" onClick={copyLink}>🔗 Link</button>
             {isAdmin && <button className="ab p" onClick={startEdit}>Edit</button>}
             {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}
