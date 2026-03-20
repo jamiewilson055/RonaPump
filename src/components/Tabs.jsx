@@ -6,15 +6,10 @@ export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount, 
     { key: 'favs', label: 'Favorites', short: 'Favs', count: counts.favs },
   ]
 
-  // Bottom nav: 3 items
-  const bottomNavTabs = [
-    { key: 'longevity', label: 'Longevity', icon: '🧬' },
-    { key: 'ai', label: 'AI', icon: '🤖' },
-    { key: 'prs', label: 'Strength', icon: '💪' },
-  ]
-
-  const featureTabs = ['deck', 'ai', 'timer', 'longevity', 'prs', 'activity', 'stats', 'collections']
-  const isSecondary = featureTabs.includes(tab)
+  const isWorkoutsTab = ['all', 'done', 'queue', 'favs'].includes(tab)
+  const isTrainTab = ['train', 'ai', 'deck', 'timer'].includes(tab)
+  const isTrackTab = ['track', 'longevity', 'prs', 'stats', 'collections'].includes(tab)
+  const isSocialTab = ['social', 'activity', 'h2h'].includes(tab)
 
   return (
     <>
@@ -29,14 +24,18 @@ export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount, 
       </div>
 
       <div className="bottom-nav">
-        <button className={`bnav${!isSecondary ? ' on' : ''}`} onClick={() => setTab('all')}>
+        <button className={`bnav${isWorkoutsTab ? ' on' : ''}`} onClick={() => setTab('all')}>
           <span>🏋</span><span>Workouts</span>
         </button>
-        {bottomNavTabs.map(t => (
-          <button key={t.key} className={`bnav${tab === t.key ? ' on' : ''}`} onClick={() => setTab(t.key)}>
-            <span>{t.icon}</span><span>{t.label}</span>
-          </button>
-        ))}
+        <button className={`bnav${isTrainTab ? ' on' : ''}`} onClick={() => setTab('train')}>
+          <span>⚡</span><span>Train</span>
+        </button>
+        <button className={`bnav${isTrackTab ? ' on' : ''}`} onClick={() => setTab('track')}>
+          <span>📊</span><span>Track</span>
+        </button>
+        <button className={`bnav${isSocialTab ? ' on' : ''}`} onClick={() => setTab('social')}>
+          <span>👥</span><span>Social</span>
+        </button>
       </div>
     </>
   )

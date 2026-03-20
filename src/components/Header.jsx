@@ -23,7 +23,7 @@ function getCurrentMilestone(total) {
   return current
 }
 
-export default function Header({ counts, session, profile, onAuthClick, streak, totalCompleted, onLogoClick, onStatsClick, onActivityClick, onH2HClick, onCollectionsClick, onTimerClick, onDeckClick, onNotifNavigate }) {
+export default function Header({ counts, session, profile, onAuthClick, streak, totalCompleted, onLogoClick, onNotifNavigate }) {
   const currentMs = getCurrentMilestone(totalCompleted || 0)
   const nextMs = getNextMilestone(totalCompleted || 0)
 
@@ -45,34 +45,15 @@ export default function Header({ counts, session, profile, onAuthClick, streak, 
         </div>
       </div>
       <div className="hdr-r">
-        {session && (
-          <button className="stats-btn mobile-only" onClick={onStatsClick} title="Stats & Streaks">
-            📊{streak > 0 && <span className="stats-streak">🔥{streak}</span>}
-          </button>
-        )}
         <div className="hs"><div className="hs-n">{counts.total}</div><div className="hs-l">Workouts</div></div>
         <div className="hs"><div className="hs-n">{counts.done}</div><div className="hs-l">Done</div></div>
         <div className="hs"><div className="hs-n">{counts.queue}</div><div className="hs-l">Queue</div></div>
         <ThemeToggle />
         {session && <NotificationBell session={session} onNavigate={onNotifNavigate} />}
         {session ? (
-          <div className="hdr-user-group">
-            <button className="user-btn" onClick={onAuthClick}>
-              {profile?.display_name || 'Profile'}
-            </button>
-            <button className="stats-btn activity-btn mobile-only" onClick={onActivityClick} title="Activity Feed">
-              👥 <span className="activity-label">Activity</span>
-            </button>
-            <button className="stats-btn activity-btn mobile-only" onClick={onDeckClick} title="Deck of Cards">
-              🃏
-            </button>
-            <button className="stats-btn activity-btn mobile-only" onClick={onTimerClick} title="Timer">
-              ⏱
-            </button>
-            <button className="stats-btn activity-btn mobile-only" onClick={onCollectionsClick} title="Collections">
-              📁
-            </button>
-          </div>
+          <button className="user-btn" onClick={onAuthClick}>
+            {profile?.display_name || 'Profile'}
+          </button>
         ) : (
           <button className="user-btn" onClick={onAuthClick}>Sign In</button>
         )}
