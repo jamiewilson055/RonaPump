@@ -173,6 +173,21 @@ export default function WorkoutPage() {
     loadWorkout()
   }
 
+  function shareWorkout() {
+    if (!workout) return
+    let text = ''
+    if (workout.name) text += workout.name + '\n\n'
+    text += workout.description || ''
+    if (workout.estimated_duration_mins) text += `\n\n⏱ ${workout.estimated_duration_mins} min`
+    else if (workout.estimated_duration_min && workout.estimated_duration_max) text += `\n\n⏱ ${workout.estimated_duration_min}-${workout.estimated_duration_max} min`
+    if (workout.equipment?.filter(e => e !== 'Bodyweight').length) text += `\n🏋 ${workout.equipment.filter(e => e !== 'Bodyweight').join(', ')}`
+    text += `\n\n🦍 — RonaPump | ${window.location.href}`
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
   function copyLink() {
     const url = window.location.href
     navigator.clipboard.writeText(url).then(() => {
@@ -368,7 +383,7 @@ export default function WorkoutPage() {
         </div>
 
         {/* BUTTONS — identical order to WODCard and WorkoutCard:
-            Start, Complete, Favorite, Save, Remix, Similar, Instagram, Story Card, Link, Edit (admin), Delete (admin) */}
+            Start, Complete, Favorite, Save, Remix, Similar, Instagram, Story Card, Share, Link, Edit (admin), Delete (admin) */}
         <div className="acts">
           <button className="ab p" onClick={() => setShowTimer(true)} style={{ fontWeight: 600 }}>▶ Start Workout</button>
           <button className="ab p" onClick={() => { if (!session) return; setAddingLog(!addingLog) }} style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)' }}>{addingLog ? 'Cancel' : '✓ Complete Workout'}</button>
@@ -378,6 +393,7 @@ export default function WorkoutPage() {
           <button className="ab" onClick={() => setShowSimilar(!showSimilar)}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
           <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
           <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
+          <button className="ab" onClick={shareWorkout}>📋 Share</button>
           <button className="ab" onClick={copyLink}>{copied ? '✓ Copied!' : '🔗 Link'}</button>
           {isAdmin && <button className="ab p" onClick={startEdit}>Edit</button>}
           {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}
