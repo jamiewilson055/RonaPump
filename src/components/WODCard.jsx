@@ -407,7 +407,6 @@ export default function WODCard({ workouts, session, profile, onAuthRequired, on
               <button className="ab" onClick={findSimilar}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
               <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
               <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
-              <button className="ab" onClick={shareWorkout}>📋 Share</button>
               <button className="ab" onClick={copyLink}>{copied ? '✓ Copied!' : '🔗 Link'}</button>
               {isAdmin && <button className="ab p" onClick={startEdit}>Edit</button>}
               {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}
@@ -559,7 +558,7 @@ export default function WODCard({ workouts, session, profile, onAuthRequired, on
             </div>
             <label>Movement Type</label>
             <div className="cr">
-              {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat', 'Thruster'].map(m => (
+              {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'KB Swing', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat', 'Thruster'].map(m => (
                 <button key={m} className={`ch${editForm.movement_categories.includes(m) ? ' on' : ''}`} onClick={() => toggleEditArray('movement_categories', m)}>{m}</button>
               ))}
             </div>

@@ -87,6 +87,23 @@ export default function WorkoutPage() {
   const [editing, setEditing] = useState(false)
   const [remixing, setRemixing] = useState(false)
   const [editForm, setEditForm] = useState(null)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const EMOJI_CATEGORIES = [
+    { label: '💪 Fitness', emojis: ['💪', '🏋️', '🏃', '🔥', '⏱', '🦍', '💀', '😤', '🫡', '🎯', '🏆', '⚡', '🧨', '💣', '🚀', '👊', '✅', '❌', '⬆️', '⬇️'] },
+    { label: '🔢 Numbers', emojis: ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '🔟', '💯', '0️⃣'] },
+    { label: '⚙️ Gear', emojis: ['🏋️‍♂️', '🏋️‍♀️', '🚴', '🚣', '🏊', '⛷️', '🧗', '🤸', '🏃‍♂️', '🏃‍♀️', '🥇', '🥈', '🥉', '🎽'] },
+    { label: '😀 Faces', emojis: ['😀', '😎', '🤯', '😈', '🥵', '😮‍💨', '🫠', '💀', '👀', '🙌', '👏', '🤝', '✊', '🤘'] },
+    { label: '📝 Misc', emojis: ['📌', '📝', '📊', '🗓️', '⭐', '💡', '🔄', '⏩', '▶️', '⏸️', '🟢', '🔴', '🟡', '⚪', '🔵', '➡️', '⬅️'] },
+  ]
+  function insertEmoji(emoji) {
+    const ta = document.getElementById('wp-edit-desc')
+    if (!ta) return
+    const start = ta.selectionStart
+    const before = editForm.description.slice(0, start)
+    const after = editForm.description.slice(start)
+    setEditForm({ ...editForm, description: before + emoji + after })
+    setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + emoji.length }, 0)
+  }
 
   const isAdmin = profile?.is_admin || false
 
@@ -173,21 +190,6 @@ export default function WorkoutPage() {
     loadWorkout()
   }
 
-  function shareWorkout() {
-    if (!workout) return
-    let text = ''
-    if (workout.name) text += workout.name + '\n\n'
-    text += workout.description || ''
-    if (workout.estimated_duration_mins) text += `\n\n⏱ ${workout.estimated_duration_mins} min`
-    else if (workout.estimated_duration_min && workout.estimated_duration_max) text += `\n\n⏱ ${workout.estimated_duration_min}-${workout.estimated_duration_max} min`
-    if (workout.equipment?.filter(e => e !== 'Bodyweight').length) text += `\n🏋 ${workout.equipment.filter(e => e !== 'Bodyweight').join(', ')}`
-    text += `\n\n🦍 — RonaPump | ${window.location.href}`
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }
-
   function copyLink() {
     const url = window.location.href
     navigator.clipboard.writeText(url).then(() => {
@@ -262,7 +264,7 @@ export default function WorkoutPage() {
       }).eq('id', workout.id)
       if (error) { alert('Error saving: ' + error.message); return }
     }
-    setEditing(false); setEditForm(null); setRemixing(false)
+    setEditing(false); setEditForm(null); setRemixing(false); setShowEmojiPicker(false)
     loadWorkout()
   }
 
@@ -383,7 +385,7 @@ export default function WorkoutPage() {
         </div>
 
         {/* BUTTONS — identical order to WODCard and WorkoutCard:
-            Start, Complete, Favorite, Save, Remix, Similar, Instagram, Story Card, Share, Link, Edit (admin), Delete (admin) */}
+            Start, Complete, Favorite, Save, Remix, Similar, Instagram, Story Card, Link, Edit (admin), Delete (admin) */}
         <div className="acts">
           <button className="ab p" onClick={() => setShowTimer(true)} style={{ fontWeight: 600 }}>▶ Start Workout</button>
           <button className="ab p" onClick={() => { if (!session) return; setAddingLog(!addingLog) }} style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)' }}>{addingLog ? 'Cancel' : '✓ Complete Workout'}</button>
@@ -393,7 +395,6 @@ export default function WorkoutPage() {
           <button className="ab" onClick={() => setShowSimilar(!showSimilar)}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
           <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
           <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
-          <button className="ab" onClick={shareWorkout}>📋 Share</button>
           <button className="ab" onClick={copyLink}>{copied ? '✓ Copied!' : '🔗 Link'}</button>
           {isAdmin && <button className="ab p" onClick={startEdit}>Edit</button>}
           {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}
@@ -442,14 +443,82 @@ export default function WorkoutPage() {
       {showStoryCard && <StoryCard workout={w} score={lastLogScore} session={session} onClose={() => setShowStoryCard(false)} />}
 
       {editing && editForm && (
-        <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) { setEditing(false); setEditForm(null); setRemixing(false) } }}>
+        <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) { setEditing(false); setEditForm(null); setRemixing(false); setShowEmojiPicker(false) } }}>
           <div className="mc">
             <h2>{remixing ? '🔀 Remix Workout' : 'Edit Workout'}</h2>
             {remixing && <div style={{ fontSize: '12px', color: 'var(--tx3)', marginBottom: '10px', lineHeight: 1.5 }}>Modify this workout to fit your equipment or preferences. It'll be saved as a private copy.</div>}
             <label>Name</label>
             <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="e.g. The Grind" />
             <label>Description / Details</label>
-            <textarea value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} placeholder="Full workout details..." style={{ minHeight: '140px' }} />
+            <div className="fmt-bar">
+              <button type="button" className="fmt-btn" onClick={() => {
+                const ta = document.getElementById('wp-edit-desc')
+                if (!ta) return
+                const start = ta.selectionStart
+                const before = editForm.description.slice(0, start)
+                const after = editForm.description.slice(start)
+                const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
+                setEditForm({ ...editForm, description: before + nl + '• ' + after })
+                setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 2 }, 0)
+              }}>• Bullet</button>
+              <button type="button" className="fmt-btn" onClick={() => {
+                const ta = document.getElementById('wp-edit-desc')
+                if (!ta) return
+                const start = ta.selectionStart
+                const before = editForm.description.slice(0, start)
+                const after = editForm.description.slice(start)
+                const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
+                setEditForm({ ...editForm, description: before + nl + '  • ' + after })
+                setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 4 }, 0)
+              }}>  ◦ Sub-bullet</button>
+              <button type="button" className="fmt-btn" onClick={() => {
+                const ta = document.getElementById('wp-edit-desc')
+                if (!ta) return
+                const start = ta.selectionStart
+                const end = ta.selectionEnd
+                const selected = editForm.description.slice(start, end)
+                if (selected) {
+                  const before = editForm.description.slice(0, start)
+                  const after = editForm.description.slice(end)
+                  setEditForm({ ...editForm, description: before + '**' + selected + '**' + after })
+                  setTimeout(() => { ta.focus(); ta.selectionStart = start; ta.selectionEnd = end + 4 }, 0)
+                } else {
+                  const before = editForm.description.slice(0, start)
+                  const after = editForm.description.slice(start)
+                  setEditForm({ ...editForm, description: before + '****' + after })
+                  setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + 2 }, 0)
+                }
+              }}><b>B</b> Bold</button>
+              <button type="button" className="fmt-btn" onClick={() => {
+                const ta = document.getElementById('wp-edit-desc')
+                if (!ta) return
+                const start = ta.selectionStart
+                const before = editForm.description.slice(0, start)
+                const after = editForm.description.slice(start)
+                const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
+                setEditForm({ ...editForm, description: before + nl + '--- ' + after })
+                setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 4 }, 0)
+              }}>— Section</button>
+              <button type="button" className="fmt-btn" style={showEmojiPicker ? { background: 'var(--acc)', color: '#fff', borderColor: 'var(--acc)' } : {}} onClick={() => setShowEmojiPicker(!showEmojiPicker)}>😀 Emoji</button>
+            </div>
+            {showEmojiPicker && (
+              <div style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: '6px', padding: '8px', marginBottom: '6px', maxHeight: '200px', overflowY: 'auto' }}>
+                {EMOJI_CATEGORIES.map(cat => (
+                  <div key={cat.label} style={{ marginBottom: '6px' }}>
+                    <div style={{ fontSize: '10px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: '4px' }}>{cat.label}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px' }}>
+                      {cat.emojis.map((em, i) => (
+                        <button key={i} type="button" onClick={() => insertEmoji(em)} style={{ background: 'none', border: '1px solid transparent', borderRadius: '4px', cursor: 'pointer', fontSize: '18px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.08)'; e.currentTarget.style.borderColor = 'var(--brd)' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.borderColor = 'transparent' }}
+                        >{em}</button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <textarea id="wp-edit-desc" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} placeholder="Full workout details..." style={{ minHeight: '140px' }} />
             <label>Score Type</label>
             <div className="st-sel">
               {['Time', 'Rounds + Reps', 'Reps', 'Calories', 'Distance', 'Load', 'None'].map(t => (
@@ -472,13 +541,13 @@ export default function WorkoutPage() {
             </div>
             <label>Category</label>
             <div className="cr">
-              {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Outdoor', 'Track Workouts'].map(c => (
+              {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Partner', 'Track Workouts'].map(c => (
                 <button key={c} className={`ch${editForm.categories.includes(c) ? ' on' : ''}`} onClick={() => toggleEditArray('categories', c)}>{c}</button>
               ))}
             </div>
             <label>Movement Type</label>
             <div className="cr">
-              {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat', 'Thruster'].map(m => (
+              {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'KB Swing', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat', 'Thruster'].map(m => (
                 <button key={m} className={`ch${editForm.movement_categories.includes(m) ? ' on' : ''}`} onClick={() => toggleEditArray('movement_categories', m)}>{m}</button>
               ))}
             </div>
@@ -489,7 +558,7 @@ export default function WorkoutPage() {
               ))}
             </div>
             <div className="mf">
-              <button className="ab" onClick={() => { setEditing(false); setEditForm(null); setRemixing(false) }}>Cancel</button>
+              <button className="ab" onClick={() => { setEditing(false); setEditForm(null); setRemixing(false); setShowEmojiPicker(false) }}>Cancel</button>
               <button className="ab p" onClick={saveEdit}>{remixing ? '🔀 Save My Version' : 'Save'}</button>
             </div>
           </div>
