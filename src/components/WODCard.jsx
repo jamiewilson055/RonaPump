@@ -246,8 +246,8 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
                           </td>
                           <td style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
                           <td style={{ whiteSpace: 'nowrap' }}>
-                            {e.is_mine && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); startEditLog(e) }} style={{ marginRight: '4px' }} title="Edit">✎</span>}
-                            {e.is_mine && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); deleteLog(e.id) }}>✕</span>}
+                            {(e.is_mine || isAdmin) && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); startEditLog(e) }} style={{ marginRight: '4px' }} title="Edit">✎</span>}
+                            {(e.is_mine || isAdmin) && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); deleteLog(e.id) }}>✕</span>}
                           </td>
                         </tr>
                       )
