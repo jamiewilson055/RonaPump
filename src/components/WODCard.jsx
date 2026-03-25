@@ -38,7 +38,6 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
   const [similarResults, setSimilarResults] = useState([])
   const [editingLogId, setEditingLogId] = useState(null)
   const [editLogForm, setEditLogForm] = useState(null)
-
   const pick = useCallback(() => {
     const pool = workouts.filter(w => w.description && w.description.length > 40 && w.visibility !== 'private')
     if (pool.length) setWod(pool[Math.floor(Math.random() * pool.length)])
@@ -123,15 +122,16 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
     setShowCollections(false)
   }
 
-  async function deleteLog(logId) {
-    if (!confirm('Delete this log entry?')) return
-    await supabase.from('performance_log').delete().eq('id', logId)
+  async function deleteWorkout() {
+    if (!confirm('Delete this workout?')) return
+    await supabase.from('workouts').delete().eq('id', wod.id)
     if (onWorkoutsChanged) onWorkoutsChanged()
+    pick()
   }
 
   function startEditLog(entry) {
     setEditingLogId(entry.id)
-    setEditLogForm({ score: entry.score || '', completed_at: entry.completed_at || '', notes: entry.notes || '' })
+    setEditLogForm({ score: entry.score || '', completed_at: entry.completed_at || '', notes: entry.notes || '', is_rx: entry.is_rx !== false })
   }
 
   async function saveEditLog() {
@@ -140,17 +140,17 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
       score: editLogForm.score.trim() || null,
       completed_at: editLogForm.completed_at,
       notes: editLogForm.notes.trim() || null,
+      is_rx: editLogForm.is_rx,
     }).eq('id', editingLogId)
     setEditingLogId(null)
     setEditLogForm(null)
     if (onWorkoutsChanged) onWorkoutsChanged()
   }
 
-  async function deleteWorkout() {
-    if (!confirm('Delete this workout?')) return
-    await supabase.from('workouts').delete().eq('id', wod.id)
+  async function deleteLog(logId) {
+    if (!confirm('Delete this log entry?')) return
+    await supabase.from('performance_log').delete().eq('id', logId)
     if (onWorkoutsChanged) onWorkoutsChanged()
-    pick()
   }
 
   if (!wod) return null
@@ -165,7 +165,6 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
         if (e._clickX !== undefined && (Math.abs(e.clientX - e._clickX) > 5 || Math.abs(e.clientY - e._clickY) > 5)) return
         const sel = window.getSelection()
         if (sel && sel.toString().length > 0) return
-        if (addingLog || editingLogId || showCollections || showShareImage) return
         setExpanded(!expanded)
       }} style={{ cursor: 'pointer' }}>
         <div className="wod-top">
@@ -209,15 +208,22 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
               </div>
               {pl.length > 0 && (
                 <table className="plog-table">
-                  <thead><tr><th>Date</th><th>{scoreLabel}</th><th>Notes</th><th></th></tr></thead>
+                  <thead><tr><th>Athlete</th><th>Date</th><th>{scoreLabel}</th><th>Notes</th><th></th></tr></thead>
                   <tbody>
-                    {pl.map(e => {
+                    {pl.filter(p => p.notes !== 'Quick logged').map(e => {
                       const isEditingThis = editingLogId === e.id
+
                       if (isEditingThis && editLogForm) {
                         return (
                           <tr key={e.id}>
+                            <td style={{ fontWeight: 600, color: 'var(--tx2)', fontSize: '11px' }}>{e.display_name}</td>
                             <td><input type="date" value={editLogForm.completed_at} onChange={ev => setEditLogForm({ ...editLogForm, completed_at: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
-                            <td><input value={editLogForm.score} onChange={ev => setEditLogForm({ ...editLogForm, score: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <input value={editLogForm.score} onChange={ev => setEditLogForm({ ...editLogForm, score: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', flex: 1, minWidth: 0 }} />
+                                <span onClick={() => setEditLogForm({ ...editLogForm, is_rx: !editLogForm.is_rx })} style={{ cursor: 'pointer', fontSize: '10px', fontWeight: 700, padding: '2px 4px', borderRadius: '3px', background: editLogForm.is_rx ? 'var(--grn-d)' : 'var(--bg2)', color: editLogForm.is_rx ? 'var(--grn)' : 'var(--tx3)', border: '1px solid ' + (editLogForm.is_rx ? 'var(--grn)' : 'var(--brd)'), whiteSpace: 'nowrap', userSelect: 'none' }}>{editLogForm.is_rx ? 'Rx' : 'Sc'}</span>
+                              </div>
+                            </td>
                             <td><input value={editLogForm.notes} onChange={ev => setEditLogForm({ ...editLogForm, notes: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
                             <td style={{ whiteSpace: 'nowrap' }}>
                               <span className="del-entry" onClick={saveEditLog} style={{ color: 'var(--grn)', marginRight: '4px' }}>✓</span>
@@ -226,14 +232,22 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
                           </tr>
                         )
                       }
+
                       return (
-                        <tr key={e.id}>
+                        <tr key={e.id} className={e.is_mine ? 'my-log' : ''}>
+                          <td className="lb-name">
+                            <span style={{ fontWeight: e.is_mine ? 700 : 500 }}>{e.display_name}</span>
+                          </td>
                           <td>{e.completed_at || '—'}</td>
-                          <td>{e.score || '—'}</td>
+                          <td>
+                            {e.score || '—'}
+                            {e.is_rx === false && <span className="scaled-tag">Scaled</span>}
+                            {e.is_rx === true && e.score && <span className="rx-tag">Rx</span>}
+                          </td>
                           <td style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
                           <td style={{ whiteSpace: 'nowrap' }}>
-                            <span className="del-entry" onClick={() => startEditLog(e)} style={{ marginRight: '4px' }} title="Edit">✎</span>
-                            <span className="del-entry" onClick={() => deleteLog(e.id)} title="Delete">✕</span>
+                            {e.is_mine && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); startEditLog(e) }} style={{ marginRight: '4px' }} title="Edit">✎</span>}
+                            {e.is_mine && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); deleteLog(e.id) }}>✕</span>}
                           </td>
                         </tr>
                       )
@@ -246,6 +260,10 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
                   <input placeholder={scoreLabel} value={logScore} onChange={e => setLogScore(e.target.value)} />
                   <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} />
                   <input placeholder="Notes (optional)" value={logNotes} onChange={e => setLogNotes(e.target.value)} />
+                  <label className="rx-toggle" title="Rx = prescribed weights/movements">
+                    <input type="checkbox" checked={logRx} onChange={e => setLogRx(e.target.checked)} />
+                    <span className={logRx ? 'rx-on' : 'rx-off'}>Rx</span>
+                  </label>
                   <button className="ab p" onClick={addLog}>Save</button>
                 </div>
               )}
