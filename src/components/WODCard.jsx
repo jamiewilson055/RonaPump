@@ -4,6 +4,8 @@ import WorkoutTimer from './WorkoutTimer'
 import ShareImage from './ShareImage'
 import StoryCard from './StoryCard'
 
+const SCORE_TYPES = ['Time', 'Rounds + Reps', 'Reps', 'Calories', 'Distance', 'Load', 'None']
+
 function formatDesc(text) {
   function renderBold(str) {
     const parts = str.split(/\*\*(.*?)\*\*/)
@@ -36,8 +38,10 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
   const [showCollections, setShowCollections] = useState(false)
   const [showSimilar, setShowSimilar] = useState(false)
   const [similarResults, setSimilarResults] = useState([])
-  const [editingLogId, setEditingLogId] = useState(null)
-  const [editLogForm, setEditLogForm] = useState(null)
+  const [editing, setEditing] = useState(false)
+  const [editForm, setEditForm] = useState(null)
+  const [remixing, setRemixing] = useState(false)
+
   const pick = useCallback(() => {
     const pool = workouts.filter(w => w.description && w.description.length > 40 && w.visibility !== 'private')
     if (pool.length) setWod(pool[Math.floor(Math.random() * pool.length)])
@@ -129,27 +133,97 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
     pick()
   }
 
-  function startEditLog(entry) {
-    setEditingLogId(entry.id)
-    setEditLogForm({ score: entry.score || '', completed_at: entry.completed_at || '', notes: entry.notes || '', is_rx: entry.is_rx !== false })
+  function startEdit() {
+    setEditForm({
+      name: wod.name || '',
+      description: wod.description || '',
+      score_type: wod.score_type || 'None',
+      estimated_duration_mins: wod.estimated_duration_mins || '',
+      estimated_duration_min: wod.estimated_duration_min || '',
+      estimated_duration_max: wod.estimated_duration_max || '',
+      equipment: [...(wod.equipment || [])],
+      workout_types: [...(wod.workout_types || [])],
+      categories: [...(wod.categories || [])],
+      movement_categories: [...(wod.movement_categories || [])],
+      body_parts: [...(wod.body_parts || [])],
+    })
+    setRemixing(false)
+    setEditing(true)
   }
 
-  async function saveEditLog() {
-    if (!editLogForm || !editingLogId) return
-    await supabase.from('performance_log').update({
-      score: editLogForm.score.trim() || null,
-      completed_at: editLogForm.completed_at,
-      notes: editLogForm.notes.trim() || null,
-      is_rx: editLogForm.is_rx,
-    }).eq('id', editingLogId)
-    setEditingLogId(null)
-    setEditLogForm(null)
-    if (onWorkoutsChanged) onWorkoutsChanged()
+  function startRemix() {
+    if (!session) { onAuthRequired(); return }
+    setEditForm({
+      name: (wod.name || 'Unnamed') + ' (My Version)',
+      description: wod.description || '',
+      score_type: wod.score_type || 'None',
+      estimated_duration_mins: wod.estimated_duration_mins || '',
+      estimated_duration_min: wod.estimated_duration_min || '',
+      estimated_duration_max: wod.estimated_duration_max || '',
+      equipment: [...(wod.equipment || [])],
+      workout_types: [...(wod.workout_types || [])],
+      categories: [...(wod.categories || [])],
+      movement_categories: [...(wod.movement_categories || [])],
+      body_parts: [...(wod.body_parts || [])],
+    })
+    setRemixing(true)
+    setEditing(true)
   }
 
-  async function deleteLog(logId) {
-    if (!confirm('Delete this log entry?')) return
-    await supabase.from('performance_log').delete().eq('id', logId)
+  function toggleEditArray(field, val) {
+    setEditForm(prev => {
+      const arr = [...prev[field]]
+      const idx = arr.indexOf(val)
+      if (idx >= 0) arr.splice(idx, 1); else arr.push(val)
+      return { ...prev, [field]: arr }
+    })
+  }
+
+  async function saveEdit() {
+    if (!editForm.description.trim()) { alert('Description is required.'); return }
+
+    if (remixing) {
+      const { error } = await supabase.from('workouts').insert({
+        name: editForm.name.trim() || null,
+        description: editForm.description.trim(),
+        score_type: editForm.score_type,
+        estimated_duration_mins: editForm.estimated_duration_mins ? parseInt(editForm.estimated_duration_mins) : null,
+        estimated_duration_min: editForm.estimated_duration_min ? parseInt(editForm.estimated_duration_min) : null,
+        estimated_duration_max: editForm.estimated_duration_max ? parseInt(editForm.estimated_duration_max) : null,
+        equipment: editForm.equipment.length ? editForm.equipment : ['Bodyweight'],
+        workout_types: editForm.workout_types.length ? editForm.workout_types : ['For Time'],
+        categories: editForm.categories,
+        movement_categories: editForm.movement_categories.length ? editForm.movement_categories : [],
+        body_parts: editForm.body_parts || [],
+        created_by: session.user.id,
+        visibility: 'private',
+        source: 'remix-of-' + wod.id,
+      })
+      if (error) { alert('Error saving: ' + error.message); return }
+    } else {
+      const { error } = await supabase
+        .from('workouts')
+        .update({
+          name: editForm.name.trim() || null,
+          description: editForm.description.trim(),
+          score_type: editForm.score_type,
+          estimated_duration_mins: editForm.estimated_duration_mins ? parseInt(editForm.estimated_duration_mins) : null,
+          estimated_duration_min: editForm.estimated_duration_min ? parseInt(editForm.estimated_duration_min) : null,
+          estimated_duration_max: editForm.estimated_duration_max ? parseInt(editForm.estimated_duration_max) : null,
+          equipment: editForm.equipment.length ? editForm.equipment : ['General'],
+          workout_types: editForm.workout_types.length ? editForm.workout_types : ['General'],
+          categories: editForm.categories,
+          movement_categories: editForm.movement_categories.length ? editForm.movement_categories : [],
+          body_parts: editForm.body_parts || [],
+          auto_named: false,
+        })
+        .eq('id', wod.id)
+      if (error) { alert('Error saving: ' + error.message); return }
+    }
+
+    setEditing(false)
+    setEditForm(null)
+    setRemixing(false)
     if (onWorkoutsChanged) onWorkoutsChanged()
   }
 
@@ -208,50 +282,15 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
               </div>
               {pl.length > 0 && (
                 <table className="plog-table">
-                  <thead><tr><th>Athlete</th><th>Date</th><th>{scoreLabel}</th><th>Notes</th><th></th></tr></thead>
+                  <thead><tr><th>Date</th><th>{scoreLabel}</th><th>Notes</th></tr></thead>
                   <tbody>
-                    {pl.filter(p => p.notes !== 'Quick logged').map(e => {
-                      const isEditingThis = editingLogId === e.id
-
-                      if (isEditingThis && editLogForm) {
-                        return (
-                          <tr key={e.id}>
-                            <td style={{ fontWeight: 600, color: 'var(--tx2)', fontSize: '11px' }}>{e.display_name}</td>
-                            <td><input type="date" value={editLogForm.completed_at} onChange={ev => setEditLogForm({ ...editLogForm, completed_at: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
-                            <td>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <input value={editLogForm.score} onChange={ev => setEditLogForm({ ...editLogForm, score: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', flex: 1, minWidth: 0 }} />
-                                <span onClick={() => setEditLogForm({ ...editLogForm, is_rx: !editLogForm.is_rx })} style={{ cursor: 'pointer', fontSize: '10px', fontWeight: 700, padding: '2px 4px', borderRadius: '3px', background: editLogForm.is_rx ? 'var(--grn-d)' : 'var(--bg2)', color: editLogForm.is_rx ? 'var(--grn)' : 'var(--tx3)', border: '1px solid ' + (editLogForm.is_rx ? 'var(--grn)' : 'var(--brd)'), whiteSpace: 'nowrap', userSelect: 'none' }}>{editLogForm.is_rx ? 'Rx' : 'Sc'}</span>
-                              </div>
-                            </td>
-                            <td><input value={editLogForm.notes} onChange={ev => setEditLogForm({ ...editLogForm, notes: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
-                            <td style={{ whiteSpace: 'nowrap' }}>
-                              <span className="del-entry" onClick={saveEditLog} style={{ color: 'var(--grn)', marginRight: '4px' }}>✓</span>
-                              <span className="del-entry" onClick={() => { setEditingLogId(null); setEditLogForm(null) }}>✕</span>
-                            </td>
-                          </tr>
-                        )
-                      }
-
-                      return (
-                        <tr key={e.id} className={e.is_mine ? 'my-log' : ''}>
-                          <td className="lb-name">
-                            <span style={{ fontWeight: e.is_mine ? 700 : 500 }}>{e.display_name}</span>
-                          </td>
-                          <td>{e.completed_at || '—'}</td>
-                          <td>
-                            {e.score || '—'}
-                            {e.is_rx === false && <span className="scaled-tag">Scaled</span>}
-                            {e.is_rx === true && e.score && <span className="rx-tag">Rx</span>}
-                          </td>
-                          <td style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
-                          <td style={{ whiteSpace: 'nowrap' }}>
-                            {(e.is_mine || isAdmin) && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); startEditLog(e) }} style={{ marginRight: '4px' }} title="Edit">✎</span>}
-                            {(e.is_mine || isAdmin) && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); deleteLog(e.id) }}>✕</span>}
-                          </td>
-                        </tr>
-                      )
-                    })}
+                    {pl.map(e => (
+                      <tr key={e.id}>
+                        <td>{e.completed_at || '—'}</td>
+                        <td>{e.score || '—'}</td>
+                        <td style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               )}
@@ -260,10 +299,6 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
                   <input placeholder={scoreLabel} value={logScore} onChange={e => setLogScore(e.target.value)} />
                   <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} />
                   <input placeholder="Notes (optional)" value={logNotes} onChange={e => setLogNotes(e.target.value)} />
-                  <label className="rx-toggle" title="Rx = prescribed weights/movements">
-                    <input type="checkbox" checked={logRx} onChange={e => setLogRx(e.target.checked)} />
-                    <span className={logRx ? 'rx-on' : 'rx-off'}>Rx</span>
-                  </label>
                   <button className="ab p" onClick={addLog}>Save</button>
                 </div>
               )}
@@ -274,18 +309,12 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
               <button className="ab p" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }} style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)' }}>{addingLog ? 'Cancel' : '✓ Complete Workout'}</button>
               {toggleFavorite && <button className={`ab ${isFav ? '' : 'g'}`} onClick={() => toggleFavorite(wod.id)}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>}
               <button className="ab" onClick={() => { if (!session) { onAuthRequired(); return } setShowCollections(!showCollections) }}>{showCollections ? 'Hide' : '📁 Save'}</button>
-              <button className="ab" onClick={() => {
-                const slug = (wod.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-                window.location.href = '/workout/' + slug + '?remix=1'
-              }}>🔀 Remix</button>
+              <button className="ab" onClick={startRemix}>🔀 Remix</button>
               <button className="ab" onClick={findSimilar}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
               <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
               <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
               <button className="ab" onClick={copyLink}>{copied ? '✓ Copied!' : '🔗 Link'}</button>
-              {isAdmin && <button className="ab p" onClick={() => {
-                const slug = (wod.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-                window.location.href = '/workout/' + slug
-              }}>Edit</button>}
+              {isAdmin && <button className="ab p" onClick={startEdit}>Edit</button>}
               {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}
             </div>
 
@@ -324,6 +353,139 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
           </div>
         )}
       </div>
+
+      {editing && editForm && (
+        <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) { setEditing(false); setEditForm(null); setRemixing(false) } }}>
+          <div className="mc">
+            <h2>{remixing ? '🔀 Remix Workout' : 'Edit Workout'}</h2>
+            {remixing && (
+              <div style={{ fontSize: '12px', color: 'var(--tx3)', marginBottom: '10px', lineHeight: 1.5 }}>
+                Modify this workout to fit your equipment or preferences. It'll be saved as a private copy in My Workouts.
+              </div>
+            )}
+            <label>Name</label>
+            <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="e.g. The Grind" />
+
+            <label>Description / Details</label>
+            <div className="fmt-bar">
+              <button type="button" className="fmt-btn" onClick={() => {
+                const ta = document.getElementById('wod-edit-desc')
+                if (!ta) return
+                const start = ta.selectionStart
+                const before = editForm.description.slice(0, start)
+                const after = editForm.description.slice(start)
+                const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
+                setEditForm({ ...editForm, description: before + nl + '• ' + after })
+                setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 2 }, 0)
+              }}>• Bullet</button>
+              <button type="button" className="fmt-btn" onClick={() => {
+                const ta = document.getElementById('wod-edit-desc')
+                if (!ta) return
+                const start = ta.selectionStart
+                const before = editForm.description.slice(0, start)
+                const after = editForm.description.slice(start)
+                const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
+                setEditForm({ ...editForm, description: before + nl + '  • ' + after })
+                setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 4 }, 0)
+              }}>  ◦ Sub-bullet</button>
+              <button type="button" className="fmt-btn" onClick={() => {
+                const ta = document.getElementById('wod-edit-desc')
+                if (!ta) return
+                const start = ta.selectionStart
+                const end = ta.selectionEnd
+                const selected = editForm.description.slice(start, end)
+                if (selected) {
+                  const before = editForm.description.slice(0, start)
+                  const after = editForm.description.slice(end)
+                  setEditForm({ ...editForm, description: before + '**' + selected + '**' + after })
+                  setTimeout(() => { ta.focus(); ta.selectionStart = start; ta.selectionEnd = end + 4 }, 0)
+                } else {
+                  const before = editForm.description.slice(0, start)
+                  const after = editForm.description.slice(start)
+                  setEditForm({ ...editForm, description: before + '****' + after })
+                  setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + 2 }, 0)
+                }
+              }}><b>B</b> Bold</button>
+              <button type="button" className="fmt-btn" onClick={() => {
+                const ta = document.getElementById('wod-edit-desc')
+                if (!ta) return
+                const start = ta.selectionStart
+                const before = editForm.description.slice(0, start)
+                const after = editForm.description.slice(start)
+                const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
+                setEditForm({ ...editForm, description: before + nl + '--- ' + after })
+                setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 4 }, 0)
+              }}>— Section</button>
+            </div>
+            <textarea id="wod-edit-desc" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} placeholder="Full workout details..." style={{ minHeight: '140px' }} />
+
+            <label>Score Type</label>
+            <div className="st-sel">
+              {SCORE_TYPES.map(t => (
+                <button key={t} className={`st-opt${editForm.score_type === t ? ' on' : ''}`}
+                  onClick={() => setEditForm({ ...editForm, score_type: t })}>{t}</button>
+              ))}
+            </div>
+
+            <label>Duration (exact minutes, if known)</label>
+            <input type="number" value={editForm.estimated_duration_mins} onChange={e => setEditForm({ ...editForm, estimated_duration_mins: e.target.value })} placeholder="e.g. 30" />
+
+            <label>Duration Range (if exact is unknown)</label>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input type="number" value={editForm.estimated_duration_min} onChange={e => setEditForm({ ...editForm, estimated_duration_min: e.target.value })} placeholder="Min" style={{ width: '80px' }} />
+              <span style={{ color: 'var(--tx3)' }}>–</span>
+              <input type="number" value={editForm.estimated_duration_max} onChange={e => setEditForm({ ...editForm, estimated_duration_max: e.target.value })} placeholder="Max" style={{ width: '80px' }} />
+              <span style={{ color: 'var(--tx3)', fontSize: '12px' }}>minutes</span>
+            </div>
+
+            <label>Equipment</label>
+            <div className="cr">
+              {['Barbell', 'Bench', 'Bike (Assault/Echo)', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Speed Rope', 'Weighted Vest'].map(eq => (
+                <button key={eq} className={`ch${editForm.equipment.includes(eq) ? ' on' : ''}`}
+                  onClick={() => toggleEditArray('equipment', eq)}>{eq}</button>
+              ))}
+            </div>
+
+            <label>Workout Type</label>
+            <div className="cr">
+              {['AMRAP', 'EMOM', 'For Calories', 'For Distance', 'For Time', 'Interval', 'Ladder', 'Rounds', 'Strength'].map(t => (
+                <button key={t} className={`ch${editForm.workout_types.includes(t) ? ' on' : ''}`}
+                  onClick={() => toggleEditArray('workout_types', t)}>{t}</button>
+              ))}
+            </div>
+
+            <label>Category</label>
+            <div className="cr">
+              {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Outdoor', 'Track Workouts'].map(c => (
+                <button key={c} className={`ch${editForm.categories.includes(c) ? ' on' : ''}`}
+                  onClick={() => toggleEditArray('categories', c)}>{c}</button>
+              ))}
+            </div>
+
+            <label>Movement Type</label>
+            <div className="cr">
+              {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'KB Swing', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat'].map(m => (
+                <button key={m} className={`ch${editForm.movement_categories.includes(m) ? ' on' : ''}`}
+                  onClick={() => toggleEditArray('movement_categories', m)}>{m}</button>
+              ))}
+            </div>
+
+            <label>Body Part</label>
+            <div className="cr">
+              {['Upper Body', 'Lower Body', 'Full Body'].map(b => (
+                <button key={b} className={`ch${editForm.body_parts.includes(b) ? ' on' : ''}`}
+                  onClick={() => toggleEditArray('body_parts', b)}>{b}</button>
+              ))}
+            </div>
+
+            <div className="mf">
+              <button className="ab" onClick={() => { setEditing(false); setEditForm(null); setRemixing(false) }}>Cancel</button>
+              <button className="ab p" onClick={saveEdit}>{remixing ? '🔀 Save My Version' : 'Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showTimer && <WorkoutTimer workout={wod} onClose={() => setShowTimer(false)} session={session} onWorkoutsChanged={onWorkoutsChanged} />}
       {showShareImage && <ShareImage workout={wod} onClose={() => setShowShareImage(false)} />}
       {showStoryCard && <StoryCard workout={wod} score={lastLogScore} session={session} onClose={() => setShowStoryCard(false)} />}
