@@ -24,7 +24,7 @@ export default function ShareImage({ workout, onClose }) {
     const accent = '#e01e1e'
     const text = '#ededf0'
 
-    // Background gradient (angled)
+    // Background
     const bg = ctx.createLinearGradient(0, 0, W * 0.3, H)
     bg.addColorStop(0, '#0c0c12')
     bg.addColorStop(0.4, '#08080d')
@@ -33,144 +33,223 @@ export default function ShareImage({ workout, onClose }) {
     ctx.fillRect(0, 0, W, H)
 
     // Radial glow — top right
-    const glow1 = ctx.createRadialGradient(W + 60, -80, 0, W + 60, -80, 400)
-    glow1.addColorStop(0, hexAlpha(accent, 0.10))
+    const glow1 = ctx.createRadialGradient(W + 80, -100, 0, W + 80, -100, 500)
+    glow1.addColorStop(0, hexAlpha(accent, 0.08))
     glow1.addColorStop(1, 'transparent')
     ctx.fillStyle = glow1
     ctx.fillRect(0, 0, W, H)
 
-    // Radial glow — bottom left
-    const glow2 = ctx.createRadialGradient(-40, H + 40, 0, -40, H + 40, 300)
-    glow2.addColorStop(0, hexAlpha(accent, 0.05))
-    glow2.addColorStop(1, 'transparent')
-    ctx.fillStyle = glow2
-    ctx.fillRect(0, 0, W, H)
-
-    // Header row: RONAPUMP logo left, gorilla right
+    // ── HEADER ──
     ctx.textAlign = 'left'
-    ctx.font = 'bold 48px monospace'
+    ctx.font = 'bold 36px monospace'
     ctx.fillStyle = text
     const ronaW = ctx.measureText('RONA').width
-    ctx.fillText('RONA', 70, 88)
+    ctx.fillText('RONA', 70, 78)
     ctx.fillStyle = accent
-    ctx.fillText('PUMP', 70 + ronaW + 8, 88)
+    ctx.fillText('PUMP', 70 + ronaW + 8, 78)
 
-    ctx.font = '42px serif'
-    ctx.textAlign = 'right'
-    ctx.fillText('🦍', W - 70, 90)
+    ctx.font = '36px serif'
+    ctx.fillText('🦍', 70 + ronaW + 8 + ctx.measureText('PUMP').width + 16, 80)
 
-    // Thin divider under header
-    ctx.fillStyle = hexAlpha(text, 0.06)
-    ctx.fillRect(70, 118, W - 140, 1)
-
-    // Workout name
+    // ── WORKOUT NAME ──
     ctx.textAlign = 'left'
-    ctx.font = 'bold 54px sans-serif'
+    ctx.font = 'bold 62px sans-serif'
     ctx.fillStyle = text
-    const nameBottom = wrapText(ctx, w.name || 'Workout', 70, 190, W - 140, 64)
+    const wName = w.name || 'Workout'
+    const nameLines = wrapLines(ctx, wName, W - 140)
+    let y = 160
+    for (const l of nameLines) {
+      ctx.fillText(l, 70, y)
+      y += 72
+    }
 
-    // Accent line under name
-    ctx.fillStyle = accent
-    ctx.fillRect(70, nameBottom + 8, 140, 3)
-
-    // Meta tags row
-    let metaY = nameBottom + 48
+    // ── TAGS ROW ──
+    y += 4
     ctx.font = '500 26px sans-serif'
     const tags = []
-    if (w.estimated_duration_mins) tags.push('⏱ ' + w.estimated_duration_mins + ' min')
-    else if (w.estimated_duration_min && w.estimated_duration_max) tags.push('⏱ ' + w.estimated_duration_min + '-' + w.estimated_duration_max + ' min')
     if (w.workout_types?.length) {
       const wt = w.workout_types.filter(t => t !== 'General')
-      if (wt.length) tags.push(wt[0])
+      if (wt.length) tags.push({ text: wt[0], isAccent: true })
     }
-    if (w.score_type && w.score_type !== 'None') tags.push(w.score_type)
+    if (w.estimated_duration_mins) {
+      tags.push({ text: w.estimated_duration_mins + ' min', isAccent: false })
+    } else if (w.estimated_duration_min && w.estimated_duration_max) {
+      tags.push({ text: w.estimated_duration_min + '-' + w.estimated_duration_max + ' min', isAccent: false })
+    }
+    if (w.score_type && w.score_type !== 'None' && !tags.find(t => t.text === w.score_type)) {
+      tags.push({ text: w.score_type, isAccent: false })
+    }
+    const eqList = (w.equipment || []).filter(e => e !== 'Bodyweight').slice(0, 3)
+    for (const eq of eqList) {
+      tags.push({ text: eq, isAccent: false })
+    }
 
-    if (tags.length) {
+    if (tags.length > 0) {
       let tagX = 70
       for (const tag of tags) {
-        const tw = ctx.measureText(tag).width + 30
-        // Tag background
-        ctx.fillStyle = hexAlpha(accent, 0.08)
-        ctx.beginPath()
-        ctx.roundRect(tagX, metaY - 20, tw, 36, 8)
-        ctx.fill()
-        // Tag border
-        ctx.strokeStyle = hexAlpha(accent, 0.12)
-        ctx.lineWidth = 1
-        ctx.stroke()
-        // Tag text
-        ctx.fillStyle = hexAlpha(accent, 0.7)
-        ctx.fillText(tag, tagX + 15, metaY + 6)
+        const tw = ctx.measureText(tag.text).width + 32
+        if (tagX + tw > W - 70) break
+        if (tag.isAccent) {
+          ctx.fillStyle = hexAlpha(accent, 0.12)
+          ctx.beginPath()
+          ctx.roundRect(tagX, y - 20, tw, 38, 8)
+          ctx.fill()
+          ctx.strokeStyle = hexAlpha(accent, 0.18)
+          ctx.lineWidth = 1
+          ctx.stroke()
+          ctx.fillStyle = hexAlpha(accent, 0.8)
+        } else {
+          ctx.fillStyle = hexAlpha(text, 0.04)
+          ctx.beginPath()
+          ctx.roundRect(tagX, y - 20, tw, 38, 8)
+          ctx.fill()
+          ctx.strokeStyle = hexAlpha(text, 0.06)
+          ctx.lineWidth = 1
+          ctx.stroke()
+          ctx.fillStyle = hexAlpha(text, 0.4)
+        }
+        ctx.textAlign = 'left'
+        ctx.fillText(tag.text, tagX + 16, y + 8)
         tagX += tw + 10
       }
-      metaY += 50
+      y += 48
     }
 
-    // Description
-    ctx.font = '30px sans-serif'
-    ctx.fillStyle = hexAlpha(text, 0.5)
-    const descText = (w.description || '').replace(/\*\*/g, '')
-    const descLines = descText.split('\n').filter(l => l.trim())
-    let y = metaY + 10
-    const maxDescY = H - 200
-    for (const line of descLines) {
-      if (y > maxDescY) {
-        ctx.fillStyle = hexAlpha(text, 0.25)
-        ctx.fillText('...', 70, y)
-        break
+    // ── ACCENT DIVIDER ──
+    ctx.fillStyle = accent
+    ctx.beginPath()
+    ctx.roundRect(70, y, 60, 4, 2)
+    ctx.fill()
+    y += 30
+
+    // ── DESCRIPTION ──
+    const descText = (w.description || '').replace(/\*\*(.*?)\*\*/g, '$1')
+    const rawLines = descText.split('\n')
+
+    // Count content lines to pick font size
+    const contentLines = rawLines.filter(l => l.trim()).length
+    let fontSize, lineH
+    if (contentLines > 14) {
+      fontSize = 26; lineH = 36
+    } else if (contentLines > 10) {
+      fontSize = 28; lineH = 40
+    } else {
+      fontSize = 32; lineH = 44
+    }
+
+    const footerReserve = 80
+    const maxDescY = H - footerReserve
+    let truncated = false
+
+    for (const rawLine of rawLines) {
+      if (y > maxDescY - lineH) { truncated = true; break }
+
+      const trimmed = rawLine.trim()
+      if (!trimmed) {
+        y += lineH * 0.4
+        continue
       }
-      const cleaned = line.replace(/^  [•]\s*/, '     •  ').replace(/^[•]\s*/, '  •  ')
-      y = wrapText(ctx, cleaned, 70, y, W - 140, 38)
-    }
 
-    // Equipment dots at bottom
-    const eqList = (w.equipment || []).filter(e => e !== 'Bodyweight').slice(0, 5)
-    if (eqList.length > 0) {
-      ctx.font = '500 24px sans-serif'
-      ctx.fillStyle = hexAlpha(text, 0.25)
+      // Section header (--- prefix from formatting toolbar)
+      if (rawLine.startsWith('--- ')) {
+        y += 6
+        ctx.font = '600 ' + (fontSize - 4) + 'px sans-serif'
+        ctx.fillStyle = hexAlpha(accent, 0.75)
+        ctx.letterSpacing = '1.5px'
+        ctx.textAlign = 'left'
+        ctx.fillText(rawLine.slice(4).toUpperCase(), 70, y)
+        ctx.letterSpacing = '0px'
+        y += lineH
+        continue
+      }
+
+      // Sub-bullet (  • prefix)
+      if (rawLine.startsWith('  • ')) {
+        ctx.font = fontSize + 'px sans-serif'
+        ctx.fillStyle = hexAlpha(text, 0.4)
+        ctx.textAlign = 'left'
+        const subLines = wrapLines(ctx, rawLine.slice(4), W - 220)
+        for (const sl of subLines) {
+          if (y > maxDescY - lineH) { truncated = true; break }
+          ctx.fillText('       •  ' + sl, 70, y)
+          y += lineH
+        }
+        continue
+      }
+
+      // Bullet (• prefix)
+      if (rawLine.startsWith('• ')) {
+        ctx.font = fontSize + 'px sans-serif'
+        ctx.fillStyle = hexAlpha(text, 0.5)
+        ctx.textAlign = 'left'
+        const bulletLines = wrapLines(ctx, rawLine.slice(2), W - 180)
+        for (const bl of bulletLines) {
+          if (y > maxDescY - lineH) { truncated = true; break }
+          ctx.fillText('  •  ' + bl, 70, y)
+          y += lineH
+        }
+        continue
+      }
+
+      // Check if line looks like a section label (Part A:, Round 1:, etc.)
+      const isLabel = /^(Part [A-Z]|Round \d|[A-Z][A-Za-z ]+:$)/.test(trimmed)
+      if (isLabel) {
+        y += 4
+        ctx.font = '600 ' + fontSize + 'px sans-serif'
+        ctx.fillStyle = hexAlpha(text, 0.65)
+      } else {
+        ctx.font = fontSize + 'px sans-serif'
+        ctx.fillStyle = hexAlpha(text, 0.5)
+      }
+
       ctx.textAlign = 'left'
-      const eqStr = eqList.join('  ·  ')
-      ctx.fillText(eqStr, 70, H - 130)
+      const wrapped = wrapLines(ctx, trimmed, W - 140)
+      for (const wl of wrapped) {
+        if (y > maxDescY - lineH) { truncated = true; break }
+        ctx.fillText(wl, 70, y)
+        y += lineH
+      }
     }
 
-    // Footer gradient
-    const footerGrad = ctx.createLinearGradient(0, H - 100, 0, H)
-    footerGrad.addColorStop(0, 'transparent')
-    footerGrad.addColorStop(1, hexAlpha(accent, 0.1))
-    ctx.fillStyle = footerGrad
-    ctx.fillRect(0, H - 100, W, 100)
+    if (truncated) {
+      ctx.font = fontSize + 'px sans-serif'
+      ctx.fillStyle = hexAlpha(text, 0.2)
+      ctx.textAlign = 'left'
+      ctx.fillText('...', 70, maxDescY - 10)
+    }
 
-    // Footer content
+    // ── FOOTER ──
+    const footerGrad = ctx.createLinearGradient(0, H - 70, 0, H)
+    footerGrad.addColorStop(0, 'transparent')
+    footerGrad.addColorStop(1, hexAlpha(accent, 0.08))
+    ctx.fillStyle = footerGrad
+    ctx.fillRect(0, H - 70, W, 70)
+
+    ctx.font = '500 24px sans-serif'
     ctx.textAlign = 'left'
-    ctx.font = '600 26px sans-serif'
-    ctx.fillStyle = hexAlpha(text, 0.5)
-    ctx.fillText('ronapump.com', 70, H - 42)
+    ctx.fillStyle = hexAlpha(text, 0.2)
+    ctx.fillText('ronapump.com', 70, H - 30)
 
     ctx.textAlign = 'right'
-    ctx.font = '24px sans-serif'
-    ctx.fillStyle = hexAlpha(text, 0.25)
-    ctx.fillText('@ronapump', W - 70, H - 42)
+    ctx.fillStyle = hexAlpha(text, 0.2)
+    ctx.fillText('@ronapump', W - 70, H - 30)
   }
 
-  function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+  function wrapLines(ctx, text, maxWidth) {
     const words = text.split(' ')
+    const lines = []
     let line = ''
-    let curY = y
     for (const word of words) {
-      const test = line + word + ' '
+      const test = line ? line + ' ' + word : word
       if (ctx.measureText(test).width > maxWidth && line) {
-        ctx.fillText(line.trim(), x, curY)
-        line = word + ' '
-        curY += lineHeight
+        lines.push(line)
+        line = word
       } else {
         line = test
       }
     }
-    if (line.trim()) {
-      ctx.fillText(line.trim(), x, curY)
-      curY += lineHeight
-    }
-    return curY
+    if (line) lines.push(line)
+    return lines.length ? lines : ['']
   }
 
   function downloadImage() {
@@ -203,7 +282,7 @@ export default function ShareImage({ workout, onClose }) {
       <div className="mc" style={{ maxWidth: '560px' }}>
         <h2>Share to Instagram</h2>
         <div style={{ fontSize: '12px', color: 'var(--tx3)', marginBottom: '10px' }}>
-          Download or copy this image to share on your Instagram story or feed.
+          Download or copy this image to share on your Instagram feed.
         </div>
         <canvas ref={canvasRef} style={{ width: '100%', borderRadius: '8px', border: '1px solid var(--brd)' }} />
         <div className="mf" style={{ marginTop: '12px' }}>
