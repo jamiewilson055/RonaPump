@@ -6,6 +6,13 @@ export default function ShareImage({ workout, onClose }) {
 
   const w = workout
 
+  function hexAlpha(hex, alpha) {
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    return `rgba(${r},${g},${b},${alpha})`
+  }
+
   function drawImage() {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -14,55 +21,64 @@ export default function ShareImage({ workout, onClose }) {
     canvas.width = W
     canvas.height = H
 
-    // Background
-    const bg = ctx.createLinearGradient(0, 0, 0, H)
+    const accent = '#e01e1e'
+    const text = '#ededf0'
+
+    // Background gradient (angled)
+    const bg = ctx.createLinearGradient(0, 0, W * 0.3, H)
     bg.addColorStop(0, '#0c0c12')
-    bg.addColorStop(1, '#07070a')
+    bg.addColorStop(0.4, '#08080d')
+    bg.addColorStop(1, '#0a0a10')
     ctx.fillStyle = bg
     ctx.fillRect(0, 0, W, H)
 
-    // Subtle diagonal lines for texture
-    ctx.strokeStyle = 'rgba(255,45,45,.03)'
-    ctx.lineWidth = 1
-    for (let i = -H; i < W + H; i += 80) {
-      ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + H, H); ctx.stroke()
-    }
+    // Radial glow — top right
+    const glow1 = ctx.createRadialGradient(W + 60, -80, 0, W + 60, -80, 400)
+    glow1.addColorStop(0, hexAlpha(accent, 0.10))
+    glow1.addColorStop(1, 'transparent')
+    ctx.fillStyle = glow1
+    ctx.fillRect(0, 0, W, H)
 
-    // Top accent bar
-    ctx.fillStyle = '#ff2d2d'
-    ctx.fillRect(0, 0, W, 5)
+    // Radial glow — bottom left
+    const glow2 = ctx.createRadialGradient(-40, H + 40, 0, -40, H + 40, 300)
+    glow2.addColorStop(0, hexAlpha(accent, 0.05))
+    glow2.addColorStop(1, 'transparent')
+    ctx.fillStyle = glow2
+    ctx.fillRect(0, 0, W, H)
 
-    // RONAPUMP header — one word, big
+    // Header row: RONAPUMP logo left, gorilla right
     ctx.textAlign = 'left'
-    ctx.font = 'bold 72px monospace'
-    ctx.fillStyle = '#ff2d2d'
-    ctx.fillText('RONAPUMP', 70, 100)
+    ctx.font = 'bold 48px monospace'
+    ctx.fillStyle = text
+    const ronaW = ctx.measureText('RONA').width
+    ctx.fillText('RONA', 70, 88)
+    ctx.fillStyle = accent
+    ctx.fillText('PUMP', 70 + ronaW + 8, 88)
 
-    // Gorilla
-    ctx.font = '48px serif'
+    ctx.font = '42px serif'
     ctx.textAlign = 'right'
-    ctx.fillText('\u{1F98D}', W - 70, 100)
+    ctx.fillText('🦍', W - 70, 90)
 
     // Thin divider under header
-    ctx.fillStyle = 'rgba(255,255,255,.06)'
-    ctx.fillRect(70, 130, W - 140, 1)
+    ctx.fillStyle = hexAlpha(text, 0.06)
+    ctx.fillRect(70, 118, W - 140, 1)
 
     // Workout name
     ctx.textAlign = 'left'
-    ctx.font = 'bold 56px monospace'
-    ctx.fillStyle = '#ffffff'
-    const nameBottom = wrapText(ctx, w.name || 'Workout', 70, 200, W - 140, 64)
+    ctx.font = 'bold 54px sans-serif'
+    ctx.fillStyle = text
+    const nameBottom = wrapText(ctx, w.name || 'Workout', 70, 190, W - 140, 64)
 
-    // Red accent line under name
-    ctx.fillStyle = '#ff2d2d'
-    ctx.fillRect(70, nameBottom + 10, 160, 3)
+    // Accent line under name
+    ctx.fillStyle = accent
+    ctx.fillRect(70, nameBottom + 8, 140, 3)
 
     // Meta tags row
-    let metaY = nameBottom + 50
-    ctx.font = 'bold 26px monospace'
+    let metaY = nameBottom + 48
+    ctx.font = '500 26px sans-serif'
     const tags = []
-    if (w.estimated_duration_mins) tags.push('\u23F1 ' + w.estimated_duration_mins + ' min')
-    else if (w.estimated_duration_min && w.estimated_duration_max) tags.push('\u23F1 ' + w.estimated_duration_min + '-' + w.estimated_duration_max + ' min')
+    if (w.estimated_duration_mins) tags.push('⏱ ' + w.estimated_duration_mins + ' min')
+    else if (w.estimated_duration_min && w.estimated_duration_max) tags.push('⏱ ' + w.estimated_duration_min + '-' + w.estimated_duration_max + ' min')
     if (w.workout_types?.length) {
       const wt = w.workout_types.filter(t => t !== 'General')
       if (wt.length) tags.push(wt[0])
@@ -72,13 +88,19 @@ export default function ShareImage({ workout, onClose }) {
     if (tags.length) {
       let tagX = 70
       for (const tag of tags) {
-        const tw = ctx.measureText(tag).width + 28
-        ctx.fillStyle = 'rgba(255,45,45,.12)'
+        const tw = ctx.measureText(tag).width + 30
+        // Tag background
+        ctx.fillStyle = hexAlpha(accent, 0.08)
         ctx.beginPath()
-        ctx.roundRect(tagX, metaY - 22, tw, 36, 6)
+        ctx.roundRect(tagX, metaY - 20, tw, 36, 8)
         ctx.fill()
-        ctx.fillStyle = '#ff2d2d'
-        ctx.fillText(tag, tagX + 14, metaY + 6)
+        // Tag border
+        ctx.strokeStyle = hexAlpha(accent, 0.12)
+        ctx.lineWidth = 1
+        ctx.stroke()
+        // Tag text
+        ctx.fillStyle = hexAlpha(accent, 0.7)
+        ctx.fillText(tag, tagX + 15, metaY + 6)
         tagX += tw + 10
       }
       metaY += 50
@@ -86,45 +108,48 @@ export default function ShareImage({ workout, onClose }) {
 
     // Description
     ctx.font = '30px sans-serif'
-    ctx.fillStyle = '#b8b8c0'
+    ctx.fillStyle = hexAlpha(text, 0.5)
     const descText = (w.description || '').replace(/\*\*/g, '')
     const descLines = descText.split('\n').filter(l => l.trim())
     let y = metaY + 10
     const maxDescY = H - 200
     for (const line of descLines) {
       if (y > maxDescY) {
-        ctx.fillStyle = '#666670'
+        ctx.fillStyle = hexAlpha(text, 0.25)
         ctx.fillText('...', 70, y)
         break
       }
-      const cleaned = line.replace(/^  [•]\s*/, '     \u2022  ').replace(/^[•]\s*/, '  \u2022  ')
+      const cleaned = line.replace(/^  [•]\s*/, '     •  ').replace(/^[•]\s*/, '  •  ')
       y = wrapText(ctx, cleaned, 70, y, W - 140, 38)
     }
 
-    // Equipment bar at bottom
+    // Equipment dots at bottom
     const eqList = (w.equipment || []).filter(e => e !== 'Bodyweight').slice(0, 5)
     if (eqList.length > 0) {
-      ctx.font = '24px monospace'
-      ctx.fillStyle = '#4e4e58'
+      ctx.font = '500 24px sans-serif'
+      ctx.fillStyle = hexAlpha(text, 0.25)
       ctx.textAlign = 'left'
-      ctx.fillText(eqList.join('  \u00B7  '), 70, H - 140)
+      const eqStr = eqList.join('  ·  ')
+      ctx.fillText(eqStr, 70, H - 130)
     }
 
-    // Footer
-    ctx.fillStyle = 'rgba(255,255,255,.04)'
+    // Footer gradient
+    const footerGrad = ctx.createLinearGradient(0, H - 100, 0, H)
+    footerGrad.addColorStop(0, 'transparent')
+    footerGrad.addColorStop(1, hexAlpha(accent, 0.1))
+    ctx.fillStyle = footerGrad
     ctx.fillRect(0, H - 100, W, 100)
 
+    // Footer content
     ctx.textAlign = 'left'
-    ctx.font = 'bold 28px monospace'
-    ctx.fillStyle = '#ff2d2d'
-    ctx.fillText('\u{1F98D}', 70, H - 50)
-    ctx.fillStyle = '#6e6e7a'
-    ctx.font = '24px monospace'
-    ctx.fillText('www.ronapump.com  |  @ronapump', 110, H - 50)
+    ctx.font = '600 26px sans-serif'
+    ctx.fillStyle = hexAlpha(text, 0.5)
+    ctx.fillText('ronapump.com', 70, H - 42)
 
-    // Bottom accent bar
-    ctx.fillStyle = '#ff2d2d'
-    ctx.fillRect(0, H - 5, W, 5)
+    ctx.textAlign = 'right'
+    ctx.font = '24px sans-serif'
+    ctx.fillStyle = hexAlpha(text, 0.25)
+    ctx.fillText('@ronapump', W - 70, H - 42)
   }
 
   function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
@@ -183,8 +208,8 @@ export default function ShareImage({ workout, onClose }) {
         <canvas ref={canvasRef} style={{ width: '100%', borderRadius: '8px', border: '1px solid var(--brd)' }} />
         <div className="mf" style={{ marginTop: '12px' }}>
           <button className="ab" onClick={onClose}>Close</button>
-          <button className="ab" onClick={copyImage}>{copied ? '\u2713 Copied!' : '\u{1F4CB} Copy Image'}</button>
-          <button className="ab p" onClick={downloadImage}>{'\u{1F4E5}'} Download</button>
+          <button className="ab" onClick={copyImage}>{copied ? '✓ Copied!' : '📋 Copy Image'}</button>
+          <button className="ab p" onClick={downloadImage}>📥 Download</button>
         </div>
       </div>
     </div>
