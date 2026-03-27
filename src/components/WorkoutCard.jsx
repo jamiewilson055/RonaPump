@@ -443,7 +443,9 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
             <button className="ab p" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }} style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)' }}>{addingLog ? 'Cancel' : '✓ Complete Workout'}</button>
             <button className={`ab ${isFav ? '' : 'g'}`} onClick={() => toggleFavorite(w.id)}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>
             <button className="ab" onClick={() => { if (!session) { onAuthRequired(); return } setShowCollections(!showCollections) }}>{showCollections ? 'Hide' : '📁 Save'}</button>
-            <button className="ab" onClick={startRemix}>🔀 Remix</button>
+            {session && w.created_by !== session?.user?.id && (
+              <button className="ab" onClick={startRemix}>🔀 Remix</button>
+            )}
             <button className="ab" onClick={() => setShowSimilar(!showSimilar)}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
             <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
             <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
@@ -595,7 +597,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
           <label>Equipment</label>
           <div className="cr">
-            {['Barbell', 'Bench', 'Bike (Assault/Echo)', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Speed Rope', 'Weighted Vest'].map(eq => (
+            {['Air Bike', 'Barbell', 'Bench', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Speed Rope', 'Weighted Vest'].map(eq => (
               <button key={eq} className={`ch${editForm.equipment.includes(eq) ? ' on' : ''}`}
                 onClick={() => toggleEditArray('equipment', eq)}>{eq}</button>
             ))}
@@ -619,7 +621,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
           <label>Movement Type</label>
           <div className="cr">
-            {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'KB Swing', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat'].map(m => (
+            {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'KB Swing', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat', 'Thruster'].map(m => (
               <button key={m} className={`ch${editForm.movement_categories.includes(m) ? ' on' : ''}`}
                 onClick={() => toggleEditArray('movement_categories', m)}>{m}</button>
             ))}
