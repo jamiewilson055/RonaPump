@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import WorkoutTimer from '../components/WorkoutTimer'
@@ -19,6 +19,15 @@ function formatDesc(text) {
     if (line.trim() === '') return <br key={i} />
     return <div key={i}>{renderBold(line)}</div>
   })
+}
+
+function bestScore(w) {
+  const pl = w.performance_log || []
+  if (!pl.length) return null
+  if (w.score_type === 'Time') {
+    return pl.reduce((b, e) => (!b || (e.score && e.score < b)) ? e.score : b, null)
+  }
+  return pl.reduce((b, e) => (!b || (e.score && e.score > b)) ? e.score : b, null)
 }
 
 function SimilarCard({ workout: s }) {
@@ -88,6 +97,9 @@ export default function WorkoutPage() {
   const [remixing, setRemixing] = useState(false)
   const [editForm, setEditForm] = useState(null)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [logSort, setLogSort] = useState('date')
+  const [editingLogId, setEditingLogId] = useState(null)
+  const [editLogForm, setEditLogForm] = useState(null)
   const EMOJI_CATEGORIES = [
     { label: '💪 Fitness', emojis: ['💪', '🏋️', '🏃', '🔥', '⏱', '🦍', '💀', '😤', '🫡', '🎯', '🏆', '⚡', '🧨', '💣', '🚀', '👊', '✅', '❌', '⬆️', '⬇️'] },
     { label: '🔢 Numbers', emojis: ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '🔟', '💯', '0️⃣'] },
@@ -188,6 +200,29 @@ export default function WorkoutPage() {
     setAddingLog(false); setLogScore(''); setLogNotes(''); setLogRx(true)
     setShowStoryCard(true)
     try { localStorage.removeItem('ronapump_active_workout') } catch {}
+    loadWorkout()
+  }
+
+  function startEditLog(entry) {
+    setEditingLogId(entry.id)
+    setEditLogForm({ score: entry.score || '', completed_at: entry.completed_at || '', notes: entry.notes || '' })
+  }
+
+  async function saveEditLog() {
+    if (!editLogForm || !editingLogId) return
+    await supabase.from('performance_log').update({
+      score: editLogForm.score.trim() || null,
+      completed_at: editLogForm.completed_at,
+      notes: editLogForm.notes.trim() || null,
+    }).eq('id', editingLogId)
+    setEditingLogId(null)
+    setEditLogForm(null)
+    loadWorkout()
+  }
+
+  async function deleteLog(logId) {
+    if (!confirm('Delete this log entry?')) return
+    await supabase.from('performance_log').delete().eq('id', logId)
     loadWorkout()
   }
 
@@ -324,7 +359,31 @@ export default function WorkoutPage() {
     : (w.estimated_duration_min && w.estimated_duration_max)
       ? `${w.estimated_duration_min}-${w.estimated_duration_max}m`
       : null
-  const scoreLabel = w.score_type === 'Time' ? 'Time' : w.score_type === 'Rounds + Reps' ? 'Score' : w.score_type === 'Calories' ? 'Cals' : 'Result'
+  const scoreLabel = w.score_type === 'Time' ? 'Time' : w.score_type === 'Rounds + Reps' ? 'Score' : w.score_type === 'Calories' ? 'Cals' : w.score_type === 'Reps' ? 'Reps' : w.score_type === 'Distance' ? 'Distance' : w.score_type === 'Load' ? 'Weight' : 'Result'
+  const bs = bestScore(w)
+  const leaderboardPl = (w.performance_log || []).filter(p => p.notes !== 'Quick logged')
+  const totalLoggers = new Set(leaderboardPl.map(p => p.user_id)).size
+
+  const sortedPl = useMemo(() => {
+    const sorted = [...leaderboardPl]
+    if (logSort === 'score') {
+      if (w.score_type === 'Time') {
+        sorted.sort((a, b) => (a.score || '').localeCompare(b.score || ''))
+      } else {
+        sorted.sort((a, b) => (b.score || '').localeCompare(a.score || ''))
+      }
+    } else {
+      sorted.sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''))
+    }
+    if (bs && sorted.length > 1) {
+      const prIdx = sorted.findIndex(e => e.score === bs)
+      if (prIdx > 0) {
+        const [pr] = sorted.splice(prIdx, 1)
+        sorted.unshift(pr)
+      }
+    }
+    return sorted
+  }, [leaderboardPl, logSort, bs, w.score_type])
 
   return (
     <div className="app">
@@ -359,36 +418,69 @@ export default function WorkoutPage() {
           {w.movement_categories?.length > 0 && <span>Movements: {w.movement_categories.join(', ')}</span>}
         </div>
 
-        {/* Performance Log */}
+        {/* Leaderboard — matches WorkoutCard */}
         <div className="plog">
           <div className="plog-hdr">
-            <h4>Leaderboard {w.score_type !== 'None' && <span className="st-badge">{w.score_type}</span>}</h4>
-            <span className="plog-add" onClick={() => { if (!session) return; setAddingLog(!addingLog) }}>{addingLog ? 'Cancel' : '+ Log Result'}</span>
+            <h4>Leaderboard {w.score_type !== 'None' && <span className="st-badge">{w.score_type}</span>}
+              {totalLoggers > 0 && <span className="st-badge" style={{ background: 'var(--grn-d)', color: 'var(--grn)' }}>{totalLoggers} athlete{totalLoggers !== 1 ? 's' : ''}</span>}
+            </h4>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {leaderboardPl.length > 1 && (
+                <select className="ssel" value={logSort} onChange={e => setLogSort(e.target.value)} style={{ width: 'auto', fontSize: '10px', padding: '3px 6px' }}>
+                  <option value="date">By Date</option>
+                  <option value="score">By {w.score_type === 'Time' ? 'Time' : 'Score'}</option>
+                </select>
+              )}
+              <span className="plog-add" onClick={() => { if (!session) return; setAddingLog(!addingLog) }}>{addingLog ? 'Cancel' : '+ Log Result'}</span>
+            </div>
           </div>
-          {w.performance_log?.filter(p => p.score).length > 0 && (
+          {sortedPl.length > 0 && (
             <table className="plog-table">
-              <thead><tr><th>Athlete</th><th>Date</th><th>{scoreLabel}</th></tr></thead>
+              <thead><tr><th>Athlete</th><th>Date</th><th>{scoreLabel}</th><th>Notes</th><th></th></tr></thead>
               <tbody>
-                {w.performance_log
-                  .filter(p => p.score)
-                  .sort((a, b) => w.score_type === 'Time' ? (a.score || '').localeCompare(b.score || '') : (b.score || '').localeCompare(a.score || ''))
-                  .slice(0, 10)
-                  .map((p, i) => (
-                    <tr key={p.id}>
+                {sortedPl.map((e, idx) => {
+                  const isBest = e.score === bs && leaderboardPl.length > 1
+                  const isEditingThis = editingLogId === e.id
+                  const rank = logSort === 'score' ? idx + 1 : null
+                  const isMine = e.user_id === session?.user?.id
+
+                  if (isEditingThis && editLogForm) {
+                    return (
+                      <tr key={e.id}>
+                        <td style={{ fontWeight: 600, color: 'var(--tx2)', fontSize: '11px' }}>{e.profiles?.display_name || 'Anonymous'}</td>
+                        <td><input type="date" value={editLogForm.completed_at} onChange={ev => setEditLogForm({ ...editLogForm, completed_at: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
+                        <td><input value={editLogForm.score} onChange={ev => setEditLogForm({ ...editLogForm, score: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
+                        <td><input value={editLogForm.notes} onChange={ev => setEditLogForm({ ...editLogForm, notes: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          <span className="del-entry" onClick={saveEditLog} style={{ color: 'var(--grn)', marginRight: '4px' }}>✓</span>
+                          <span className="del-entry" onClick={() => { setEditingLogId(null); setEditLogForm(null) }}>✕</span>
+                        </td>
+                      </tr>
+                    )
+                  }
+
+                  return (
+                    <tr key={e.id} className={isMine ? 'my-log' : ''}>
                       <td className="lb-name">
-                        {i === 0 && <span className="lb-medal">🥇</span>}
-                        {i === 1 && <span className="lb-medal">🥈</span>}
-                        {i === 2 && <span className="lb-medal">🥉</span>}
-                        {p.profiles?.display_name || 'Anonymous'}
+                        {rank && isBest && <span className="lb-medal">🥇</span>}
+                        {rank === 2 && <span className="lb-medal">🥈</span>}
+                        {rank === 3 && <span className="lb-medal">🥉</span>}
+                        <span style={{ fontWeight: isMine ? 700 : 500 }}>{e.profiles?.display_name || 'Anonymous'}</span>
                       </td>
-                      <td>{p.completed_at || '—'}</td>
-                      <td>
-                        {p.score}
-                        {p.is_rx === true && <span className="rx-tag">Rx</span>}
-                        {p.is_rx === false && <span className="scaled-tag">Scaled</span>}
+                      <td>{e.completed_at || '—'}</td>
+                      <td className={isBest ? 'best' : ''}>
+                        {e.score ? e.score : '✓'}{isBest ? ' ★' : ''}
+                        {e.is_rx === false && <span className="scaled-tag">Scaled</span>}
+                        {e.is_rx === true && e.score && <span className="rx-tag">Rx</span>}
+                      </td>
+                      <td style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        {isMine && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); startEditLog(e) }} style={{ marginRight: '4px' }} title="Edit">✎</span>}
+                        {isMine && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); deleteLog(e.id) }}>✕</span>}
                       </td>
                     </tr>
-                  ))}
+                  )
+                })}
               </tbody>
             </table>
           )}

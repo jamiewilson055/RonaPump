@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import WorkoutTimer from './WorkoutTimer'
 import ShareImage from './ShareImage'
@@ -21,6 +21,15 @@ function formatDesc(text) {
 
 const SCORE_TYPES = ['Time', 'Rounds + Reps', 'Reps', 'Calories', 'Distance', 'Load', 'None']
 
+function bestScore(w) {
+  const pl = w.performance_log || []
+  if (!pl.length) return null
+  if (w.score_type === 'Time') {
+    return pl.reduce((b, e) => (!b || (e.score && e.score < b)) ? e.score : b, null)
+  }
+  return pl.reduce((b, e) => (!b || (e.score && e.score > b)) ? e.score : b, null)
+}
+
 export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsChanged, favorites, toggleFavorite, isAdmin, collections, onCollectionsChanged }) {
   const [wod, setWod] = useState(null)
   const [spinning, setSpinning] = useState(false)
@@ -42,6 +51,9 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
   const [editForm, setEditForm] = useState(null)
   const [remixing, setRemixing] = useState(false)
   const [loadedCollections, setLoadedCollections] = useState(null)
+  const [logSort, setLogSort] = useState('date')
+  const [editingLogId, setEditingLogId] = useState(null)
+  const [editLogForm, setEditLogForm] = useState(null)
 
   const pick = useCallback(() => {
     const pool = workouts.filter(w => w.description && w.description.length > 40 && w.visibility !== 'private')
@@ -101,6 +113,29 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
     setLogNotes('')
     setLogRx(true)
     setShowStoryCard(true)
+    if (onWorkoutsChanged) onWorkoutsChanged()
+  }
+
+  function startEditLog(entry) {
+    setEditingLogId(entry.id)
+    setEditLogForm({ score: entry.score || '', completed_at: entry.completed_at || '', notes: entry.notes || '' })
+  }
+
+  async function saveEditLog() {
+    if (!editLogForm || !editingLogId) return
+    await supabase.from('performance_log').update({
+      score: editLogForm.score.trim() || null,
+      completed_at: editLogForm.completed_at,
+      notes: editLogForm.notes.trim() || null,
+    }).eq('id', editingLogId)
+    setEditingLogId(null)
+    setEditLogForm(null)
+    if (onWorkoutsChanged) onWorkoutsChanged()
+  }
+
+  async function deleteLog(logId) {
+    if (!confirm('Delete this log entry?')) return
+    await supabase.from('performance_log').delete().eq('id', logId)
     if (onWorkoutsChanged) onWorkoutsChanged()
   }
 
@@ -235,7 +270,31 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
 
   const isFav = favorites?.has(wod.id)
   const pl = wod.performance_log || []
-  const scoreLabel = wod.score_type === 'Time' ? 'Time' : wod.score_type === 'Rounds + Reps' ? 'Score' : wod.score_type === 'Calories' ? 'Cals' : 'Result'
+  const bs = bestScore(wod)
+  const leaderboardPl = pl.filter(p => p.notes !== 'Quick logged')
+  const totalLoggers = new Set(leaderboardPl.map(p => p.user_id)).size
+  const scoreLabel = wod.score_type === 'Time' ? 'Time' : wod.score_type === 'Rounds + Reps' ? 'Score' : wod.score_type === 'Calories' ? 'Cals' : wod.score_type === 'Reps' ? 'Reps' : wod.score_type === 'Distance' ? 'Distance' : wod.score_type === 'Load' ? 'Weight' : 'Result'
+
+  const sortedPl = useMemo(() => {
+    const sorted = [...leaderboardPl]
+    if (logSort === 'score') {
+      if (wod.score_type === 'Time') {
+        sorted.sort((a, b) => (a.score || '').localeCompare(b.score || ''))
+      } else {
+        sorted.sort((a, b) => (b.score || '').localeCompare(a.score || ''))
+      }
+    } else {
+      sorted.sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''))
+    }
+    if (bs && sorted.length > 1) {
+      const prIdx = sorted.findIndex(e => e.score === bs)
+      if (prIdx > 0) {
+        const [pr] = sorted.splice(prIdx, 1)
+        sorted.unshift(pr)
+      }
+    }
+    return sorted
+  }, [leaderboardPl, logSort, bs, wod.score_type])
 
   return (
     <>
@@ -278,31 +337,80 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
               {wod.workout_types?.filter(t => t !== 'General').map(t => <span key={t} className="tg tw">{t}</span>)}
             </div>
 
-            {/* Performance Log */}
+            {/* Leaderboard — matches WorkoutCard */}
             <div className="plog">
               <div className="plog-hdr">
-                <h4>Performance Log {wod.score_type !== 'None' && <span className="st-badge">Scored by: {wod.score_type}</span>}</h4>
-                <span className="plog-add" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }}>{addingLog ? 'Cancel' : '+ Log Result'}</span>
+                <h4>Leaderboard {wod.score_type !== 'None' && <span className="st-badge">{wod.score_type}</span>}
+                  {totalLoggers > 0 && <span className="st-badge" style={{ background: 'var(--grn-d)', color: 'var(--grn)' }}>{totalLoggers} athlete{totalLoggers !== 1 ? 's' : ''}</span>}
+                </h4>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {leaderboardPl.length > 1 && (
+                    <select className="ssel" value={logSort} onChange={e => setLogSort(e.target.value)} style={{ width: 'auto', fontSize: '10px', padding: '3px 6px' }}>
+                      <option value="date">By Date</option>
+                      <option value="score">By {wod.score_type === 'Time' ? 'Time' : 'Score'}</option>
+                    </select>
+                  )}
+                  <span className="plog-add" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }}>{addingLog ? 'Cancel' : '+ Log Result'}</span>
+                </div>
               </div>
-              {pl.length > 0 && (
+              {sortedPl.length > 0 && (
                 <table className="plog-table">
-                  <thead><tr><th>Date</th><th>{scoreLabel}</th><th>Notes</th></tr></thead>
+                  <thead><tr><th>Athlete</th><th>Date</th><th>{scoreLabel}</th><th>Notes</th><th></th></tr></thead>
                   <tbody>
-                    {pl.map(e => (
-                      <tr key={e.id}>
-                        <td>{e.completed_at || '—'}</td>
-                        <td>{e.score || '—'}</td>
-                        <td style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
-                      </tr>
-                    ))}
+                    {sortedPl.map((e, idx) => {
+                      const isBest = e.score === bs && leaderboardPl.length > 1
+                      const isEditingThis = editingLogId === e.id
+                      const rank = logSort === 'score' ? idx + 1 : null
+
+                      if (isEditingThis && editLogForm) {
+                        return (
+                          <tr key={e.id}>
+                            <td style={{ fontWeight: 600, color: 'var(--tx2)', fontSize: '11px' }}>{e.display_name}</td>
+                            <td><input type="date" value={editLogForm.completed_at} onChange={ev => setEditLogForm({ ...editLogForm, completed_at: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
+                            <td><input value={editLogForm.score} onChange={ev => setEditLogForm({ ...editLogForm, score: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
+                            <td><input value={editLogForm.notes} onChange={ev => setEditLogForm({ ...editLogForm, notes: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
+                            <td style={{ whiteSpace: 'nowrap' }}>
+                              <span className="del-entry" onClick={saveEditLog} style={{ color: 'var(--grn)', marginRight: '4px' }}>✓</span>
+                              <span className="del-entry" onClick={() => { setEditingLogId(null); setEditLogForm(null) }}>✕</span>
+                            </td>
+                          </tr>
+                        )
+                      }
+
+                      return (
+                        <tr key={e.id} className={e.is_mine ? 'my-log' : ''}>
+                          <td className="lb-name">
+                            {rank && isBest && <span className="lb-medal">🥇</span>}
+                            {rank === 2 && <span className="lb-medal">🥈</span>}
+                            {rank === 3 && <span className="lb-medal">🥉</span>}
+                            <span style={{ fontWeight: e.is_mine ? 700 : 500 }}>{e.display_name}</span>
+                          </td>
+                          <td>{e.completed_at || '—'}</td>
+                          <td className={isBest ? 'best' : ''}>
+                            {e.score ? e.score : '✓'}{isBest ? ' ★' : ''}
+                            {e.is_rx === false && <span className="scaled-tag">Scaled</span>}
+                            {e.is_rx === true && e.score && <span className="rx-tag">Rx</span>}
+                          </td>
+                          <td style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
+                          <td style={{ whiteSpace: 'nowrap' }}>
+                            {e.is_mine && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); startEditLog(e) }} style={{ marginRight: '4px' }} title="Edit">✎</span>}
+                            {e.is_mine && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); deleteLog(e.id) }}>✕</span>}
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               )}
               {addingLog && (
                 <div className="plog-form">
-                  <input placeholder={scoreLabel} value={logScore} onChange={e => setLogScore(e.target.value)} />
+                  <input placeholder={`${scoreLabel} (optional)`} value={logScore} onChange={e => setLogScore(e.target.value)} />
                   <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} />
                   <input placeholder="Notes (optional)" value={logNotes} onChange={e => setLogNotes(e.target.value)} />
+                  <label className="rx-toggle" title="Rx = prescribed weights/movements">
+                    <input type="checkbox" checked={logRx} onChange={e => setLogRx(e.target.checked)} />
+                    <span className={logRx ? 'rx-on' : 'rx-off'}>Rx</span>
+                  </label>
                   <button className="ab p" onClick={addLog}>Save</button>
                 </div>
               )}
