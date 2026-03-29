@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import WorkoutTimer from './WorkoutTimer'
 import ShareImage from './ShareImage'
@@ -275,7 +275,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
   const totalLoggers = new Set(leaderboardPl.map(p => p.user_id)).size
   const scoreLabel = wod.score_type === 'Time' ? 'Time' : wod.score_type === 'Rounds + Reps' ? 'Score' : wod.score_type === 'Calories' ? 'Cals' : wod.score_type === 'Reps' ? 'Reps' : wod.score_type === 'Distance' ? 'Distance' : wod.score_type === 'Load' ? 'Weight' : 'Result'
 
-  const sortedPl = useMemo(() => {
+  const sortedPl = (() => {
     const sorted = [...leaderboardPl]
     if (logSort === 'score') {
       if (wod.score_type === 'Time') {
@@ -294,7 +294,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
       }
     }
     return sorted
-  }, [leaderboardPl, logSort, bs, wod.score_type])
+  })()
 
   return (
     <>

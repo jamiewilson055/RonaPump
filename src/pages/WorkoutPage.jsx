@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import WorkoutTimer from '../components/WorkoutTimer'
@@ -364,7 +364,7 @@ export default function WorkoutPage() {
   const leaderboardPl = (w.performance_log || []).filter(p => p.notes !== 'Quick logged')
   const totalLoggers = new Set(leaderboardPl.map(p => p.user_id)).size
 
-  const sortedPl = useMemo(() => {
+  const sortedPl = (() => {
     const sorted = [...leaderboardPl]
     if (logSort === 'score') {
       if (w.score_type === 'Time') {
@@ -383,7 +383,7 @@ export default function WorkoutPage() {
       }
     }
     return sorted
-  }, [leaderboardPl, logSort, bs, w.score_type])
+  })()
 
   return (
     <div className="app">
