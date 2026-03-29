@@ -1948,3 +1948,9 @@ input, select, textarea { font-family: inherit; }
   .prof-hero-stat-num { font-size: 16px; }
   .prof-xp-wrap { max-width: 220px; }
 }
+
+/* Section Back Bar */
+.section-back-bar { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; margin-bottom: 8px; border-bottom: 1px solid var(--brd); }
+.section-back-btn { background: none; border: none; color: var(--acc); font-size: 13px; font-weight: 600; cursor: pointer; padding: 4px 0; font-family: 'JetBrains Mono', monospace; transition: opacity .12s; }
+.section-back-btn:hover { opacity: .7; }
+.section-back-title { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--tx3); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }

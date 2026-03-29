@@ -305,6 +305,22 @@ function App() {
   const isMainTab = ['all', 'done', 'queue', 'favs'].includes(tab)
   const isFeatureTab = ['deck', 'ai', 'timer', 'longevity', 'h2h', 'prs', 'activity', 'stats', 'collections', 'train', 'track', 'social'].includes(tab)
 
+  const SECTION_META = {
+    train:       { label: 'Train',          back: 'all',    backLabel: 'Workouts' },
+    track:       { label: 'Track',          back: 'all',    backLabel: 'Workouts' },
+    social:      { label: 'Social',         back: 'all',    backLabel: 'Workouts' },
+    ai:          { label: 'AI Generator',   back: 'train',  backLabel: 'Train' },
+    deck:        { label: 'Deck of Cards',  back: 'train',  backLabel: 'Train' },
+    timer:       { label: 'Timer',          back: 'train',  backLabel: 'Train' },
+    longevity:   { label: 'Longevity',      back: 'track',  backLabel: 'Track' },
+    prs:         { label: 'Strength',       back: 'track',  backLabel: 'Track' },
+    stats:       { label: 'Stats',          back: 'track',  backLabel: 'Track' },
+    collections: { label: 'Collections',    back: 'track',  backLabel: 'Track' },
+    activity:    { label: 'Activity Feed',  back: 'social', backLabel: 'Social' },
+    h2h:         { label: 'H2H Challenges', back: 'social', backLabel: 'Social' },
+  }
+  const sectionMeta = SECTION_META[tab]
+
   return (
     <div className="app">
       <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onNotifNavigate={handleNotifNavigate} />
@@ -467,6 +483,15 @@ function App() {
         </div>
       ) : (
         <>
+          {/* Section Back Bar */}
+          {sectionMeta && (
+            <div className="section-back-bar">
+              <button className="section-back-btn" onClick={() => setTab(sectionMeta.back)}>
+                ← {sectionMeta.backLabel}
+              </button>
+              <span className="section-back-title">{sectionMeta.label}</span>
+            </div>
+          )}
           {tab === 'train' ? (
             <div className="group-landing">
               <h3 className="group-title">⚡ Train</h3>
