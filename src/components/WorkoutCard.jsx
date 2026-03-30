@@ -602,7 +602,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
           <label>Equipment</label>
           <div className="cr">
-            {['Air Bike', 'Barbell', 'Bench', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Speed Rope', 'Weighted Vest'].map(eq => (
+            {['Air Bike', 'Barbell', 'Bench', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Jump Rope', 'Weighted Vest'].map(eq => (
               <button key={eq} className={`ch${editForm.equipment.includes(eq) ? ' on' : ''}`}
                 onClick={() => toggleEditArray('equipment', eq)}>{eq}</button>
             ))}

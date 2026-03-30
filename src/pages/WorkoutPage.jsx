@@ -649,7 +649,7 @@ export default function WorkoutPage() {
             <input type="number" value={editForm.estimated_duration_mins} onChange={e => setEditForm({ ...editForm, estimated_duration_mins: e.target.value })} placeholder="e.g. 30" />
             <label>Equipment</label>
             <div className="cr">
-              {['Air Bike', 'Barbell', 'Bench', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Speed Rope', 'Weighted Vest'].map(eq => (
+              {['Air Bike', 'Barbell', 'Bench', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Jump Rope', 'Weighted Vest'].map(eq => (
                 <button key={eq} className={`ch${editForm.equipment.includes(eq) ? ' on' : ''}`} onClick={() => toggleEditArray('equipment', eq)}>{eq}</button>
               ))}
             </div>
