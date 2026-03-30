@@ -180,7 +180,7 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
 
         <label>Equipment</label>
         <div className="cr">
-          {['Air Bike', 'Barbell', 'Bench', 'Bodyweight', 'Box', 'Dumbbell', 'Jump Rope', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Weighted Vest'].map(eq => (
+          {['Air Bike', 'Barbell', 'Bench', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Jump Rope', 'Weighted Vest'].map(eq => (
             <button key={eq} className={`ch${form.equipment.includes(eq) ? ' on' : ''}`}
               onClick={() => toggleArray('equipment', eq)}>{eq}</button>
           ))}
@@ -196,7 +196,7 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
 
         <label>Category</label>
         <div className="cr">
-          {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Partner', 'Track Workouts'].map(c => (
+          {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Outdoor', 'Track Workouts'].map(c => (
             <button key={c} className={`ch${form.categories.includes(c) ? ' on' : ''}`}
               onClick={() => toggleArray('categories', c)}>{c}</button>
           ))}
@@ -204,7 +204,7 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
 
         <label>Movement Type</label>
         <div className="cr">
-          {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat', 'Thruster'].map(m => (
+          {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'KB Swing', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat', 'Thruster'].map(m => (
             <button key={m} className={`ch${form.movement_categories.includes(m) ? ' on' : ''}`}
               onClick={() => toggleArray('movement_categories', m)}>{m}</button>
           ))}
