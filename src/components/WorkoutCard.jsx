@@ -190,7 +190,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
   function startEditLog(entry) {
     setEditingLogId(entry.id)
-    setEditLogForm({ score: entry.score || '', completed_at: entry.completed_at || '', notes: entry.notes || '' })
+    setEditLogForm({ score: entry.score || '', completed_at: entry.completed_at || '', notes: entry.notes || '', is_rx: entry.is_rx !== false })
   }
 
   async function saveEditLog() {
@@ -199,6 +199,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
       score: editLogForm.score.trim() || null,
       completed_at: editLogForm.completed_at,
       notes: editLogForm.notes.trim() || null,
+      is_rx: editLogForm.is_rx,
     }).eq('id', editingLogId)
     setEditingLogId(null)
     setEditLogForm(null)
@@ -384,6 +385,10 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
                           <td><input value={editLogForm.score} onChange={ev => setEditLogForm({ ...editLogForm, score: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
                           <td><input value={editLogForm.notes} onChange={ev => setEditLogForm({ ...editLogForm, notes: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
                           <td style={{ whiteSpace: 'nowrap' }}>
+                            <label className="rx-toggle" style={{ fontSize: '10px', gap: '2px', marginRight: '6px' }}>
+                              <input type="checkbox" checked={editLogForm.is_rx} onChange={ev => setEditLogForm({ ...editLogForm, is_rx: ev.target.checked })} />
+                              <span className={editLogForm.is_rx ? 'rx-on' : 'rx-off'}>Rx</span>
+                            </label>
                             <span className="del-entry" onClick={saveEditLog} style={{ color: 'var(--grn)', marginRight: '4px' }}>✓</span>
                             <span className="del-entry" onClick={() => { setEditingLogId(null); setEditLogForm(null) }}>✕</span>
                           </td>
