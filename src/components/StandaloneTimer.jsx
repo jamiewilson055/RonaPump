@@ -110,6 +110,8 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
   const startTimeRef = useRef(null)
   const pausedElapsedRef = useRef(0)
   const lastSecRef = useRef(-1)
+  const scheduledNodesRef = useRef([])
+  const bgSourceRef = useRef(null)
 
   // Settings per mode
   const [amrapMins, setAmrapMins] = useState(12)
@@ -276,7 +278,94 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
     startTimeRef.current = Date.now()
   }
 
-  useEffect(() => { return () => { releaseWakeLock(); clearInterval(intervalRef.current) } }, [])
+  useEffect(() => { return () => { releaseWakeLock(); clearInterval(intervalRef.current); cancelScheduledAudio(); stopBgAudio() } }, [])
+
+  // ============= Web Audio Pre-Scheduling (works when phone locked) =============
+  function cancelScheduledAudio() {
+    scheduledNodesRef.current.forEach(n => { try { n.stop() } catch {} })
+    scheduledNodesRef.current = []
+  }
+
+  function stopBgAudio() {
+    if (bgSourceRef.current) { try { bgSourceRef.current.stop() } catch {}; bgSourceRef.current = null }
+  }
+
+  function startBgAudio() {
+    stopBgAudio()
+    try {
+      const ctx = getAudioCtx()
+      const sr = ctx.sampleRate
+      const buf = ctx.createBuffer(1, sr, sr)
+      const d = buf.getChannelData(0)
+      for (let i = 0; i < sr; i++) d[i] = (Math.random() - 0.5) * 0.0001
+      const src = ctx.createBufferSource()
+      src.buffer = buf; src.loop = true
+      const g = ctx.createGain(); g.gain.value = 0.001
+      src.connect(g); g.connect(ctx.destination)
+      src.start()
+      bgSourceRef.current = src
+    } catch {}
+  }
+
+  function scheduleBeepAt(freq, dur, vol, atTime) {
+    try {
+      const ctx = getAudioCtx()
+      if (atTime <= ctx.currentTime) return
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain); gain.connect(ctx.destination)
+      osc.frequency.value = freq; gain.gain.value = vol
+      osc.start(atTime); osc.stop(atTime + dur)
+      scheduledNodesRef.current.push(osc)
+      osc.onended = () => { scheduledNodesRef.current = scheduledNodesRef.current.filter(n => n !== osc) }
+    } catch {}
+  }
+
+  function scheduleEmomAudio(wallOffset) {
+    cancelScheduledAudio()
+    startBgAudio()
+    try {
+      const ctx = getAudioCtx()
+      const now = ctx.currentTime
+
+      for (let r = 0; r < emomRounds; r++) {
+        const roundStart = r * emomInterval
+
+        // "Go" beep at start of each round (except first)
+        if (r > 0 && roundStart > wallOffset) {
+          const t = now + (roundStart - wallOffset)
+          scheduleBeepAt(880, 0.3, 0.5, t)
+          scheduleBeepAt(1100, 0.3, 0.5, t + 0.15)
+        }
+
+        // 15-second warning (3 rising tones)
+        if (emomInterval >= 30) {
+          const w15 = roundStart + emomInterval - 15
+          if (w15 > wallOffset) {
+            const t = now + (w15 - wallOffset)
+            scheduleBeepAt(700, 0.15, 0.5, t)
+            scheduleBeepAt(900, 0.15, 0.5, t + 0.18)
+            scheduleBeepAt(1100, 0.15, 0.5, t + 0.36)
+          }
+        }
+
+        // 3-2-1 countdown beeps
+        for (let c = 3; c >= 1; c--) {
+          const wc = roundStart + emomInterval - c
+          if (wc > wallOffset) {
+            scheduleBeepAt(880, 0.12, 0.5, now + (wc - wallOffset))
+          }
+        }
+      }
+
+      // Done beeps at the very end
+      const totalTime = emomRounds * emomInterval
+      if (totalTime > wallOffset) {
+        const t = now + (totalTime - wallOffset)
+        for (let i = 0; i < 3; i++) scheduleBeepAt(1100, 0.2, 0.5, t + i * 0.2)
+      }
+    } catch {}
+  }
 
   // ============= Stopwatch =============
   function startStopwatch() {
@@ -341,26 +430,27 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
     runCountdown(() => {
       setPhase('running'); setCurrentRound(1); setIntervalTimeLeft(emomInterval); setTapCount(0); setRunning(true)
       requestWakeLock(); startWallClock()
+      if (sound) scheduleEmomAudio(0) // Pre-schedule all beeps on audio hardware clock
       const totalEmom = emomRounds * emomInterval
       intervalRef.current = setInterval(() => {
         const elapsed = getWallElapsed()
         setTime(elapsed)
         if (elapsed >= totalEmom && lastSecRef.current < totalEmom) {
           lastSecRef.current = totalEmom
-          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
+          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); releaseWakeLock()
+          cancelScheduledAudio(); stopBgAudio()
           setCurrentRound(emomRounds); setIntervalTimeLeft(0); return
         }
         const round = Math.min(Math.floor(elapsed / emomInterval) + 1, emomRounds)
         const timeInRound = elapsed % emomInterval
         const timeLeft = emomInterval - timeInRound
         setCurrentRound(round); setIntervalTimeLeft(timeLeft)
+        // Speech synthesis runs from setInterval (foreground only, bonus on top of scheduled beeps)
         if (elapsed !== lastSecRef.current && sound) {
           lastSecRef.current = elapsed
-          if (timeInRound === 0 && elapsed > 0) playGo()
-          if (timeLeft === 15 && emomInterval >= 30) play15SecWarning()
-          if (timeLeft === 3) playEmomCountdown()
-          if (timeLeft === 2) playEmomCountdown()
-          if (timeLeft === 1) playEmomCountdown()
+          if (timeLeft === 15 && emomInterval >= 30) {
+            try { if (window.speechSynthesis) { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance('15 seconds'); u.rate = 1.1; u.volume = 0.9; window.speechSynthesis.speak(u) } } catch {}
+          }
         }
       }, 250)
     })
@@ -469,6 +559,7 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
   function pause() {
     clearInterval(intervalRef.current); setRunning(false)
     pauseWallClock(getWallElapsed())
+    cancelScheduledAudio(); stopBgAudio()
   }
 
   function resume() {
@@ -503,13 +594,15 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
         }
       }, 250)
     } else if (mode === 'emom') {
+      if (sound) scheduleEmomAudio(pausedElapsedRef.current) // Re-schedule remaining beeps
       const totalEmom = emomRounds * emomInterval
       intervalRef.current = setInterval(() => {
         const elapsed = getWallElapsed()
         setTime(elapsed)
         if (elapsed >= totalEmom && lastSecRef.current < totalEmom) {
           lastSecRef.current = totalEmom
-          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
+          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); releaseWakeLock()
+          cancelScheduledAudio(); stopBgAudio()
           setCurrentRound(emomRounds); setIntervalTimeLeft(0); return
         }
         const round = Math.min(Math.floor(elapsed / emomInterval) + 1, emomRounds)
@@ -518,9 +611,9 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
         setCurrentRound(round); setIntervalTimeLeft(timeLeft)
         if (elapsed !== lastSecRef.current && sound) {
           lastSecRef.current = elapsed
-          if (timeLeft === 15 && emomInterval >= 30) play15SecWarning()
-          if (timeLeft === 3) playEmomCountdown()
-          if (timeInRound === 0 && elapsed > 0) playGo()
+          if (timeLeft === 15 && emomInterval >= 30) {
+            try { if (window.speechSynthesis) { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance('15 seconds'); u.rate = 1.1; u.volume = 0.9; window.speechSynthesis.speak(u) } } catch {}
+          }
         }
       }, 250)
     } else if (mode === 'tabata') {
@@ -575,6 +668,7 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
     setTime(0); setRounds(0); setTapCount(0); setLaps([])
     setCurrentRound(0); setCurrentSet(0); setIntervalTimeLeft(0); setCurrentIntervalIdx(0)
     resetWallClock(); releaseWakeLock()
+    cancelScheduledAudio(); stopBgAudio()
   }
 
   function addRound() { setRounds(r => r + 1); if (sound) playBeep(660, 0.1, 0.3) }
