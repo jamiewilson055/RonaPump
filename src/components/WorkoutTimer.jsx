@@ -46,6 +46,18 @@ function playTripleBeep() {
   setTimeout(() => playBeep(1100, 0.25, 0.5), 400)
 }
 
+function playEmomCountdown() { playBeep(880, 0.12, 0.5) }
+
+function speak15() {
+  try {
+    if (!window.speechSynthesis) return
+    window.speechSynthesis.cancel()
+    const u = new SpeechSynthesisUtterance('15 seconds')
+    u.rate = 1.1; u.pitch = 1.0; u.volume = 0.9
+    window.speechSynthesis.speak(u)
+  } catch {}
+}
+
 let gorillaBuffer = null
 function playGorillaGrunt() {
   try {
@@ -266,7 +278,8 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
                 if (s % eInterval === 0 && s > 0) playDoubleBeep()
                 const timeInRound = s % eInterval
                 const timeLeft = eInterval - timeInRound
-                if (timeLeft === 3 || timeLeft === 2 || timeLeft === 1) playBeep(660, 0.1, 0.3)
+                if (timeLeft === 15 && eInterval >= 30) speak15()
+                if (timeLeft === 3 || timeLeft === 2 || timeLeft === 1) playEmomCountdown()
               }
               if (mode === 'interval') {
                 const wk = parseInt(workTime) || 30
@@ -343,10 +356,11 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
   } else if (mode === 'emom') {
     const rounds = parseInt(emomRounds) || 10
     const interval = parseInt(emomInterval) || 60
+    const emomLabel = interval === 60 ? 'EMOM' : `E${interval / 60}MOM`
     const totalEmom = rounds * interval
     const currentRound = Math.floor(elapsed / interval) + 1
     displayTime = formatTime(interval - (elapsed % interval))
-    displayLabel = `Round ${Math.min(currentRound, rounds)} of ${rounds}`
+    displayLabel = `${emomLabel} — Round ${Math.min(currentRound, rounds)} of ${rounds}`
     displayRound = formatTime(Math.max(totalEmom - elapsed, 0)) + ' remaining'
     progress = totalEmom > 0 ? (elapsed / totalEmom) * 100 : 0
   } else if (mode === 'interval') {
@@ -401,7 +415,7 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
             <div className="timer-mode-tabs">
               <button className={`tmt${mode === 'stopwatch' ? ' on' : ''}`} onClick={() => setMode('stopwatch')}>Stopwatch</button>
               <button className={`tmt${mode === 'countdown' ? ' on' : ''}`} onClick={() => setMode('countdown')}>Countdown</button>
-              <button className={`tmt${mode === 'emom' ? ' on' : ''}`} onClick={() => setMode('emom')}>EMOM</button>
+              <button className={`tmt${mode === 'emom' ? ' on' : ''}`} onClick={() => setMode('emom')}>{emomInterval === 60 ? 'EMOM' : `E${(parseInt(emomInterval) || 60) / 60}MOM`}</button>
               <button className={`tmt${mode === 'interval' ? ' on' : ''}`} onClick={() => setMode('interval')}>Interval</button>
             </div>
 
@@ -413,21 +427,28 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
               </div>
             )}
             {mode === 'emom' && (
-              <div className="timer-config">
-                <label>Minutes (1 round per minute)</label>
+              <div className="timer-config" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                <label>Interval</label>
+                <div style={{ display: 'flex', gap: '3px', marginBottom: '8px' }}>
+                  {[1, 2, 3, 4, 5].map(m => (
+                    <button key={m} style={{
+                      flex: 1, padding: '7px 2px', borderRadius: '6px', fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: '11px', fontWeight: 700, cursor: 'pointer', transition: 'all .12s', textAlign: 'center',
+                      background: emomInterval === m * 60 ? 'var(--acc)' : 'var(--s2)',
+                      color: emomInterval === m * 60 ? '#fff' : 'var(--tx2)',
+                      border: `1px solid ${emomInterval === m * 60 ? 'var(--acc)' : 'var(--brd)'}`,
+                    }} onClick={() => setEmomInterval(m * 60)}>
+                      {m === 1 ? 'EMOM' : `E${m}MOM`}
+                    </button>
+                  ))}
+                </div>
+                <label>Rounds</label>
                 <input type="number" value={emomRounds} onChange={e => {
                   const val = e.target.value
                   if (val === '') { setEmomRounds(''); return }
                   const n = parseInt(val)
                   if (!isNaN(n) && n > 0) setEmomRounds(n)
-                }} min="1" placeholder="e.g. 30" />
-                <label>Seconds per round</label>
-                <input type="number" value={emomInterval} onChange={e => {
-                  const val = e.target.value
-                  if (val === '') { setEmomInterval(''); return }
-                  const n = parseInt(val)
-                  if (!isNaN(n) && n >= 10) setEmomInterval(n)
-                }} min="10" />
+                }} min="1" placeholder="e.g. 10" />
                 <div style={{ fontSize: '12px', color: 'var(--tx3)', marginTop: '4px' }}>
                   Total: {formatTime((parseInt(emomRounds) || 0) * (parseInt(emomInterval) || 60))} — {parseInt(emomRounds) || 0} rounds × {parseInt(emomInterval) || 60}s
                 </div>

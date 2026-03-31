@@ -21,6 +21,16 @@ function playCountdown() { playBeep(660, 0.1, 0.3) }
 function playGo() { playBeep(880, 0.3, 0.5); setTimeout(() => playBeep(1100, 0.3, 0.5), 150) }
 function playRest() { playBeep(440, 0.2, 0.35) }
 function playDone() { for (let i = 0; i < 3; i++) setTimeout(() => playBeep(1100, 0.2, 0.5), i * 200) }
+function playEmomCountdown() { playBeep(880, 0.12, 0.5) }
+function speak15() {
+  try {
+    if (!window.speechSynthesis) return
+    window.speechSynthesis.cancel()
+    const u = new SpeechSynthesisUtterance('15 seconds')
+    u.rate = 1.1; u.pitch = 1.0; u.volume = 0.9
+    window.speechSynthesis.speak(u)
+  } catch {}
+}
 let gorillaBuffer = null
 function playGorillaGrunt() {
   try {
@@ -276,9 +286,10 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
         if (elapsed !== lastSecRef.current && sound) {
           lastSecRef.current = elapsed
           if (timeInRound === 0 && elapsed > 0) playGo()
-          if (timeLeft === 3) playCountdown()
-          if (timeLeft === 2) playCountdown()
-          if (timeLeft === 1) playCountdown()
+          if (timeLeft === 15 && emomInterval >= 30) speak15()
+          if (timeLeft === 3) playEmomCountdown()
+          if (timeLeft === 2) playEmomCountdown()
+          if (timeLeft === 1) playEmomCountdown()
         }
       }, 250)
     })
@@ -433,7 +444,12 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
         const timeInRound = elapsed % emomInterval
         const timeLeft = emomInterval - timeInRound
         setCurrentRound(round); setIntervalTimeLeft(timeLeft)
-        if (elapsed !== lastSecRef.current && sound) { lastSecRef.current = elapsed; if (timeLeft === 3) playCountdown(); if (timeInRound === 0 && elapsed > 0) playGo() }
+        if (elapsed !== lastSecRef.current && sound) {
+          lastSecRef.current = elapsed
+          if (timeLeft === 15 && emomInterval >= 30) speak15()
+          if (timeLeft === 3) playEmomCountdown()
+          if (timeInRound === 0 && elapsed > 0) playGo()
+        }
       }, 250)
     } else if (mode === 'tabata') {
       const roundDur = tabataWork + tabataRest
@@ -598,11 +614,20 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
 
           {mode === 'emom' && (
             <div className="timer-setup-body">
-              <label className="timer-label">Interval (seconds)</label>
-              <div className="timer-stepper">
-                <button className="timer-step-btn" onClick={() => setEmomInterval(Math.max(10, emomInterval - 10))}>−10</button>
-                <span className="timer-step-val">{emomInterval}s</span>
-                <button className="timer-step-btn" onClick={() => setEmomInterval(emomInterval + 10)}>+10</button>
+              <label className="timer-label">Interval</label>
+              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                {[1, 2, 3, 4, 5].map(m => (
+                  <button key={m} style={{
+                    flex: 1, minWidth: '58px', padding: '10px 4px', borderRadius: '8px', fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: '12px', fontWeight: 700, cursor: 'pointer', transition: 'all .12s', textAlign: 'center',
+                    background: emomInterval === m * 60 ? 'var(--acc)' : 'var(--s2)',
+                    color: emomInterval === m * 60 ? '#fff' : 'var(--tx2)',
+                    border: `1px solid ${emomInterval === m * 60 ? 'var(--acc)' : 'var(--brd)'}`,
+                  }} onClick={() => setEmomInterval(m * 60)}>
+                    {m === 1 ? 'EMOM' : `E${m}MOM`}
+                    <div style={{ fontSize: '9px', fontWeight: 400, opacity: 0.7, marginTop: '2px' }}>{m} min</div>
+                  </button>
+                ))}
               </div>
               <label className="timer-label">Rounds</label>
               <div className="timer-stepper">
@@ -610,8 +635,8 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
                 <span className="timer-step-val">{emomRounds}</span>
                 <button className="timer-step-btn" onClick={() => setEmomRounds(emomRounds + 1)}>+</button>
               </div>
-              <div className="timer-total">Total: {fmt(emomInterval * emomRounds)}</div>
-              <button className="timer-go-btn" onClick={startEmom}>▶ Start EMOM</button>
+              <div className="timer-total">Total: {fmt(emomInterval * emomRounds)} — {emomRounds} rounds × {emomInterval}s</div>
+              <button className="timer-go-btn" onClick={startEmom}>▶ Start {emomInterval === 60 ? 'EMOM' : `E${emomInterval / 60}MOM`}</button>
             </div>
           )}
 
@@ -719,7 +744,7 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
 
       <div className="timer-active" style={{ borderColor: phaseColor }}>
         <div className="timer-active-top">
-          <span className="timer-mode-badge">{modeInfo?.icon} {modeInfo?.label}</span>
+          <span className="timer-mode-badge">{modeInfo?.icon} {mode === 'emom' ? (emomInterval === 60 ? 'EMOM' : `E${emomInterval / 60}MOM`) : modeInfo?.label}</span>
           <div className="timer-controls-top">
             <button className={`timer-sound-btn${sound ? '' : ' off'}`} onClick={() => setSound(!sound)}>{sound ? '🔊' : '🔇'}</button>
             <button className="timer-fs-btn" onClick={toggleFullscreen}>{fullscreen ? '⊟' : '⊞'}</button>
