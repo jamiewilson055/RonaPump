@@ -48,13 +48,29 @@ function playTripleBeep() {
 
 function playEmomCountdown() { playBeep(880, 0.12, 0.5) }
 
-function speak15() {
+function play15SecWarning() {
+  // Distinctive warning pattern: three rising tones
+  playBeep(700, 0.15, 0.5)
+  setTimeout(() => playBeep(900, 0.15, 0.5), 180)
+  setTimeout(() => playBeep(1100, 0.15, 0.5), 360)
+  // Also try speech synthesis as bonus
   try {
-    if (!window.speechSynthesis) return
-    window.speechSynthesis.cancel()
-    const u = new SpeechSynthesisUtterance('15 seconds')
-    u.rate = 1.1; u.pitch = 1.0; u.volume = 0.9
-    window.speechSynthesis.speak(u)
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel()
+      const u = new SpeechSynthesisUtterance('15 seconds')
+      u.rate = 1.1; u.pitch = 1.0; u.volume = 0.9
+      window.speechSynthesis.speak(u)
+    }
+  } catch {}
+}
+
+function initSpeech() {
+  try {
+    if (window.speechSynthesis) {
+      const u = new SpeechSynthesisUtterance('')
+      u.volume = 0
+      window.speechSynthesis.speak(u)
+    }
   } catch {}
 }
 
@@ -220,6 +236,7 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
 
   function startTimer() {
     initAudio()
+    initSpeech() // Pre-unlock speech synthesis on user gesture
     // Sanitize any empty inputs before starting
     if (mode === 'emom') {
       if (!emomRounds || emomRounds < 1) setEmomRounds(10)
@@ -278,7 +295,7 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
                 if (s % eInterval === 0 && s > 0) playDoubleBeep()
                 const timeInRound = s % eInterval
                 const timeLeft = eInterval - timeInRound
-                if (timeLeft === 15 && eInterval >= 30) speak15()
+                if (timeLeft === 15 && eInterval >= 30) play15SecWarning()
                 if (timeLeft === 3 || timeLeft === 2 || timeLeft === 1) playEmomCountdown()
               }
               if (mode === 'interval') {

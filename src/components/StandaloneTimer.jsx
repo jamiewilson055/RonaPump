@@ -22,13 +22,29 @@ function playGo() { playBeep(880, 0.3, 0.5); setTimeout(() => playBeep(1100, 0.3
 function playRest() { playBeep(440, 0.2, 0.35) }
 function playDone() { for (let i = 0; i < 3; i++) setTimeout(() => playBeep(1100, 0.2, 0.5), i * 200) }
 function playEmomCountdown() { playBeep(880, 0.12, 0.5) }
-function speak15() {
+function play15SecWarning() {
+  // Distinctive warning pattern: two rising tones
+  playBeep(700, 0.15, 0.5)
+  setTimeout(() => playBeep(900, 0.15, 0.5), 180)
+  setTimeout(() => playBeep(1100, 0.15, 0.5), 360)
+  // Also try speech synthesis as bonus (unreliable on mobile, so beeps are primary)
   try {
-    if (!window.speechSynthesis) return
-    window.speechSynthesis.cancel()
-    const u = new SpeechSynthesisUtterance('15 seconds')
-    u.rate = 1.1; u.pitch = 1.0; u.volume = 0.9
-    window.speechSynthesis.speak(u)
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel()
+      const u = new SpeechSynthesisUtterance('15 seconds')
+      u.rate = 1.1; u.pitch = 1.0; u.volume = 0.9
+      window.speechSynthesis.speak(u)
+    }
+  } catch {}
+}
+function initSpeech() {
+  // Pre-unlock speech synthesis on user gesture
+  try {
+    if (window.speechSynthesis) {
+      const u = new SpeechSynthesisUtterance('')
+      u.volume = 0
+      window.speechSynthesis.speak(u)
+    }
   } catch {}
 }
 let gorillaBuffer = null
@@ -90,6 +106,7 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
   const [fullscreen, setFullscreen] = useState(false)
   const intervalRef = useRef(null)
   const wakeLockRef = useRef(null)
+  const videoRef = useRef(null)
   const startTimeRef = useRef(null)
   const pausedElapsedRef = useRef(0)
   const lastSecRef = useRef(-1)
@@ -166,11 +183,77 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
     loadSavedTimers()
   }
 
-  // Wake lock
-  async function requestWakeLock() {
-    try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen') } catch {}
+  // Robust wake lock: Wake Lock API + iOS silent video fallback + visibility re-acquisition
+  async function tryWakeLock() {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockRef.current = await navigator.wakeLock.request('screen')
+        return true
+      }
+    } catch {}
+    return false
   }
-  function releaseWakeLock() { wakeLockRef.current?.release(); wakeLockRef.current = null }
+
+  function startVideoKeepAwake() {
+    if (videoRef.current) return
+    const video = document.createElement('video')
+    video.setAttribute('playsinline', '')
+    video.setAttribute('muted', '')
+    video.setAttribute('loop', '')
+    video.style.position = 'fixed'
+    video.style.top = '-1px'
+    video.style.left = '-1px'
+    video.style.width = '1px'
+    video.style.height = '1px'
+    video.style.opacity = '0.01'
+    video.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAA' +
+      'ABtZGF0AAACoAYF//+c3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE2NCByMzEwOCAzMWUxOW' +
+      'Y5IC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAyMyAtIGh0dHA6Ly9' +
+      '3d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMAAAAYZnR5' +
+      'cGlzb20AAAIAaXNvbWlzbzJhdmMxbXA0MQAAAAhmcmVlAAAAGG1kYXQAAAGzABAHAAABthBgUYI='
+    video.muted = true
+    document.body.appendChild(video)
+    video.play().catch(() => {})
+    videoRef.current = video
+  }
+
+  function stopVideoKeepAwake() {
+    if (videoRef.current) {
+      videoRef.current.pause()
+      videoRef.current.remove()
+      videoRef.current = null
+    }
+  }
+
+  function requestWakeLock() {
+    tryWakeLock().then(success => {
+      if (!success) startVideoKeepAwake()
+    })
+  }
+
+  function releaseWakeLock() {
+    if (wakeLockRef.current) { wakeLockRef.current.release().catch(() => {}); wakeLockRef.current = null }
+    stopVideoKeepAwake()
+  }
+
+  // Re-acquire wake lock + recalculate time on return from background
+  useEffect(() => {
+    function handleVis() {
+      if (document.visibilityState === 'visible' && running) {
+        // Recalculate elapsed from wall clock
+        if (startTimeRef.current) {
+          const elapsed = getWallElapsed()
+          setTime(elapsed)
+        }
+        // Re-acquire wake lock
+        tryWakeLock().then(success => {
+          if (!success && !videoRef.current) startVideoKeepAwake()
+        })
+      }
+    }
+    document.addEventListener('visibilitychange', handleVis)
+    return () => document.removeEventListener('visibilitychange', handleVis)
+  }, [running])
 
   function getWallElapsed() {
     if (!startTimeRef.current) return 0
@@ -192,18 +275,6 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
   function resumeWallClock() {
     startTimeRef.current = Date.now()
   }
-
-  // Recalculate on return from background
-  useEffect(() => {
-    function handleVis() {
-      if (document.visibilityState === 'visible' && running && startTimeRef.current) {
-        const elapsed = getWallElapsed()
-        setTime(elapsed)
-      }
-    }
-    document.addEventListener('visibilitychange', handleVis)
-    return () => document.removeEventListener('visibilitychange', handleVis)
-  }, [running])
 
   useEffect(() => { return () => { releaseWakeLock(); clearInterval(intervalRef.current) } }, [])
 
@@ -286,7 +357,7 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
         if (elapsed !== lastSecRef.current && sound) {
           lastSecRef.current = elapsed
           if (timeInRound === 0 && elapsed > 0) playGo()
-          if (timeLeft === 15 && emomInterval >= 30) speak15()
+          if (timeLeft === 15 && emomInterval >= 30) play15SecWarning()
           if (timeLeft === 3) playEmomCountdown()
           if (timeLeft === 2) playEmomCountdown()
           if (timeLeft === 1) playEmomCountdown()
@@ -383,6 +454,7 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
   // ============= Countdown =============
   function runCountdown(onDone) {
     setPhase('countdown'); setTime(3)
+    initSpeech() // Pre-unlock speech synthesis on user gesture
     let c = 3
     if (sound) playCountdown()
     const cd = setInterval(() => {
@@ -446,7 +518,7 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
         setCurrentRound(round); setIntervalTimeLeft(timeLeft)
         if (elapsed !== lastSecRef.current && sound) {
           lastSecRef.current = elapsed
-          if (timeLeft === 15 && emomInterval >= 30) speak15()
+          if (timeLeft === 15 && emomInterval >= 30) play15SecWarning()
           if (timeLeft === 3) playEmomCountdown()
           if (timeInRound === 0 && elapsed > 0) playGo()
         }
