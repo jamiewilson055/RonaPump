@@ -24,6 +24,12 @@ function playDone() { for (let i = 0; i < 3; i++) setTimeout(() => playBeep(1100
 function play15SecWarning() {
   try { if (window.speechSynthesis) { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance('15 seconds'); u.rate = 1.1; u.volume = 0.9; window.speechSynthesis.speak(u) } } catch {}
 }
+function speakWork() {
+  try { if (window.speechSynthesis) { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance('Work'); u.rate = 1.0; u.volume = 1.0; window.speechSynthesis.speak(u) } } catch {}
+}
+function speakRest() {
+  try { if (window.speechSynthesis) { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance('Rest'); u.rate = 1.0; u.volume = 1.0; window.speechSynthesis.speak(u) } } catch {}
+}
 function initSpeech() { try { if (window.speechSynthesis) { const u = new SpeechSynthesisUtterance(''); u.volume = 0; window.speechSynthesis.speak(u) } } catch {} }
 let gorillaBuffer = null
 function playGorillaGrunt() {
@@ -327,6 +333,7 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
     runCountdown(() => {
       setPhase('running'); setCurrentRound(1); setCurrentSet(1); setIntervalTimeLeft(tabataWork); setTapCount(0); setRunning(true)
       requestWakeLock(); startWallClock()
+      if (sound) setTimeout(() => speakWork(), 600) // Voice cue after gorilla grunt
       const roundDur = tabataWork + tabataRest
       const setDur = tabataRounds * roundDur
       const totalDur = tabataSets * setDur + (tabataSets > 1 ? (tabataSets - 1) * tabataSetRest : 0)
@@ -363,8 +370,8 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
         if (elapsed !== lastSecRef.current && sound) {
           lastSecRef.current = elapsed
           if (timeLeft === 3) playCountdown()
-          if (posInRound === 0 && elapsed > 0) playGo()
-          if (posInRound === tabataWork) playRest()
+          if (posInRound === 0 && elapsed > 0) { playGo(); speakWork() }
+          if (posInRound === tabataWork) { playRest(); speakRest() }
         }
       }, 250)
     })
@@ -508,6 +515,12 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
         const isWork = posInRound < tabataWork
         const timeLeft = isWork ? (tabataWork - posInRound) : (roundDur - posInRound)
         setCurrentSet(set); setCurrentRound(Math.min(rnd, tabataRounds)); setPhase(isWork ? 'running' : 'rest'); setIntervalTimeLeft(timeLeft)
+        if (elapsed !== lastSecRef.current && sound) {
+          lastSecRef.current = elapsed
+          if (timeLeft === 3) playCountdown()
+          if (posInRound === 0 && elapsed > 0) { playGo(); speakWork() }
+          if (posInRound === tabataWork) { playRest(); speakRest() }
+        }
       }, 250)
     } else if (mode === 'custom') {
       const roundDur = customIntervals.reduce((a, c) => a + c.duration, 0)

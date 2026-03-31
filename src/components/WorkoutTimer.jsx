@@ -48,6 +48,12 @@ function playTripleBeep() {
 function play15SecWarning() {
   try { if (window.speechSynthesis) { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance('15 seconds'); u.rate = 1.1; u.volume = 0.9; window.speechSynthesis.speak(u) } } catch {}
 }
+function speakWork() {
+  try { if (window.speechSynthesis) { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance('Work'); u.rate = 1.0; u.volume = 1.0; window.speechSynthesis.speak(u) } } catch {}
+}
+function speakRest() {
+  try { if (window.speechSynthesis) { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance('Rest'); u.rate = 1.0; u.volume = 1.0; window.speechSynthesis.speak(u) } } catch {}
+}
 function initSpeech() { try { if (window.speechSynthesis) { const u = new SpeechSynthesisUtterance(''); u.volume = 0; window.speechSynthesis.speak(u) } } catch {} }
 
 let gorillaBuffer = null
@@ -281,8 +287,8 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
                 const totalInt = rds * roundTime
                 if (s >= totalInt) { setRunning(false); setFinished(true); playTripleBeep(); lastBeepSecRef.current = s; return totalInt }
                 const posInRound = s % roundTime
-                if (posInRound === 0 && s > 0) playDoubleBeep()
-                if (posInRound === wk) playBeep(440, 0.2, 0.3)
+                if (posInRound === 0 && s > 0) { playDoubleBeep(); speakWork() }
+                if (posInRound === wk) { playBeep(440, 0.2, 0.3); speakRest() }
                 if (posInRound === wk - 3 || posInRound === wk - 2 || posInRound === wk - 1) playBeep(660, 0.1, 0.2)
               }
               if (mode === 'stopwatch') {
