@@ -46,9 +46,7 @@ function playTripleBeep() {
   setTimeout(() => playBeep(1100, 0.25, 0.5), 400)
 }
 function play15SecWarning() {
-  playBeep(700, 0.15, 0.5)
-  setTimeout(() => playBeep(900, 0.15, 0.5), 180)
-  setTimeout(() => playBeep(1100, 0.15, 0.5), 360)
+  playBeep(1000, 0.3, 0.5)
   try { if (window.speechSynthesis) { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance('15 seconds'); u.rate = 1.1; u.volume = 0.9; window.speechSynthesis.speak(u) } } catch {}
 }
 function initSpeech() { try { if (window.speechSynthesis) { const u = new SpeechSynthesisUtterance(''); u.volume = 0; window.speechSynthesis.speak(u) } } catch {} }

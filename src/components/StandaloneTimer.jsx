@@ -22,9 +22,7 @@ function playGo() { playBeep(880, 0.3, 0.5); setTimeout(() => playBeep(1100, 0.3
 function playRest() { playBeep(440, 0.2, 0.35) }
 function playDone() { for (let i = 0; i < 3; i++) setTimeout(() => playBeep(1100, 0.2, 0.5), i * 200) }
 function play15SecWarning() {
-  playBeep(700, 0.15, 0.5)
-  setTimeout(() => playBeep(900, 0.15, 0.5), 180)
-  setTimeout(() => playBeep(1100, 0.15, 0.5), 360)
+  playBeep(1000, 0.3, 0.5)
   try { if (window.speechSynthesis) { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance('15 seconds'); u.rate = 1.1; u.volume = 0.9; window.speechSynthesis.speak(u) } } catch {}
 }
 function initSpeech() { try { if (window.speechSynthesis) { const u = new SpeechSynthesisUtterance(''); u.volume = 0; window.speechSynthesis.speak(u) } } catch {} }
@@ -300,12 +298,16 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
         const timeLeft = emomInterval - timeInRound
         setCurrentRound(round); setIntervalTimeLeft(timeLeft)
         if (elapsed !== lastSecRef.current && sound) {
+          const prevSec = lastSecRef.current
           lastSecRef.current = elapsed
-          if (timeInRound === 0 && elapsed > 0) playGo()
-          if (timeLeft === 15 && emomInterval >= 30) play15SecWarning()
-          if (timeLeft === 3) playCountdown()
-          if (timeLeft === 2) playCountdown()
-          if (timeLeft === 1) playCountdown()
+          const start = (elapsed - prevSec > 1 && prevSec >= 0) ? Math.max(prevSec + 1, elapsed - 4) : elapsed
+          for (let s = start; s <= elapsed; s++) {
+            const tir = s % emomInterval
+            const tl = emomInterval - tir
+            if (tir === 0 && s > 0) playGo()
+            if (tl === 15 && emomInterval >= 30 && s === elapsed) play15SecWarning()
+            if (tl === 3 || tl === 2 || tl === 1) playCountdown()
+          }
         }
       }, 250)
     })
@@ -461,10 +463,16 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
         const timeLeft = emomInterval - timeInRound
         setCurrentRound(round); setIntervalTimeLeft(timeLeft)
         if (elapsed !== lastSecRef.current && sound) {
+          const prevSec = lastSecRef.current
           lastSecRef.current = elapsed
-          if (timeInRound === 0 && elapsed > 0) playGo()
-          if (timeLeft === 15 && emomInterval >= 30) play15SecWarning()
-          if (timeLeft === 3) playCountdown()
+          const start = (elapsed - prevSec > 1 && prevSec >= 0) ? Math.max(prevSec + 1, elapsed - 4) : elapsed
+          for (let s = start; s <= elapsed; s++) {
+            const tir = s % emomInterval
+            const tl = emomInterval - tir
+            if (tir === 0 && s > 0) playGo()
+            if (tl === 15 && emomInterval >= 30 && s === elapsed) play15SecWarning()
+            if (tl === 3 || tl === 2 || tl === 1) playCountdown()
+          }
         }
       }, 250)
     } else if (mode === 'tabata') {
