@@ -45,34 +45,13 @@ function playTripleBeep() {
   setTimeout(() => playBeep(880, 0.12, 0.4), 200)
   setTimeout(() => playBeep(1100, 0.25, 0.5), 400)
 }
-
-function playEmomCountdown() { playBeep(880, 0.12, 0.5) }
-
 function play15SecWarning() {
-  // Distinctive warning pattern: three rising tones
   playBeep(700, 0.15, 0.5)
   setTimeout(() => playBeep(900, 0.15, 0.5), 180)
   setTimeout(() => playBeep(1100, 0.15, 0.5), 360)
-  // Also try speech synthesis as bonus
-  try {
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel()
-      const u = new SpeechSynthesisUtterance('15 seconds')
-      u.rate = 1.1; u.pitch = 1.0; u.volume = 0.9
-      window.speechSynthesis.speak(u)
-    }
-  } catch {}
+  try { if (window.speechSynthesis) { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance('15 seconds'); u.rate = 1.1; u.volume = 0.9; window.speechSynthesis.speak(u) } } catch {}
 }
-
-function initSpeech() {
-  try {
-    if (window.speechSynthesis) {
-      const u = new SpeechSynthesisUtterance('')
-      u.volume = 0
-      window.speechSynthesis.speak(u)
-    }
-  } catch {}
-}
+function initSpeech() { try { if (window.speechSynthesis) { const u = new SpeechSynthesisUtterance(''); u.volume = 0; window.speechSynthesis.speak(u) } } catch {} }
 
 let gorillaBuffer = null
 function playGorillaGrunt() {
@@ -122,8 +101,6 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
   const lastBeepSecRef = useRef(-1)
   const wakeLockRef = useRef(null)
   const videoRef = useRef(null)
-  const scheduledNodesRef = useRef([])
-  const bgSourceRef = useRef(null)
 
   // Keep screen awake while timer is running
   useEffect(() => {
@@ -234,96 +211,10 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
     }
   }, [])
 
-  // ============= Web Audio Pre-Scheduling (works when phone locked) =============
-  function cancelScheduledAudio() {
-    scheduledNodesRef.current.forEach(n => { try { n.stop() } catch {} })
-    scheduledNodesRef.current = []
-  }
-
-  function stopBgAudio() {
-    if (bgSourceRef.current) { try { bgSourceRef.current.stop() } catch {}; bgSourceRef.current = null }
-  }
-
-  function startBgAudio() {
-    stopBgAudio()
-    try {
-      const ctx = getAudioCtx()
-      const sr = ctx.sampleRate
-      const buf = ctx.createBuffer(1, sr, sr)
-      const d = buf.getChannelData(0)
-      for (let i = 0; i < sr; i++) d[i] = (Math.random() - 0.5) * 0.0001
-      const src = ctx.createBufferSource()
-      src.buffer = buf; src.loop = true
-      const g = ctx.createGain(); g.gain.value = 0.001
-      src.connect(g); g.connect(ctx.destination)
-      src.start()
-      bgSourceRef.current = src
-    } catch {}
-  }
-
-  function scheduleBeepAt(freq, dur, vol, atTime) {
-    try {
-      const ctx = getAudioCtx()
-      if (atTime <= ctx.currentTime) return
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.connect(gain); gain.connect(ctx.destination)
-      osc.frequency.value = freq; gain.gain.value = vol
-      osc.start(atTime); osc.stop(atTime + dur)
-      scheduledNodesRef.current.push(osc)
-      osc.onended = () => { scheduledNodesRef.current = scheduledNodesRef.current.filter(n => n !== osc) }
-    } catch {}
-  }
-
-  function scheduleEmomAudioWT(wallOffset) {
-    cancelScheduledAudio()
-    startBgAudio()
-    try {
-      const ctx = getAudioCtx()
-      const now = ctx.currentTime
-      const eRounds = parseInt(emomRounds) || 10
-      const eInterval = parseInt(emomInterval) || 60
-
-      for (let r = 0; r < eRounds; r++) {
-        const roundStart = r * eInterval
-        // "Go" beep at round start (except first)
-        if (r > 0 && roundStart > wallOffset) {
-          const t = now + (roundStart - wallOffset)
-          scheduleBeepAt(880, 0.15, 0.4, t)
-          scheduleBeepAt(1100, 0.2, 0.5, t + 0.25)
-        }
-        // 15-second warning
-        if (eInterval >= 30) {
-          const w15 = roundStart + eInterval - 15
-          if (w15 > wallOffset) {
-            const t = now + (w15 - wallOffset)
-            scheduleBeepAt(700, 0.15, 0.5, t)
-            scheduleBeepAt(900, 0.15, 0.5, t + 0.18)
-            scheduleBeepAt(1100, 0.15, 0.5, t + 0.36)
-          }
-        }
-        // 3-2-1 countdown
-        for (let c = 3; c >= 1; c--) {
-          const wc = roundStart + eInterval - c
-          if (wc > wallOffset) scheduleBeepAt(880, 0.12, 0.5, now + (wc - wallOffset))
-        }
-      }
-      // Done beeps
-      const totalTime = eRounds * eInterval
-      if (totalTime > wallOffset) {
-        const t = now + (totalTime - wallOffset)
-        scheduleBeepAt(880, 0.12, 0.4, t)
-        setTimeout(() => { scheduleBeepAt(880, 0.12, 0.4, getAudioCtx().currentTime + 0.01) }, 200)
-        setTimeout(() => { scheduleBeepAt(1100, 0.25, 0.5, getAudioCtx().currentTime + 0.01) }, 400)
-      }
-    } catch {}
-  }
-
   function initAudio() { getAudioCtx() }
 
   function startTimer() {
-    initAudio()
-    initSpeech() // Pre-unlock speech synthesis on user gesture
+    initAudio(); initSpeech()
     // Sanitize any empty inputs before starting
     if (mode === 'emom') {
       if (!emomRounds || emomRounds < 1) setEmomRounds(10)
@@ -348,7 +239,6 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
       setElapsed(0)
       setFinished(false)
       playGorillaGrunt()
-      if (mode === 'emom') scheduleEmomAudioWT(0)
       return
     }
     playBeep(660, 0.12, 0.3)
@@ -379,15 +269,12 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
                 const eRounds = parseInt(emomRounds) || 10
                 const eInterval = parseInt(emomInterval) || 60
                 const totalEmom = eRounds * eInterval
-                if (s >= totalEmom) { setRunning(false); setFinished(true); cancelScheduledAudio(); stopBgAudio(); playTripleBeep(); lastBeepSecRef.current = s; return totalEmom }
+                if (s >= totalEmom) { setRunning(false); setFinished(true); playTripleBeep(); lastBeepSecRef.current = s; return totalEmom }
                 if (s % eInterval === 0 && s > 0) playDoubleBeep()
                 const timeInRound = s % eInterval
                 const timeLeft = eInterval - timeInRound
-                if (timeLeft === 15 && eInterval >= 30) {
-                  // Beeps are pre-scheduled; just do speech here (foreground bonus)
-                  try { if (window.speechSynthesis) { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance('15 seconds'); u.rate = 1.1; u.volume = 0.9; window.speechSynthesis.speak(u) } } catch {}
-                }
-                if (timeLeft === 3 || timeLeft === 2 || timeLeft === 1) playEmomCountdown()
+                if (timeLeft === 15 && eInterval >= 30) play15SecWarning()
+                if (timeLeft === 3 || timeLeft === 2 || timeLeft === 1) playBeep(660, 0.1, 0.3)
               }
               if (mode === 'interval') {
                 const wk = parseInt(workTime) || 30
@@ -421,11 +308,9 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
       pausedElapsedRef.current = elapsed
       startTimeRef.current = Date.now()
       setRunning(true)
-      if (mode === 'emom') scheduleEmomAudioWT(elapsed)
     } else {
       // Pausing — elapsed is already correct in state
       setRunning(false)
-      cancelScheduledAudio(); stopBgAudio()
     }
   }
 
@@ -437,13 +322,11 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
     pausedElapsedRef.current = 0
     lastBeepSecRef.current = -1
     setTimerLogScore('')
-    cancelScheduledAudio(); stopBgAudio()
   }
 
   function finishTimer() {
     setRunning(false)
     setFinished(true)
-    cancelScheduledAudio(); stopBgAudio()
     playTripleBeep()
     // Auto-fill score with elapsed time for time-based workouts
     if (isTimeScore || mode === 'stopwatch') {
