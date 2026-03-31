@@ -18,11 +18,10 @@ function playBeep(freq = 880, dur = 0.15, vol = 0.4) {
   } catch {}
 }
 function playCountdown() { playBeep(660, 0.1, 0.3) }
-function playGo() { playBeep(880, 0.3, 0.5); setTimeout(() => playBeep(1100, 0.3, 0.5), 150) }
+function playGo() { playBeep(880, 0.2, 0.25); setTimeout(() => playBeep(1100, 0.2, 0.25), 150) }
 function playRest() { playBeep(440, 0.2, 0.35) }
-function playDone() { for (let i = 0; i < 3; i++) setTimeout(() => playBeep(1100, 0.2, 0.5), i * 200) }
+function playDone() { for (let i = 0; i < 3; i++) setTimeout(() => playBeep(1100, 0.15, 0.3), i * 200) }
 function play15SecWarning() {
-  playBeep(1000, 0.3, 0.5)
   try { if (window.speechSynthesis) { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance('15 seconds'); u.rate = 1.1; u.volume = 0.9; window.speechSynthesis.speak(u) } } catch {}
 }
 function initSpeech() { try { if (window.speechSynthesis) { const u = new SpeechSynthesisUtterance(''); u.volume = 0; window.speechSynthesis.speak(u) } } catch {} }
@@ -83,6 +82,7 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
   const [laps, setLaps] = useState([])
   const [sound, setSound] = useState(true)
   const [fullscreen, setFullscreen] = useState(false)
+  const [isLandscape, setIsLandscape] = useState(false)
   const intervalRef = useRef(null)
   const wakeLockRef = useRef(null)
   const videoRef = useRef(null)
@@ -118,6 +118,15 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
   const [showSave, setShowSave] = useState(false)
 
   useEffect(() => { if (session) loadSavedTimers() }, [session])
+
+  // Detect landscape orientation for fullscreen
+  useEffect(() => {
+    const mq = window.matchMedia('(orientation: landscape)')
+    setIsLandscape(mq.matches)
+    const handler = (e) => setIsLandscape(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   async function loadSavedTimers() {
     const { data } = await supabase.from('saved_timers').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false })
@@ -761,21 +770,22 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
     : intervalTimeLeft
 
   const modeInfo = MODES.find(m => m.key === mode)
+  const fsLand = fullscreen && isLandscape
 
   return (
-    <div className={`timer-section${fullscreen ? ' timer-fs' : ''}`}>
+    <div className={`timer-section${fullscreen ? ' timer-fs' : ''}`} style={fsLand ? { padding: '12px 24px' } : undefined}>
       {!fullscreen && <button className="timer-back" onClick={() => { reset(); setMode(null) }}>← Back to Timer Modes</button>}
 
-      <div className="timer-active" style={{ borderColor: phaseColor }}>
+      <div className="timer-active" style={{ borderColor: phaseColor, ...(fsLand ? { maxWidth: '100%', padding: '16px 32px', border: 'none' } : {}) }}>
         <div className="timer-active-top">
-          <span className="timer-mode-badge">{modeInfo?.icon} {mode === 'emom' ? (emomInterval === 60 ? 'EMOM' : `E${emomInterval / 60}MOM`) : modeInfo?.label}</span>
+          <span className="timer-mode-badge" style={fsLand ? { fontSize: '16px' } : undefined}>{modeInfo?.icon} {mode === 'emom' ? (emomInterval === 60 ? 'EMOM' : `E${emomInterval / 60}MOM`) : modeInfo?.label}</span>
           <div className="timer-controls-top">
             <button className={`timer-sound-btn${sound ? '' : ' off'}`} onClick={() => setSound(!sound)}>{sound ? '🔊' : '🔇'}</button>
             <button className="timer-fs-btn" onClick={toggleFullscreen}>{fullscreen ? '⊟' : '⊞'}</button>
           </div>
         </div>
 
-        {phaseLabel && <div className="timer-phase" style={{ color: phaseColor }}>{phaseLabel}</div>}
+        {phaseLabel && <div className="timer-phase" style={{ color: phaseColor, ...(fsLand ? { fontSize: '20px', letterSpacing: '5px' } : {}) }}>{phaseLabel}</div>}
 
         {/* Current interval name for custom/tabata */}
         {mode === 'custom' && phase !== 'done' && phase !== 'countdown' && customIntervals[currentIntervalIdx] && (
@@ -783,20 +793,23 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
         )}
 
         {/* Big time display */}
-        <div className={`timer-display${phase === 'countdown' ? ' countdown' : ''}`} style={{ color: phase === 'done' ? 'var(--grn)' : 'var(--tx)' }}>
+        <div className={`timer-display${phase === 'countdown' ? ' countdown' : ''}`} style={{
+          color: phase === 'done' ? 'var(--grn)' : 'var(--tx)',
+          ...(fsLand ? { fontSize: phase === 'countdown' ? '200px' : '180px', margin: '4px 0' } : {})
+        }}>
           {phase === 'countdown' ? time : fmt(displayTime)}
         </div>
 
         {/* Round info */}
         {(mode === 'emom' || mode === 'tabata' || mode === 'custom') && phase !== 'countdown' && (
-          <div className="timer-round-info">
+          <div className="timer-round-info" style={fsLand ? { fontSize: '18px' } : undefined}>
             Round {currentRound}{mode === 'emom' ? ` / ${emomRounds}` : mode === 'tabata' ? ` / ${tabataRounds}` : ` / ${customRounds}`}
             {mode === 'tabata' && tabataSets > 1 && ` • Set ${currentSet} / ${tabataSets}`}
           </div>
         )}
 
-        {/* Tap counter and round counter */}
-        {phase !== 'countdown' && phase !== 'setup' && (
+        {/* Tap counter and round counter — hidden in landscape fullscreen */}
+        {phase !== 'countdown' && phase !== 'setup' && !fsLand && (
           <div className="timer-counters">
             {(mode === 'amrap' || mode === 'fortime' || mode === 'stopwatch') && (
               <button className="timer-counter-btn" onClick={addRound}>
@@ -811,8 +824,8 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
           </div>
         )}
 
-        {/* Laps for stopwatch */}
-        {mode === 'stopwatch' && laps.length > 0 && (
+        {/* Laps for stopwatch — hidden in landscape fullscreen */}
+        {mode === 'stopwatch' && laps.length > 0 && !fsLand && (
           <div className="timer-laps">
             {laps.map((l, i) => (
               <div key={i} className="timer-lap">

@@ -36,17 +36,16 @@ function playBeep(freq = 880, duration = 0.15, vol = 0.4) {
 }
 
 function playDoubleBeep() {
-  playBeep(880, 0.15, 0.4)
-  setTimeout(() => playBeep(1100, 0.2, 0.5), 250)
+  playBeep(880, 0.15, 0.25)
+  setTimeout(() => playBeep(1100, 0.15, 0.25), 250)
 }
 
 function playTripleBeep() {
-  playBeep(880, 0.12, 0.4)
-  setTimeout(() => playBeep(880, 0.12, 0.4), 200)
-  setTimeout(() => playBeep(1100, 0.25, 0.5), 400)
+  playBeep(880, 0.12, 0.3)
+  setTimeout(() => playBeep(880, 0.12, 0.3), 200)
+  setTimeout(() => playBeep(1100, 0.2, 0.3), 400)
 }
 function play15SecWarning() {
-  playBeep(1000, 0.3, 0.5)
   try { if (window.speechSynthesis) { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance('15 seconds'); u.rate = 1.1; u.volume = 0.9; window.speechSynthesis.speak(u) } } catch {}
 }
 function initSpeech() { try { if (window.speechSynthesis) { const u = new SpeechSynthesisUtterance(''); u.volume = 0; window.speechSynthesis.speak(u) } } catch {} }
