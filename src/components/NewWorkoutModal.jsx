@@ -247,7 +247,7 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
 
         <label>Movement Type</label>
         <div className="cr">
-          {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'KB Swing', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat', 'Thruster'].map(m => (
+          {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'KB Swing', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat', 'Thruster', 'Wall Ball'].map(m => (
             <button key={m} className={`ch${form.movement_categories.includes(m) ? ' on' : ''}`}
               onClick={() => toggleArray('movement_categories', m)}>{m}</button>
           ))}
