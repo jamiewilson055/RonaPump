@@ -640,7 +640,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
           <label>Equipment</label>
           <div className="cr">
-            {['Barbell', 'Bench', 'Bike (Assault/Echo)', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Speed Rope', 'Weighted Vest'].map(eq => (
+            {['Air Bike', 'Barbell', 'Bench', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Jump Rope', 'Weighted Vest'].map(eq => (
               <button key={eq} className={`ch${editForm.equipment.includes(eq) ? ' on' : ''}`}
                 onClick={() => toggleEditArray('equipment', eq)}>{eq}</button>
             ))}
@@ -656,7 +656,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
           <label>Category</label>
           <div className="cr">
-            {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Outdoor', 'Track Workouts'].map(c => (
+            {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Partner', 'Track Workouts'].map(c => (
               <button key={c} className={`ch${editForm.categories.includes(c) ? ' on' : ''}`}
                 onClick={() => toggleEditArray('categories', c)}>{c}</button>
             ))}
