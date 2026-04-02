@@ -791,6 +791,7 @@ input, select, textarea { font-family: inherit; }
 
 /* Section header in description */
 .desc-section { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; color: var(--acc); text-transform: uppercase; letter-spacing: .5px; margin-top: 8px; margin-bottom: 4px; padding-top: 6px; border-top: 1px solid var(--brd); }
+.desc-section:first-child { margin-top: 0; padding-top: 0; border-top: none; }
 
 /* ========================================
    DECK OF CARDS
