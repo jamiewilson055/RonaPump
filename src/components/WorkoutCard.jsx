@@ -102,6 +102,23 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const [swapOpen, setSwapOpen] = useState(false)
   const [swapConstraints, setSwapConstraints] = useState([])
   const [swapLoading, setSwapLoading] = useState(false)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const EMOJI_CATEGORIES = [
+    { label: '💪 Fitness', emojis: ['💪', '🏋️', '🏃', '🔥', '⏱', '🦍', '💀', '😤', '🫡', '🎯', '🏆', '⚡', '🧨', '💣', '🚀', '👊', '✅', '❌', '⬆️', '⬇️'] },
+    { label: '🔢 Numbers', emojis: ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '🔟', '💯', '0️⃣'] },
+    { label: '⚙️ Gear', emojis: ['🏋️‍♂️', '🏋️‍♀️', '🚴', '🚣', '🏊', '⛷️', '🧗', '🤸', '🏃‍♂️', '🏃‍♀️', '🥇', '🥈', '🥉', '🎽'] },
+    { label: '😀 Faces', emojis: ['😀', '😎', '🤯', '😈', '🥵', '😮‍💨', '🫠', '💀', '👀', '🙌', '👏', '🤝', '✊', '🤘'] },
+    { label: '📝 Misc', emojis: ['📌', '📝', '📊', '🗓️', '⭐', '💡', '🔄', '⏩', '▶️', '⏸️', '🟢', '🔴', '🟡', '⚪', '🔵', '➡️', '⬅️'] },
+  ]
+  function insertEmoji(emoji) {
+    const ta = document.getElementById('wk-edit-desc')
+    if (!ta) return
+    const start = ta.selectionStart
+    const before = editForm.description.slice(0, start)
+    const after = editForm.description.slice(start)
+    setEditForm({ ...editForm, description: before + emoji + after })
+    setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + emoji.length }, 0)
+  }
 
   function shareWorkout() {
     let text = ''
@@ -340,6 +357,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     setRemixing(false)
     setSwapOpen(false)
     setSwapConstraints([])
+    setShowEmojiPicker(false)
     onWorkoutsChanged()
   }
 
@@ -552,7 +570,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     </div>
 
     {editing && editForm && (
-      <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) { setEditing(false); setEditForm(null); setRemixing(false); setSwapOpen(false); setSwapConstraints([]) } }}>
+      <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) { setEditing(false); setEditForm(null); setRemixing(false); setSwapOpen(false); setSwapConstraints([]); setShowEmojiPicker(false) } }}>
         <div className="mc">
           <h2>{remixing ? '🔀 Remix Workout' : 'Edit Workout'}</h2>
           {remixing && (
@@ -596,6 +614,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
               setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 4 }, 0)
             }}>— Section</button>
             <button type="button" className={`fmt-btn${swapOpen ? ' fmt-active' : ''}`} onClick={() => { setSwapOpen(!swapOpen); if (swapOpen) setSwapConstraints([]) }}>🔄 Swap</button>
+            <button type="button" className="fmt-btn" style={showEmojiPicker ? { background: 'var(--acc)', color: '#fff', borderColor: 'var(--acc)' } : {}} onClick={() => setShowEmojiPicker(!showEmojiPicker)}>😀 Emoji</button>
           </div>
           {swapOpen && (
             <div className="swap-panel">
@@ -615,6 +634,23 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
               <button className="ab p swap-go" disabled={!swapConstraints.length || swapLoading} onClick={doSwap}>
                 {swapLoading ? '⏳ Rewriting...' : `🔄 Apply ${swapConstraints.length ? '(' + swapConstraints.length + ')' : ''}`}
               </button>
+            </div>
+          )}
+          {showEmojiPicker && (
+            <div style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: '6px', padding: '8px', marginBottom: '6px', maxHeight: '200px', overflowY: 'auto' }}>
+              {EMOJI_CATEGORIES.map(cat => (
+                <div key={cat.label} style={{ marginBottom: '6px' }}>
+                  <div style={{ fontSize: '10px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: '4px' }}>{cat.label}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px' }}>
+                    {cat.emojis.map((em, i) => (
+                      <button key={i} type="button" onClick={() => insertEmoji(em)} style={{ background: 'none', border: '1px solid transparent', borderRadius: '4px', cursor: 'pointer', fontSize: '18px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.08)'; e.currentTarget.style.borderColor = 'var(--brd)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.borderColor = 'transparent' }}
+                      >{em}</button>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
           <textarea id="wk-edit-desc" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} placeholder="Full workout details..." style={{ minHeight: '140px' }} />
@@ -679,7 +715,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
           </div>
 
           <div className="mf">
-            <button className="ab" onClick={() => { setEditing(false); setEditForm(null); setRemixing(false); setSwapOpen(false); setSwapConstraints([]) }}>Cancel</button>
+            <button className="ab" onClick={() => { setEditing(false); setEditForm(null); setRemixing(false); setSwapOpen(false); setSwapConstraints([]); setShowEmojiPicker(false) }}>Cancel</button>
             <button className="ab p" onClick={saveEdit}>{remixing ? '🔀 Save My Version' : 'Save'}</button>
           </div>
         </div>

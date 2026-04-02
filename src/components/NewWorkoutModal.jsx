@@ -18,6 +18,9 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
     body_parts: [],
   })
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [swapOpen, setSwapOpen] = useState(false)
+  const [swapConstraints, setSwapConstraints] = useState([])
+  const [swapLoading, setSwapLoading] = useState(false)
   const EMOJI_CATEGORIES = [
     { label: '💪 Fitness', emojis: ['💪', '🏋️', '🏃', '🔥', '⏱', '🦍', '💀', '😤', '🫡', '🎯', '🏆', '⚡', '🧨', '💣', '🚀', '👊', '✅', '❌', '⬆️', '⬇️'] },
     { label: '🔢 Numbers', emojis: ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '🔟', '💯', '0️⃣'] },
@@ -42,6 +45,43 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
       if (idx >= 0) arr.splice(idx, 1); else arr.push(val)
       return { ...prev, [field]: arr }
     })
+  }
+
+  function toggleSwapConstraint(c) {
+    setSwapConstraints(prev => {
+      if (c === 'Bodyweight Only') return prev.includes(c) ? prev.filter(x => x !== c) : [c]
+      const next = prev.filter(x => x !== 'Bodyweight Only')
+      return next.includes(c) ? next.filter(x => x !== c) : [...next, c]
+    })
+  }
+
+  async function doSwap() {
+    if (!swapConstraints.length || swapLoading) return
+    setSwapLoading(true)
+    try {
+      const res = await fetch('/api/generate-workout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'swap',
+          description: form.description,
+          constraints: swapConstraints,
+          name: form.name,
+          equipment: form.equipment,
+        })
+      })
+      if (!res.ok) throw new Error('Server error')
+      const data = await res.json()
+      if (data.description) {
+        setForm(prev => ({ ...prev, description: data.description }))
+        if (data.equipment) setForm(prev => ({ ...prev, equipment: data.equipment }))
+      }
+      setSwapOpen(false)
+      setSwapConstraints([])
+    } catch (err) {
+      alert('Swap failed — try again')
+    }
+    setSwapLoading(false)
   }
 
   async function handleSave(submitForReview = false, adminVisibility = null) {
@@ -109,24 +149,6 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
             setForm({ ...form, description: before + insert + after })
             setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + insert.length }, 0)
           }}>  ◦ Sub-bullet</button>
-          <button type="button" className="fmt-btn" title="Bold selected text" onClick={() => {
-            const ta = document.getElementById('wk-desc')
-            if (!ta) return
-            const start = ta.selectionStart
-            const end = ta.selectionEnd
-            const selected = form.description.slice(start, end)
-            if (selected) {
-              const before = form.description.slice(0, start)
-              const after = form.description.slice(end)
-              setForm({ ...form, description: before + '**' + selected + '**' + after })
-              setTimeout(() => { ta.focus(); ta.selectionStart = start; ta.selectionEnd = end + 4 }, 0)
-            } else {
-              const before = form.description.slice(0, start)
-              const after = form.description.slice(start)
-              setForm({ ...form, description: before + '****' + after })
-              setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + 2 }, 0)
-            }
-          }}><b>B</b> Bold</button>
           <button type="button" className="fmt-btn" title="Add section header" onClick={() => {
             const ta = document.getElementById('wk-desc')
             if (!ta) return
@@ -138,8 +160,29 @@ export default function NewWorkoutModal({ onClose, onSaved, session, isAdmin }) 
             setForm({ ...form, description: before + insert + after })
             setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + insert.length }, 0)
           }}>— Section</button>
+          <button type="button" className={`fmt-btn${swapOpen ? ' fmt-active' : ''}`} onClick={() => { setSwapOpen(!swapOpen); if (swapOpen) setSwapConstraints([]) }}>🔄 Swap</button>
           <button type="button" className="fmt-btn" style={showEmojiPicker ? { background: 'var(--acc)', color: '#fff', borderColor: 'var(--acc)' } : {}} onClick={() => setShowEmojiPicker(!showEmojiPicker)}>😀 Emoji</button>
         </div>
+        {swapOpen && (
+          <div className="swap-panel">
+            <div className="swap-hint">Remove equipment you don't have — AI rewrites the workout</div>
+            <div className="cr">
+              {form.equipment.filter(e => e !== 'Bodyweight').map(eq => (
+                <button key={eq} className={`ch${swapConstraints.includes('No ' + eq) ? ' on' : ''}`}
+                  onClick={() => toggleSwapConstraint('No ' + eq)}>✕ {eq}</button>
+              ))}
+              {form.description.toLowerCase().match(/\brun\b/) && (
+                <button className={`ch${swapConstraints.includes('No Running') ? ' on' : ''}`}
+                  onClick={() => toggleSwapConstraint('No Running')}>✕ Running</button>
+              )}
+              <button className={`ch${swapConstraints.includes('Bodyweight Only') ? ' on' : ''}`}
+                onClick={() => toggleSwapConstraint('Bodyweight Only')}>💪 Bodyweight Only</button>
+            </div>
+            <button className="ab p swap-go" disabled={!swapConstraints.length || swapLoading} onClick={doSwap}>
+              {swapLoading ? '⏳ Rewriting...' : `🔄 Apply ${swapConstraints.length ? '(' + swapConstraints.length + ')' : ''}`}
+            </button>
+          </div>
+        )}
         {showEmojiPicker && (
           <div style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: '6px', padding: '8px', marginBottom: '6px', maxHeight: '200px', overflowY: 'auto' }}>
             {EMOJI_CATEGORIES.map(cat => (
