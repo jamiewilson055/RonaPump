@@ -97,6 +97,9 @@ export default function WorkoutPage() {
   const [remixing, setRemixing] = useState(false)
   const [editForm, setEditForm] = useState(null)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [swapOpen, setSwapOpen] = useState(false)
+  const [swapConstraints, setSwapConstraints] = useState([])
+  const [swapLoading, setSwapLoading] = useState(false)
   const [logSort, setLogSort] = useState('date')
   const [editingLogId, setEditingLogId] = useState(null)
   const [editLogForm, setEditLogForm] = useState(null)
@@ -299,6 +302,43 @@ export default function WorkoutPage() {
     })
   }
 
+  function toggleSwapConstraint(c) {
+    setSwapConstraints(prev => {
+      if (c === 'Bodyweight Only') return prev.includes(c) ? prev.filter(x => x !== c) : [c]
+      const next = prev.filter(x => x !== 'Bodyweight Only')
+      return next.includes(c) ? next.filter(x => x !== c) : [...next, c]
+    })
+  }
+
+  async function doSwap() {
+    if (!swapConstraints.length || swapLoading) return
+    setSwapLoading(true)
+    try {
+      const res = await fetch('/api/generate-workout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'swap',
+          description: editForm.description,
+          constraints: swapConstraints,
+          name: editForm.name,
+          equipment: editForm.equipment,
+        })
+      })
+      if (!res.ok) throw new Error('Server error')
+      const data = await res.json()
+      if (data.description) {
+        setEditForm(prev => ({ ...prev, description: data.description }))
+        if (data.equipment) setEditForm(prev => ({ ...prev, equipment: data.equipment }))
+      }
+      setSwapOpen(false)
+      setSwapConstraints([])
+    } catch (err) {
+      alert('Swap failed — try again')
+    }
+    setSwapLoading(false)
+  }
+
   async function saveEdit() {
     if (!editForm.description.trim()) { alert('Description is required.'); return }
     if (remixing) {
@@ -322,7 +362,7 @@ export default function WorkoutPage() {
       }).eq('id', workout.id)
       if (error) { alert('Error saving: ' + error.message); return }
     }
-    setEditing(false); setEditForm(null); setRemixing(false); setShowEmojiPicker(false)
+    setEditing(false); setEditForm(null); setRemixing(false); setShowEmojiPicker(false); setSwapOpen(false); setSwapConstraints([])
     loadWorkout()
   }
 
@@ -563,7 +603,7 @@ export default function WorkoutPage() {
       {showStoryCard && <StoryCard workout={w} score={lastLogScore} session={session} onClose={() => setShowStoryCard(false)} />}
 
       {editing && editForm && (
-        <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) { setEditing(false); setEditForm(null); setRemixing(false); setShowEmojiPicker(false) } }}>
+        <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) { setEditing(false); setEditForm(null); setRemixing(false); setShowEmojiPicker(false); setSwapOpen(false); setSwapConstraints([]) } }}>
           <div className="mc">
             <h2>{remixing ? '🔀 Remix Workout' : 'Edit Workout'}</h2>
             {remixing && <div style={{ fontSize: '12px', color: 'var(--tx3)', marginBottom: '10px', lineHeight: 1.5 }}>Modify this workout to fit your equipment or preferences. It'll be saved as a private copy.</div>}
@@ -595,32 +635,35 @@ export default function WorkoutPage() {
                 const ta = document.getElementById('wp-edit-desc')
                 if (!ta) return
                 const start = ta.selectionStart
-                const end = ta.selectionEnd
-                const selected = editForm.description.slice(start, end)
-                if (selected) {
-                  const before = editForm.description.slice(0, start)
-                  const after = editForm.description.slice(end)
-                  setEditForm({ ...editForm, description: before + '**' + selected + '**' + after })
-                  setTimeout(() => { ta.focus(); ta.selectionStart = start; ta.selectionEnd = end + 4 }, 0)
-                } else {
-                  const before = editForm.description.slice(0, start)
-                  const after = editForm.description.slice(start)
-                  setEditForm({ ...editForm, description: before + '****' + after })
-                  setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + 2 }, 0)
-                }
-              }}><b>B</b> Bold</button>
-              <button type="button" className="fmt-btn" onClick={() => {
-                const ta = document.getElementById('wp-edit-desc')
-                if (!ta) return
-                const start = ta.selectionStart
                 const before = editForm.description.slice(0, start)
                 const after = editForm.description.slice(start)
                 const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
                 setEditForm({ ...editForm, description: before + nl + '--- ' + after })
                 setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 4 }, 0)
               }}>— Section</button>
+              <button type="button" className={`fmt-btn${swapOpen ? ' fmt-active' : ''}`} onClick={() => { setSwapOpen(!swapOpen); if (swapOpen) setSwapConstraints([]) }}>🔄 Swap</button>
               <button type="button" className="fmt-btn" style={showEmojiPicker ? { background: 'var(--acc)', color: '#fff', borderColor: 'var(--acc)' } : {}} onClick={() => setShowEmojiPicker(!showEmojiPicker)}>😀 Emoji</button>
             </div>
+            {swapOpen && (
+              <div className="swap-panel">
+                <div className="swap-hint">Remove equipment you don't have — AI rewrites the workout</div>
+                <div className="cr">
+                  {editForm.equipment.filter(e => e !== 'Bodyweight').map(eq => (
+                    <button key={eq} className={`ch${swapConstraints.includes('No ' + eq) ? ' on' : ''}`}
+                      onClick={() => toggleSwapConstraint('No ' + eq)}>✕ {eq}</button>
+                  ))}
+                  {editForm.description.toLowerCase().match(/\brun\b/) && (
+                    <button className={`ch${swapConstraints.includes('No Running') ? ' on' : ''}`}
+                      onClick={() => toggleSwapConstraint('No Running')}>✕ Running</button>
+                  )}
+                  <button className={`ch${swapConstraints.includes('Bodyweight Only') ? ' on' : ''}`}
+                    onClick={() => toggleSwapConstraint('Bodyweight Only')}>💪 Bodyweight Only</button>
+                </div>
+                <button className="ab p swap-go" disabled={!swapConstraints.length || swapLoading} onClick={doSwap}>
+                  {swapLoading ? '⏳ Rewriting...' : `🔄 Apply ${swapConstraints.length ? '(' + swapConstraints.length + ')' : ''}`}
+                </button>
+              </div>
+            )}
             {showEmojiPicker && (
               <div style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: '6px', padding: '8px', marginBottom: '6px', maxHeight: '200px', overflowY: 'auto' }}>
                 {EMOJI_CATEGORIES.map(cat => (
@@ -678,7 +721,7 @@ export default function WorkoutPage() {
               ))}
             </div>
             <div className="mf">
-              <button className="ab" onClick={() => { setEditing(false); setEditForm(null); setRemixing(false); setShowEmojiPicker(false) }}>Cancel</button>
+              <button className="ab" onClick={() => { setEditing(false); setEditForm(null); setRemixing(false); setShowEmojiPicker(false); setSwapOpen(false); setSwapConstraints([]) }}>Cancel</button>
               <button className="ab p" onClick={saveEdit}>{remixing ? '🔀 Save My Version' : 'Save'}</button>
             </div>
           </div>

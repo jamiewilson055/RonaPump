@@ -99,6 +99,9 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const [showShareImage, setShowShareImage] = useState(false)
   const [showStoryCard, setShowStoryCard] = useState(false)
   const [lastLogScore, setLastLogScore] = useState(null)
+  const [swapOpen, setSwapOpen] = useState(false)
+  const [swapConstraints, setSwapConstraints] = useState([])
+  const [swapLoading, setSwapLoading] = useState(false)
 
   function shareWorkout() {
     let text = ''
@@ -190,7 +193,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
   function startEditLog(entry) {
     setEditingLogId(entry.id)
-    setEditLogForm({ score: entry.score || '', completed_at: entry.completed_at || '', notes: entry.notes || '', is_rx: entry.is_rx !== false })
+    setEditLogForm({ score: entry.score || '', completed_at: entry.completed_at || '', notes: entry.notes || '' })
   }
 
   async function saveEditLog() {
@@ -199,7 +202,6 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
       score: editLogForm.score.trim() || null,
       completed_at: editLogForm.completed_at,
       notes: editLogForm.notes.trim() || null,
-      is_rx: editLogForm.is_rx,
     }).eq('id', editingLogId)
     setEditingLogId(null)
     setEditLogForm(null)
@@ -252,6 +254,43 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     })
   }
 
+  function toggleSwapConstraint(c) {
+    setSwapConstraints(prev => {
+      if (c === 'Bodyweight Only') return prev.includes(c) ? prev.filter(x => x !== c) : [c]
+      const next = prev.filter(x => x !== 'Bodyweight Only')
+      return next.includes(c) ? next.filter(x => x !== c) : [...next, c]
+    })
+  }
+
+  async function doSwap() {
+    if (!swapConstraints.length || swapLoading) return
+    setSwapLoading(true)
+    try {
+      const res = await fetch('/api/generate-workout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'swap',
+          description: editForm.description,
+          constraints: swapConstraints,
+          name: editForm.name,
+          equipment: editForm.equipment,
+        })
+      })
+      if (!res.ok) throw new Error('Server error')
+      const data = await res.json()
+      if (data.description) {
+        setEditForm(prev => ({ ...prev, description: data.description }))
+        if (data.equipment) setEditForm(prev => ({ ...prev, equipment: data.equipment }))
+      }
+      setSwapOpen(false)
+      setSwapConstraints([])
+    } catch (err) {
+      alert('Swap failed — try again')
+    }
+    setSwapLoading(false)
+  }
+
   async function saveEdit() {
     if (!editForm.description.trim()) { alert('Description is required.'); return }
 
@@ -299,6 +338,8 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     setEditing(false)
     setEditForm(null)
     setRemixing(false)
+    setSwapOpen(false)
+    setSwapConstraints([])
     onWorkoutsChanged()
   }
 
@@ -385,10 +426,6 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
                           <td><input value={editLogForm.score} onChange={ev => setEditLogForm({ ...editLogForm, score: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
                           <td><input value={editLogForm.notes} onChange={ev => setEditLogForm({ ...editLogForm, notes: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
                           <td style={{ whiteSpace: 'nowrap' }}>
-                            <label className="rx-toggle" style={{ fontSize: '10px', gap: '2px', marginRight: '6px' }}>
-                              <input type="checkbox" checked={editLogForm.is_rx} onChange={ev => setEditLogForm({ ...editLogForm, is_rx: ev.target.checked })} />
-                              <span className={editLogForm.is_rx ? 'rx-on' : 'rx-off'}>Rx</span>
-                            </label>
                             <span className="del-entry" onClick={saveEditLog} style={{ color: 'var(--grn)', marginRight: '4px' }}>✓</span>
                             <span className="del-entry" onClick={() => { setEditingLogId(null); setEditLogForm(null) }}>✕</span>
                           </td>
@@ -412,8 +449,8 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
                         </td>
                         <td style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
                         <td style={{ whiteSpace: 'nowrap' }}>
-                          {(e.is_mine || isAdmin) && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); startEditLog(e) }} style={{ marginRight: '4px' }} title="Edit">✎</span>}
-                          {(e.is_mine || isAdmin) && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); deleteLog(e.id) }}>✕</span>}
+                          {e.is_mine && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); startEditLog(e) }} style={{ marginRight: '4px' }} title="Edit">✎</span>}
+                          {e.is_mine && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); deleteLog(e.id) }}>✕</span>}
                         </td>
                       </tr>
                     )
@@ -448,9 +485,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
             <button className="ab p" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }} style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)' }}>{addingLog ? 'Cancel' : '✓ Complete Workout'}</button>
             <button className={`ab ${isFav ? '' : 'g'}`} onClick={() => toggleFavorite(w.id)}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>
             <button className="ab" onClick={() => { if (!session) { onAuthRequired(); return } setShowCollections(!showCollections) }}>{showCollections ? 'Hide' : '📁 Save'}</button>
-            {session && w.created_by !== session?.user?.id && (
-              <button className="ab" onClick={startRemix}>🔀 Remix</button>
-            )}
+            <button className="ab" onClick={startRemix}>🔀 Remix</button>
             <button className="ab" onClick={() => setShowSimilar(!showSimilar)}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
             <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
             <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
@@ -517,7 +552,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     </div>
 
     {editing && editForm && (
-      <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) { setEditing(false); setEditForm(null); setRemixing(false) } }}>
+      <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) { setEditing(false); setEditForm(null); setRemixing(false); setSwapOpen(false); setSwapConstraints([]) } }}>
         <div className="mc">
           <h2>{remixing ? '🔀 Remix Workout' : 'Edit Workout'}</h2>
           {remixing && (
@@ -554,31 +589,34 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
               const ta = document.getElementById('wk-edit-desc')
               if (!ta) return
               const start = ta.selectionStart
-              const end = ta.selectionEnd
-              const selected = editForm.description.slice(start, end)
-              if (selected) {
-                const before = editForm.description.slice(0, start)
-                const after = editForm.description.slice(end)
-                setEditForm({ ...editForm, description: before + '**' + selected + '**' + after })
-                setTimeout(() => { ta.focus(); ta.selectionStart = start; ta.selectionEnd = end + 4 }, 0)
-              } else {
-                const before = editForm.description.slice(0, start)
-                const after = editForm.description.slice(start)
-                setEditForm({ ...editForm, description: before + '****' + after })
-                setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + 2 }, 0)
-              }
-            }}><b>B</b> Bold</button>
-            <button type="button" className="fmt-btn" onClick={() => {
-              const ta = document.getElementById('wk-edit-desc')
-              if (!ta) return
-              const start = ta.selectionStart
               const before = editForm.description.slice(0, start)
               const after = editForm.description.slice(start)
               const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
               setEditForm({ ...editForm, description: before + nl + '--- ' + after })
               setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 4 }, 0)
             }}>— Section</button>
+            <button type="button" className={`fmt-btn${swapOpen ? ' fmt-active' : ''}`} onClick={() => { setSwapOpen(!swapOpen); if (swapOpen) setSwapConstraints([]) }}>🔄 Swap</button>
           </div>
+          {swapOpen && (
+            <div className="swap-panel">
+              <div className="swap-hint">Remove equipment you don't have — AI rewrites the workout</div>
+              <div className="cr">
+                {editForm.equipment.filter(e => e !== 'Bodyweight').map(eq => (
+                  <button key={eq} className={`ch${swapConstraints.includes('No ' + eq) ? ' on' : ''}`}
+                    onClick={() => toggleSwapConstraint('No ' + eq)}>✕ {eq}</button>
+                ))}
+                {editForm.description.toLowerCase().match(/\brun\b/) && (
+                  <button className={`ch${swapConstraints.includes('No Running') ? ' on' : ''}`}
+                    onClick={() => toggleSwapConstraint('No Running')}>✕ Running</button>
+                )}
+                <button className={`ch${swapConstraints.includes('Bodyweight Only') ? ' on' : ''}`}
+                  onClick={() => toggleSwapConstraint('Bodyweight Only')}>💪 Bodyweight Only</button>
+              </div>
+              <button className="ab p swap-go" disabled={!swapConstraints.length || swapLoading} onClick={doSwap}>
+                {swapLoading ? '⏳ Rewriting...' : `🔄 Apply ${swapConstraints.length ? '(' + swapConstraints.length + ')' : ''}`}
+              </button>
+            </div>
+          )}
           <textarea id="wk-edit-desc" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} placeholder="Full workout details..." style={{ minHeight: '140px' }} />
 
           <label>Score Type</label>
@@ -602,7 +640,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
           <label>Equipment</label>
           <div className="cr">
-            {['Air Bike', 'Barbell', 'Bench', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Jump Rope', 'Weighted Vest'].map(eq => (
+            {['Barbell', 'Bench', 'Bike (Assault/Echo)', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Speed Rope', 'Weighted Vest'].map(eq => (
               <button key={eq} className={`ch${editForm.equipment.includes(eq) ? ' on' : ''}`}
                 onClick={() => toggleEditArray('equipment', eq)}>{eq}</button>
             ))}
@@ -618,7 +656,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
           <label>Category</label>
           <div className="cr">
-            {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Partner', 'Track Workouts'].map(c => (
+            {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Outdoor', 'Track Workouts'].map(c => (
               <button key={c} className={`ch${editForm.categories.includes(c) ? ' on' : ''}`}
                 onClick={() => toggleEditArray('categories', c)}>{c}</button>
             ))}
@@ -641,7 +679,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
           </div>
 
           <div className="mf">
-            <button className="ab" onClick={() => { setEditing(false); setEditForm(null); setRemixing(false) }}>Cancel</button>
+            <button className="ab" onClick={() => { setEditing(false); setEditForm(null); setRemixing(false); setSwapOpen(false); setSwapConstraints([]) }}>Cancel</button>
             <button className="ab p" onClick={saveEdit}>{remixing ? '🔀 Save My Version' : 'Save'}</button>
           </div>
         </div>
