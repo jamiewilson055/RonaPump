@@ -40,7 +40,7 @@ export default function ShareImage({ workout, onClose }) {
     const accent = '#e01e1e'
     const white = '#ffffff'
     const bg = '#0a0a0e'
-    const px = 70
+    const px = 72
     const cw = W - px * 2
 
     // ── BACKGROUND ──
@@ -54,10 +54,10 @@ export default function ShareImage({ workout, onClose }) {
     ctx.fillStyle = glow
     ctx.fillRect(0, 0, W, H)
 
-    let y = 68
+    let y = 72
 
     // ── LOGO ROW ──
-    ctx.font = '700 44px monospace'
+    ctx.font = '700 46px monospace'
     ctx.textAlign = 'left'
     ctx.fillStyle = white
     const ronaW = ctx.measureText('RONA').width
@@ -65,12 +65,12 @@ export default function ShareImage({ workout, onClose }) {
     ctx.fillStyle = accent
     ctx.fillText('PUMP', px + ronaW, y)
 
-    ctx.font = '36px sans-serif'
+    ctx.font = '38px sans-serif'
     ctx.textAlign = 'right'
     ctx.fillText('\u{1F98D}', W - px, y)
 
     // ── ACCENT DIVIDER ──
-    y += 20
+    y += 22
     const divGrad = ctx.createLinearGradient(px, 0, px + cw * 0.45, 0)
     divGrad.addColorStop(0, accent)
     divGrad.addColorStop(1, 'transparent')
@@ -80,27 +80,27 @@ export default function ShareImage({ workout, onClose }) {
     ctx.fill()
 
     // ── "WORKOUT OF THE DAY" LABEL ──
-    y += 36
+    y += 38
     ctx.font = '500 22px monospace'
     ctx.textAlign = 'left'
-    ctx.fillStyle = hexA(white, 0.28)
+    ctx.fillStyle = hexA(white, 0.3)
     ctx.letterSpacing = '4px'
     ctx.fillText('WORKOUT OF THE DAY', px, y)
     ctx.letterSpacing = '0px'
 
     // ── WORKOUT NAME ──
-    y += 12
-    ctx.font = '700 58px sans-serif'
+    y += 14
+    ctx.font = '700 62px sans-serif'
     ctx.fillStyle = white
     ctx.textAlign = 'left'
     const nameLines = wrapLines(ctx, w.name || 'Unnamed Workout', cw)
     for (const nl of nameLines) {
-      y += 58
+      y += 62
       ctx.fillText(nl, px, y)
     }
 
     // ── TAGS ROW ──
-    y += 22
+    y += 24
     const tags = []
     if (w.score_type && w.score_type !== 'None') tags.push({ text: w.score_type, accent: true })
     const equip = (w.equipment || []).filter(e => e !== 'Bodyweight')
@@ -109,7 +109,7 @@ export default function ShareImage({ workout, onClose }) {
 
     if (tags.length) {
       let tx = px
-      const tagH = 34, tagPad = 16, tagGap = 8, tagFont = 22
+      const tagH = 36, tagPad = 16, tagGap = 10, tagFont = 22
       ctx.font = '600 ' + tagFont + 'px sans-serif'
       for (const tag of tags) {
         const tw = ctx.measureText(tag.text).width + tagPad * 2
@@ -117,37 +117,37 @@ export default function ShareImage({ workout, onClose }) {
 
         ctx.fillStyle = tag.accent ? hexA(accent, 0.14) : hexA(white, 0.06)
         ctx.beginPath()
-        ctx.roundRect(tx, y, tw, tagH, 17)
+        ctx.roundRect(tx, y, tw, tagH, 18)
         ctx.fill()
 
         ctx.fillStyle = tag.accent ? accent : hexA(white, 0.42)
         ctx.font = (tag.accent ? '700 ' : '500 ') + tagFont + 'px sans-serif'
         ctx.textAlign = 'left'
-        ctx.fillText(tag.text, tx + tagPad, y + 24)
+        ctx.fillText(tag.text, tx + tagPad, y + 25)
         tx += tw + tagGap
       }
-      y += tagH + 20
+      y += tagH + 22
     } else {
-      y += 10
+      y += 12
     }
 
     // ── FOOTER (reserve space) ──
-    const footerH = 56
+    const footerH = 58
     const footerY = H - footerH
 
     ctx.fillStyle = hexA(white, 0.05)
     ctx.fillRect(px, footerY, cw, 1)
 
-    ctx.font = '500 26px monospace'
+    ctx.font = '500 28px monospace'
     ctx.fillStyle = hexA(white, 0.42)
     ctx.textAlign = 'left'
-    ctx.fillText('ronapump.com', px, footerY + 36)
+    ctx.fillText('ronapump.com', px, footerY + 38)
     ctx.textAlign = 'right'
-    ctx.fillText('@ronapump', W - px, footerY + 36)
+    ctx.fillText('@ronapump', W - px, footerY + 38)
 
     // ── DESCRIPTION ──
     const descTop = y
-    const descBottom = footerY - 14
+    const descBottom = footerY - 16
     const fadeH = 55
 
     // Clean the description
@@ -163,19 +163,20 @@ export default function ShareImage({ workout, onClose }) {
 
     // Count effective lines to pick font size
     let effectiveLines = 0
-    ctx.font = '34px sans-serif'
+    ctx.font = '38px sans-serif'
     for (const rl of rawLines) {
       const trimmed = rl.trim()
       if (trimmed === '') { effectiveLines += 0.4; continue }
+      if (trimmed.startsWith('--- ')) { effectiveLines += 1.2; continue }
       effectiveLines += wrapLines(ctx, trimmed, cw).length
     }
 
     let fontSize, lineH
-    if (effectiveLines <= 8) { fontSize = 36; lineH = 48 }
-    else if (effectiveLines <= 12) { fontSize = 33; lineH = 44 }
-    else if (effectiveLines <= 18) { fontSize = 30; lineH = 40 }
-    else if (effectiveLines <= 24) { fontSize = 27; lineH = 37 }
-    else { fontSize = 25; lineH = 34 }
+    if (effectiveLines <= 8) { fontSize = 42; lineH = 54 }
+    else if (effectiveLines <= 12) { fontSize = 38; lineH = 50 }
+    else if (effectiveLines <= 16) { fontSize = 35; lineH = 46 }
+    else if (effectiveLines <= 22) { fontSize = 32; lineH = 42 }
+    else { fontSize = 28; lineH = 38 }
 
     let dy = descTop
     let truncated = false
@@ -186,22 +187,32 @@ export default function ShareImage({ workout, onClose }) {
 
       if (trimmed === '') { dy += lineH * 0.5; continue }
 
-      // Section headers (--- PREFIX)
-      if (trimmed.startsWith('--- ')) {
-        dy += 6
-        ctx.font = '700 ' + (fontSize - 2) + 'px sans-serif'
-        ctx.fillStyle = hexA(accent, 0.65)
+      // Section headers: "--- SECTION NAME"
+      // Also match "---SECTION" without space as fallback
+      if (trimmed.startsWith('---')) {
+        const sectionText = trimmed.startsWith('--- ') ? trimmed.slice(4) : trimmed.slice(3)
+        if (!sectionText.trim()) { dy += lineH * 0.3; continue } // bare "---" = divider
+
+        dy += 10
+        // Small accent bar before section text
+        ctx.fillStyle = accent
+        ctx.beginPath()
+        ctx.roundRect(px, dy + 4, 4, fontSize - 4, 2)
+        ctx.fill()
+
+        ctx.font = '700 ' + fontSize + 'px sans-serif'
+        ctx.fillStyle = accent
         ctx.textAlign = 'left'
         ctx.letterSpacing = '2px'
-        const headerText = trimmed.slice(4).toUpperCase()
+        const headerText = sectionText.toUpperCase()
         if (dy + fontSize > descBottom - fadeH) { truncated = true; break }
-        ctx.fillText(headerText, px, dy + fontSize)
+        ctx.fillText(headerText, px + 14, dy + fontSize)
         ctx.letterSpacing = '0px'
-        dy += lineH + 4
+        dy += lineH + 6
         continue
       }
 
-      // Detect labels
+      // Detect labels: "5 Rounds For Time:", "Part A:", "Round 1:"
       const isLabel = /^[\w].*:$/.test(trimmed) || /^(Part [A-Z]|Round \d)/i.test(trimmed)
 
       // Bullet handling
@@ -209,7 +220,7 @@ export default function ShareImage({ workout, onClose }) {
       let indent = 0
       if (text.startsWith('  \u2022 ') || text.startsWith('  - ')) {
         text = text.slice(4)
-        indent = 34
+        indent = 36
       } else if (text.startsWith('\u2022 ') || text.startsWith('- ')) {
         text = text.slice(2)
         indent = 0
