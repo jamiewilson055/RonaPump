@@ -69,12 +69,9 @@ export default function ShareImage({ workout, onClose }) {
     ctx.textAlign = 'right'
     ctx.fillText('\u{1F98D}', W - px, y)
 
-    // ── ACCENT DIVIDER ──
+    // ── ACCENT DIVIDER — FULL WIDTH ──
     y += 22
-    const divGrad = ctx.createLinearGradient(px, 0, px + cw * 0.45, 0)
-    divGrad.addColorStop(0, accent)
-    divGrad.addColorStop(1, 'transparent')
-    ctx.fillStyle = divGrad
+    ctx.fillStyle = accent
     ctx.beginPath()
     ctx.roundRect(px, y, cw, 5, 3)
     ctx.fill()
@@ -135,11 +132,11 @@ export default function ShareImage({ workout, onClose }) {
     const footerH = 58
     const footerY = H - footerH
 
-    ctx.fillStyle = hexA(white, 0.05)
+    ctx.fillStyle = hexA(white, 0.08)
     ctx.fillRect(px, footerY, cw, 1)
 
     ctx.font = '500 28px monospace'
-    ctx.fillStyle = hexA(white, 0.42)
+    ctx.fillStyle = hexA(white, 0.6)
     ctx.textAlign = 'left'
     ctx.fillText('ronapump.com', px, footerY + 38)
     ctx.textAlign = 'right'
@@ -167,7 +164,7 @@ export default function ShareImage({ workout, onClose }) {
     for (const rl of rawLines) {
       const trimmed = rl.trim()
       if (trimmed === '') { effectiveLines += 0.4; continue }
-      if (trimmed.startsWith('--- ')) { effectiveLines += 1.2; continue }
+      if (trimmed.startsWith('---')) { effectiveLines += 1.2; continue }
       effectiveLines += wrapLines(ctx, trimmed, cw).length
     }
 
@@ -187,27 +184,35 @@ export default function ShareImage({ workout, onClose }) {
 
       if (trimmed === '') { dy += lineH * 0.5; continue }
 
-      // Section headers: "--- SECTION NAME"
-      // Also match "---SECTION" without space as fallback
+      // Section headers: lines starting with ---
       if (trimmed.startsWith('---')) {
-        const sectionText = trimmed.startsWith('--- ') ? trimmed.slice(4) : trimmed.slice(3)
-        if (!sectionText.trim()) { dy += lineH * 0.3; continue } // bare "---" = divider
+        const sectionText = trimmed.replace(/^-{3,}\s*/, '').trim()
 
+        // Bare "---" with no text = spacing divider
+        if (!sectionText) {
+          dy += lineH * 0.4
+          // Draw a subtle thin line
+          ctx.fillStyle = hexA(white, 0.08)
+          ctx.fillRect(px, dy, cw, 1)
+          dy += lineH * 0.4
+          continue
+        }
+
+        // Section with text: bold red header with accent bar
         dy += 10
-        // Small accent bar before section text
+        if (dy + fontSize > descBottom - fadeH) { truncated = true; break }
+
+        // Accent side bar
         ctx.fillStyle = accent
         ctx.beginPath()
-        ctx.roundRect(px, dy + 4, 4, fontSize - 4, 2)
+        ctx.roundRect(px, dy + 2, 5, fontSize, 3)
         ctx.fill()
 
+        // Section text
         ctx.font = '700 ' + fontSize + 'px sans-serif'
         ctx.fillStyle = accent
         ctx.textAlign = 'left'
-        ctx.letterSpacing = '2px'
-        const headerText = sectionText.toUpperCase()
-        if (dy + fontSize > descBottom - fadeH) { truncated = true; break }
-        ctx.fillText(headerText, px + 14, dy + fontSize)
-        ctx.letterSpacing = '0px'
+        ctx.fillText(sectionText.toUpperCase(), px + 18, dy + fontSize)
         dy += lineH + 6
         continue
       }
