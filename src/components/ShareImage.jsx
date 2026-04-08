@@ -220,7 +220,7 @@ export default function ShareImage({ workout, onClose }) {
         // Wrap section text so long headers don't overflow
         const sectionWrapped = wrapLines(ctx, sectionText, cw)
         for (let si = 0; si < sectionWrapped.length; si++) {
-          if (dy + fontSize > descBottom - fadeH) { truncated = true; break }
+          if (dy + fontSize > descBottom) { truncated = true; break }
 
           ctx.fillStyle = accent
           ctx.font = '700 ' + fontSize + 'px sans-serif'
@@ -263,7 +263,7 @@ export default function ShareImage({ workout, onClose }) {
       const wrapped = wrapLines(ctx, text, cw - indent - bpW)
 
       for (let wi = 0; wi < wrapped.length; wi++) {
-        if (dy + fontSize > descBottom - fadeH) { truncated = true; break }
+        if (dy + fontSize > descBottom) { truncated = true; break }
         const prefix = (wi === 0 && bulletPrefix) ? bulletPrefix : (wi > 0 && bulletPrefix ? '    ' : '')
         ctx.fillText(prefix + wrapped[wi], px + indent, dy + fontSize)
         dy += lineH
