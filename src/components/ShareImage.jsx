@@ -3,8 +3,31 @@ import { useRef, useState } from 'react'
 export default function ShareImage({ workout, onClose }) {
   const canvasRef = useRef(null)
   const [copied, setCopied] = useState(false)
-
   const w = workout
+
+  function hexA(hex, a) {
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    return `rgba(${r},${g},${b},${a})`
+  }
+
+  function wrapLines(ctx, text, maxW) {
+    const words = text.split(' ')
+    const lines = []
+    let line = ''
+    for (const word of words) {
+      const test = line ? line + ' ' + word : word
+      if (ctx.measureText(test).width > maxW && line) {
+        lines.push(line)
+        line = word
+      } else {
+        line = test
+      }
+    }
+    if (line) lines.push(line)
+    return lines.length ? lines : ['']
+  }
 
   function drawImage() {
     const canvas = canvasRef.current
@@ -17,227 +40,211 @@ export default function ShareImage({ workout, onClose }) {
     const accent = '#e01e1e'
     const white = '#ffffff'
     const bg = '#0a0a0e'
+    const px = 52
+    const cw = W - px * 2
 
-    // Solid dark background
+    // ── BACKGROUND ──
     ctx.fillStyle = bg
     ctx.fillRect(0, 0, W, H)
 
-    // ── RED FRAME ──
-    const pad = 40
-    const frameX = pad
-    const frameY = pad
-    const frameW = W - pad * 2
-    const frameH = H - pad * 2
-    const radius = 20
+    // Subtle top-right glow
+    const glow = ctx.createRadialGradient(W, 0, 0, W, 0, 450)
+    glow.addColorStop(0, hexA(accent, 0.05))
+    glow.addColorStop(1, 'transparent')
+    ctx.fillStyle = glow
+    ctx.fillRect(0, 0, W, H)
 
-    ctx.strokeStyle = accent
-    ctx.lineWidth = 5
-    ctx.beginPath()
-    ctx.roundRect(frameX, frameY, frameW, frameH, radius)
-    ctx.stroke()
+    let y = 44
 
-    // Content area inside frame
-    const cx = frameX + 44
-    const cw = frameW - 88
-    let y = frameY + 56
-
-    // ── LOGO: RONAPUMP as one tight word ──
-    ctx.font = 'bold 44px monospace'
+    // ── LOGO ROW ──
+    ctx.font = '700 34px monospace'
     ctx.textAlign = 'left'
-    // Measure RONA to position PUMP right after it
-    const ronaText = 'RONA'
-    const pumpText = 'PUMP'
-    const ronaWidth = ctx.measureText(ronaText).width
     ctx.fillStyle = white
-    ctx.fillText(ronaText, cx, y)
+    const ronaW = ctx.measureText('RONA').width
+    ctx.fillText('RONA', px, y)
     ctx.fillStyle = accent
-    ctx.fillText(pumpText, cx + ronaWidth, y)
+    ctx.fillText('PUMP', px + ronaW, y)
 
-    // Gorilla on the right
-    ctx.font = '40px serif'
+    ctx.font = '28px sans-serif'
     ctx.textAlign = 'right'
-    ctx.fillText('🦍', cx + cw, y + 2)
+    ctx.fillText('\u{1F98D}', W - px, y)
 
-    // ── THIN RED DIVIDER ──
-    y += 24
-    ctx.fillStyle = accent
-    ctx.globalAlpha = 0.3
-    ctx.fillRect(cx, y, cw, 1.5)
-    ctx.globalAlpha = 1
+    // ── ACCENT DIVIDER ──
+    y += 12
+    const divGrad = ctx.createLinearGradient(px, 0, px + cw * 0.45, 0)
+    divGrad.addColorStop(0, accent)
+    divGrad.addColorStop(1, 'transparent')
+    ctx.fillStyle = divGrad
+    ctx.beginPath()
+    ctx.roundRect(px, y, cw, 4, 2)
+    ctx.fill()
+
+    // ── "WORKOUT OF THE DAY" LABEL ──
+    y += 22
+    ctx.font = '500 17px monospace'
+    ctx.textAlign = 'left'
+    ctx.fillStyle = hexA(white, 0.28)
+    ctx.letterSpacing = '3px'
+    ctx.fillText('WORKOUT OF THE DAY', px, y)
+    ctx.letterSpacing = '0px'
 
     // ── WORKOUT NAME ──
-    y += 40
-    ctx.textAlign = 'left'
-    ctx.font = 'bold 64px sans-serif'
+    y += 6
+    ctx.font = '700 46px sans-serif'
     ctx.fillStyle = white
-    const wName = w.name || 'Workout'
-    const nameLines = wrapLines(ctx, wName, cw)
-    for (const l of nameLines) {
-      ctx.fillText(l, cx, y)
-      y += 74
+    ctx.textAlign = 'left'
+    const nameLines = wrapLines(ctx, w.name || 'Unnamed Workout', cw)
+    for (const nl of nameLines) {
+      y += 46
+      ctx.fillText(nl, px, y)
     }
 
-    // ── METADATA ROW ──
-    y += 4
-    ctx.font = '500 28px sans-serif'
-    const metaParts = []
+    // ── TAGS ROW ──
+    y += 14
+    const tags = []
+    if (w.score_type && w.score_type !== 'None') tags.push({ text: w.score_type, accent: true })
+    const equip = (w.equipment || []).filter(e => e !== 'Bodyweight')
+    equip.slice(0, 3).forEach(e => tags.push({ text: e }))
+    if (w.estimated_duration_mins) tags.push({ text: w.estimated_duration_mins + ' min' })
 
-    if (w.workout_types?.length) {
-      const wt = w.workout_types.filter(t => t !== 'General')
-      if (wt.length) metaParts.push({ text: wt[0], isAccent: true })
-    }
-    if (w.estimated_duration_mins) {
-      metaParts.push({ text: w.estimated_duration_mins + ' min', isAccent: false })
-    } else if (w.estimated_duration_min && w.estimated_duration_max) {
-      metaParts.push({ text: w.estimated_duration_min + '-' + w.estimated_duration_max + ' min', isAccent: false })
-    }
-    const eqList = (w.equipment || []).filter(e => e !== 'Bodyweight').slice(0, 4)
-    if (eqList.length > 0) {
-      metaParts.push({ text: eqList.join(' · '), isAccent: false })
-    }
+    if (tags.length) {
+      let tx = px
+      const tagH = 26, tagPad = 12, tagGap = 6, tagFont = 18
+      ctx.font = '600 ' + tagFont + 'px sans-serif'
+      for (const tag of tags) {
+        const tw = ctx.measureText(tag.text).width + tagPad * 2
+        if (tx + tw > W - px) break
 
-    if (metaParts.length > 0) {
-      let mx = cx
-      for (let i = 0; i < metaParts.length; i++) {
-        const part = metaParts[i]
-        if (i > 0) {
-          // Dot separator
-          ctx.fillStyle = 'rgba(255,255,255,0.15)'
-          ctx.fillText('·', mx + 10, y)
-          mx += 30
-        }
-        ctx.fillStyle = part.isAccent ? accent : 'rgba(255,255,255,0.4)'
-        if (part.isAccent) ctx.font = '700 28px sans-serif'
-        else ctx.font = '500 28px sans-serif'
-        ctx.fillText(part.text, mx, y)
-        mx += ctx.measureText(part.text).width
+        ctx.fillStyle = tag.accent ? hexA(accent, 0.14) : hexA(white, 0.05)
+        ctx.beginPath()
+        ctx.roundRect(tx, y, tw, tagH, 13)
+        ctx.fill()
+
+        ctx.fillStyle = tag.accent ? accent : hexA(white, 0.4)
+        ctx.font = (tag.accent ? '700 ' : '500 ') + tagFont + 'px sans-serif'
+        ctx.textAlign = 'left'
+        ctx.fillText(tag.text, tx + tagPad, y + 19)
+        tx += tw + tagGap
       }
-      y += 42
+      y += tagH + 12
+    } else {
+      y += 6
     }
 
-    // ── CONTENT DIVIDER ──
-    ctx.fillStyle = 'rgba(255,255,255,0.06)'
-    ctx.fillRect(cx, y, cw, 2)
-    y += 30
+    // ── FOOTER (reserve space) ──
+    const footerH = 44
+    const footerY = H - footerH
+
+    ctx.fillStyle = hexA(white, 0.05)
+    ctx.fillRect(px, footerY, cw, 1)
+
+    ctx.font = '500 22px monospace'
+    ctx.fillStyle = hexA(white, 0.4)
+    ctx.textAlign = 'left'
+    ctx.fillText('ronapump.com', px, footerY + 28)
+    ctx.textAlign = 'right'
+    ctx.fillText('@ronapump', W - px, footerY + 28)
 
     // ── DESCRIPTION ──
-    const descText = (w.description || '').replace(/\*\*(.*?)\*\*/g, '$1')
-    const rawLines = descText.split('\n')
+    const descTop = y
+    const descBottom = footerY - 10
+    const fadeH = 50
 
-    // Auto-scale font based on content density
-    const contentLines = rawLines.filter(l => l.trim()).length
-    let fontSize, lineH
-    if (contentLines > 16) {
-      fontSize = 28; lineH = 40
-    } else if (contentLines > 12) {
-      fontSize = 30; lineH = 44
-    } else {
-      fontSize = 34; lineH = 50
+    // Clean the description
+    let desc = w.description || ''
+    if (w.name) {
+      const nm = w.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      desc = desc.replace(new RegExp('[\\u201c"\\u201d]\\s*' + nm + '\\s*[\\u201c"\\u201d]\\s*[-:.]?\\s*', 'gi'), '')
+      desc = desc.replace(/^\s*[\n\r]+/, '').replace(/^\s*[-:]\s*/, '')
+    }
+    desc = desc.replace(/[\{\}]/g, '').trim()
+
+    const rawLines = desc.split('\n')
+
+    // Count effective lines to pick font size
+    let effectiveLines = 0
+    ctx.font = '28px sans-serif'
+    for (const rl of rawLines) {
+      const trimmed = rl.trim()
+      if (trimmed === '') { effectiveLines += 0.4; continue }
+      effectiveLines += wrapLines(ctx, trimmed, cw).length
     }
 
-    const bottomLimit = frameY + frameH - 70
+    let fontSize, lineH
+    if (effectiveLines <= 10) { fontSize = 30; lineH = 40 }
+    else if (effectiveLines <= 16) { fontSize = 27; lineH = 36 }
+    else if (effectiveLines <= 22) { fontSize = 24; lineH = 32 }
+    else { fontSize = 22; lineH = 30 }
+
+    let dy = descTop
     let truncated = false
 
-    for (const rawLine of rawLines) {
-      if (y > bottomLimit - lineH) { truncated = true; break }
+    for (const rl of rawLines) {
+      if (truncated) break
+      const trimmed = rl.trim()
 
-      const trimmed = rawLine.trim()
+      if (trimmed === '') { dy += lineH * 0.45; continue }
 
-      // Blank line = small gap
-      if (!trimmed) {
-        y += lineH * 0.35
-        continue
-      }
-
-      // Section header (--- prefix)
-      if (rawLine.startsWith('--- ')) {
-        y += 8
+      // Section headers (--- PREFIX)
+      if (trimmed.startsWith('--- ')) {
+        dy += 4
         ctx.font = '700 ' + (fontSize - 2) + 'px sans-serif'
-        ctx.fillStyle = accent
+        ctx.fillStyle = hexA(accent, 0.65)
         ctx.textAlign = 'left'
-        ctx.fillText(rawLine.slice(4).toUpperCase(), cx, y)
-        y += lineH
+        ctx.letterSpacing = '2px'
+        const headerText = trimmed.slice(4).toUpperCase()
+        if (dy + fontSize > descBottom - fadeH) { truncated = true; break }
+        ctx.fillText(headerText, px, dy + fontSize)
+        ctx.letterSpacing = '0px'
+        dy += lineH + 2
         continue
       }
 
-      // Sub-bullet
-      if (rawLine.startsWith('  • ')) {
-        ctx.font = fontSize + 'px sans-serif'
-        ctx.fillStyle = white
-        ctx.textAlign = 'left'
-        const subLines = wrapLines(ctx, '     •  ' + rawLine.slice(4), cw)
-        for (const sl of subLines) {
-          if (y > bottomLimit - lineH) { truncated = true; break }
-          ctx.fillText(sl, cx, y)
-          y += lineH
-        }
-        continue
-      }
-
-      // Bullet
-      if (rawLine.startsWith('• ')) {
-        ctx.font = fontSize + 'px sans-serif'
-        ctx.fillStyle = white
-        ctx.textAlign = 'left'
-        const bulletLines = wrapLines(ctx, '•  ' + rawLine.slice(2), cw)
-        for (const bl of bulletLines) {
-          if (y > bottomLimit - lineH) { truncated = true; break }
-          ctx.fillText(bl, cx, y)
-          y += lineH
-        }
-        continue
-      }
-
-      // Label detection
+      // Detect labels
       const isLabel = /^[\w].*:$/.test(trimmed) || /^(Part [A-Z]|Round \d)/i.test(trimmed)
+
+      // Bullet handling
+      let text = trimmed
+      let indent = 0
+      if (text.startsWith('  \u2022 ') || text.startsWith('  - ')) {
+        text = text.slice(4)
+        indent = 28
+      } else if (text.startsWith('\u2022 ') || text.startsWith('- ')) {
+        text = text.slice(2)
+        indent = 0
+      }
+
       if (isLabel) {
-        y += 4
+        dy += 3
         ctx.font = '600 ' + fontSize + 'px sans-serif'
+        ctx.fillStyle = white
       } else {
         ctx.font = fontSize + 'px sans-serif'
+        ctx.fillStyle = hexA(white, 0.88)
       }
-      ctx.fillStyle = white
+
       ctx.textAlign = 'left'
-      const wrapped = wrapLines(ctx, trimmed, cw)
-      for (const wl of wrapped) {
-        if (y > bottomLimit - lineH) { truncated = true; break }
-        ctx.fillText(wl, cx, y)
-        y += lineH
+      const bulletPrefix = (trimmed.startsWith('\u2022') || trimmed.startsWith('  \u2022') || trimmed.startsWith('-') || trimmed.startsWith('  -')) ? '\u2022  ' : ''
+      const bpW = bulletPrefix ? ctx.measureText(bulletPrefix).width : 0
+      const wrapped = wrapLines(ctx, text, cw - indent - bpW)
+
+      for (let wi = 0; wi < wrapped.length; wi++) {
+        if (dy + fontSize > descBottom - fadeH) { truncated = true; break }
+        const prefix = (wi === 0 && bulletPrefix) ? bulletPrefix : (wi > 0 && bulletPrefix ? '    ' : '')
+        ctx.fillText(prefix + wrapped[wi], px + indent, dy + fontSize)
+        dy += lineH
       }
     }
 
+    // Clean fade gradient if truncated
     if (truncated) {
-      ctx.font = fontSize + 'px sans-serif'
-      ctx.fillStyle = 'rgba(255,255,255,0.2)'
-      ctx.textAlign = 'left'
-      ctx.fillText('...', cx, bottomLimit - 10)
+      const fadeGrad = ctx.createLinearGradient(0, descBottom - fadeH, 0, descBottom)
+      fadeGrad.addColorStop(0, hexA(bg, 0))
+      fadeGrad.addColorStop(0.7, hexA(bg, 0.85))
+      fadeGrad.addColorStop(1, bg)
+      ctx.fillStyle = fadeGrad
+      ctx.fillRect(0, descBottom - fadeH, W, fadeH)
     }
-
-    // ── FOOTER (inside frame, very subtle) ──
-    const footerY = frameY + frameH - 30
-    ctx.font = '500 22px monospace'
-    ctx.textAlign = 'left'
-    ctx.fillStyle = 'rgba(255,255,255,0.1)'
-    ctx.fillText('ronapump.com', cx, footerY)
-    ctx.textAlign = 'right'
-    ctx.fillText('@ronapump', cx + cw, footerY)
-  }
-
-  function wrapLines(ctx, text, maxWidth) {
-    const words = text.split(' ')
-    const lines = []
-    let line = ''
-    for (const word of words) {
-      const test = line ? line + ' ' + word : word
-      if (ctx.measureText(test).width > maxWidth && line) {
-        lines.push(line)
-        line = word
-      } else {
-        line = test
-      }
-    }
-    if (line) lines.push(line)
-    return lines.length ? lines : ['']
   }
 
   function downloadImage() {
@@ -275,8 +282,8 @@ export default function ShareImage({ workout, onClose }) {
         <canvas ref={canvasRef} style={{ width: '100%', borderRadius: '8px', border: '1px solid var(--brd)' }} />
         <div className="mf" style={{ marginTop: '12px' }}>
           <button className="ab" onClick={onClose}>Close</button>
-          <button className="ab" onClick={copyImage}>{copied ? '✓ Copied!' : '📋 Copy Image'}</button>
-          <button className="ab p" onClick={downloadImage}>📥 Download</button>
+          <button className="ab" onClick={copyImage}>{copied ? '\u2713 Copied!' : '\ud83d\udccb Copy Image'}</button>
+          <button className="ab p" onClick={downloadImage}>{'\ud83d\udce5'} Download</button>
         </div>
       </div>
     </div>
