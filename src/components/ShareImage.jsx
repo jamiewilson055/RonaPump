@@ -152,7 +152,9 @@ export default function ShareImage({ workout, onClose }) {
     if (w.name) {
       const nm = w.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       desc = desc.replace(new RegExp('[\\u201c"\\u201d]\\s*' + nm + '\\s*[\\u201c"\\u201d]\\s*[-:.]?\\s*', 'gi'), '')
-      desc = desc.replace(/^\s*[\n\r]+/, '').replace(/^\s*[-:]\s*/, '')
+      desc = desc.replace(/^\s*[\n\r]+/, '')
+      // Only strip a leading dash/colon if NOT followed by another dash (protects --- sections)
+      desc = desc.replace(/^\s*[-:](?!-)\s*/, '')
     }
     desc = desc.replace(/[\{\}]/g, '').trim()
 
@@ -167,7 +169,6 @@ export default function ShareImage({ workout, onClose }) {
       if (trimmed.startsWith('---')) {
         const st = trimmed.replace(/^-{3,}\s*/, '').trim()
         if (st) {
-          // Section with text — estimate wrapped lines
           ctx.font = '700 38px sans-serif'
           effectiveLines += wrapLines(ctx, st, cw - 20).length + 0.4
         } else {
@@ -199,16 +200,14 @@ export default function ShareImage({ workout, onClose }) {
       if (trimmed.startsWith('---')) {
         const sectionText = trimmed.replace(/^-{3,}\s*/, '').trim()
 
-        // Bare "---" with no text = visual divider between groups
+        // Bare "---" with no text = visual divider (full width accent line)
         if (!sectionText) {
-          dy += 8
-          // Short accent line as divider
-          const divW = 80
-          ctx.fillStyle = hexA(accent, 0.4)
+          dy += 10
+          ctx.fillStyle = hexA(accent, 0.35)
           ctx.beginPath()
-          ctx.roundRect(px, dy, divW, 3, 2)
+          ctx.roundRect(px, dy, cw, 3, 2)
           ctx.fill()
-          dy += 16
+          dy += 18
           continue
         }
 
@@ -243,15 +242,16 @@ export default function ShareImage({ workout, onClose }) {
       // Detect labels: "5 Rounds For Time:", "Part A:", "Round 1:"
       const isLabel = /^[\w].*:$/.test(trimmed) || /^(Part [A-Z]|Round \d)/i.test(trimmed)
 
-      // Bullet handling
+      // Bullet handling — require dash+space to avoid matching --- sections
       let text = trimmed
       let indent = 0
       if (text.startsWith('  \u2022 ') || text.startsWith('  - ')) {
         text = text.slice(4)
         indent = 36
-      } else if (text.startsWith('\u2022 ') || text.startsWith('- ')) {
+      } else if (text.startsWith('\u2022 ')) {
         text = text.slice(2)
-        indent = 0
+      } else if (text.startsWith('- ')) {
+        text = text.slice(2)
       }
 
       if (isLabel) {
@@ -264,7 +264,9 @@ export default function ShareImage({ workout, onClose }) {
       }
 
       ctx.textAlign = 'left'
-      const bulletPrefix = (trimmed.startsWith('\u2022') || trimmed.startsWith('  \u2022') || trimmed.startsWith('-') || trimmed.startsWith('  -')) ? '\u2022  ' : ''
+      // Only add bullet prefix for actual bullets (• or single dash+space), NOT -- or ---
+      const isBullet = trimmed.startsWith('\u2022 ') || trimmed.startsWith('  \u2022 ') || trimmed.startsWith('- ') || trimmed.startsWith('  - ')
+      const bulletPrefix = isBullet ? '\u2022  ' : ''
       const bpW = bulletPrefix ? ctx.measureText(bulletPrefix).width : 0
       const wrapped = wrapLines(ctx, text, cw - indent - bpW)
 
