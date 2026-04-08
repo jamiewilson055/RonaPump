@@ -164,7 +164,18 @@ export default function ShareImage({ workout, onClose }) {
     for (const rl of rawLines) {
       const trimmed = rl.trim()
       if (trimmed === '') { effectiveLines += 0.4; continue }
-      if (trimmed.startsWith('---')) { effectiveLines += 1.2; continue }
+      if (trimmed.startsWith('---')) {
+        const st = trimmed.replace(/^-{3,}\s*/, '').trim()
+        if (st) {
+          // Section with text — estimate wrapped lines
+          ctx.font = '700 38px sans-serif'
+          effectiveLines += wrapLines(ctx, st, cw - 20).length + 0.4
+        } else {
+          effectiveLines += 0.6
+        }
+        continue
+      }
+      ctx.font = '38px sans-serif'
       effectiveLines += wrapLines(ctx, trimmed, cw).length
     }
 
@@ -184,36 +195,48 @@ export default function ShareImage({ workout, onClose }) {
 
       if (trimmed === '') { dy += lineH * 0.5; continue }
 
-      // Section headers: lines starting with ---
+      // Section lines: anything starting with ---
       if (trimmed.startsWith('---')) {
         const sectionText = trimmed.replace(/^-{3,}\s*/, '').trim()
 
-        // Bare "---" with no text = spacing divider
+        // Bare "---" with no text = visual divider between groups
         if (!sectionText) {
-          dy += lineH * 0.4
-          // Draw a subtle thin line
-          ctx.fillStyle = hexA(white, 0.08)
-          ctx.fillRect(px, dy, cw, 1)
-          dy += lineH * 0.4
+          dy += 8
+          // Short accent line as divider
+          const divW = 80
+          ctx.fillStyle = hexA(accent, 0.4)
+          ctx.beginPath()
+          ctx.roundRect(px, dy, divW, 3, 2)
+          ctx.fill()
+          dy += 16
           continue
         }
 
-        // Section with text: bold red header with accent bar
+        // Section with text (e.g. "Block 1 – Every 4 minutes × 4 rounds")
         dy += 10
-        if (dy + fontSize > descBottom - fadeH) { truncated = true; break }
-
-        // Accent side bar
-        ctx.fillStyle = accent
-        ctx.beginPath()
-        ctx.roundRect(px, dy + 2, 5, fontSize, 3)
-        ctx.fill()
-
-        // Section text
         ctx.font = '700 ' + fontSize + 'px sans-serif'
         ctx.fillStyle = accent
         ctx.textAlign = 'left'
-        ctx.fillText(sectionText.toUpperCase(), px + 18, dy + fontSize)
-        dy += lineH + 6
+
+        // Wrap section text so long headers don't overflow
+        const sectionWrapped = wrapLines(ctx, sectionText, cw - 20)
+        for (let si = 0; si < sectionWrapped.length; si++) {
+          if (dy + fontSize > descBottom - fadeH) { truncated = true; break }
+
+          // Accent side bar on first line only
+          if (si === 0) {
+            ctx.fillStyle = accent
+            ctx.beginPath()
+            ctx.roundRect(px, dy + 2, 5, fontSize, 3)
+            ctx.fill()
+          }
+
+          ctx.fillStyle = accent
+          ctx.font = '700 ' + fontSize + 'px sans-serif'
+          ctx.fillText(sectionWrapped[si], px + 18, dy + fontSize)
+          dy += lineH
+        }
+        dy += 4
         continue
       }
 
