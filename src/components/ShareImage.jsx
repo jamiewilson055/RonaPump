@@ -218,21 +218,13 @@ export default function ShareImage({ workout, onClose }) {
         ctx.textAlign = 'left'
 
         // Wrap section text so long headers don't overflow
-        const sectionWrapped = wrapLines(ctx, sectionText, cw - 20)
+        const sectionWrapped = wrapLines(ctx, sectionText, cw)
         for (let si = 0; si < sectionWrapped.length; si++) {
           if (dy + fontSize > descBottom - fadeH) { truncated = true; break }
 
-          // Accent side bar on first line only
-          if (si === 0) {
-            ctx.fillStyle = accent
-            ctx.beginPath()
-            ctx.roundRect(px, dy + 2, 5, fontSize, 3)
-            ctx.fill()
-          }
-
           ctx.fillStyle = accent
           ctx.font = '700 ' + fontSize + 'px sans-serif'
-          ctx.fillText(sectionWrapped[si], px + 18, dy + fontSize)
+          ctx.fillText(sectionWrapped[si], px, dy + fontSize)
           dy += lineH
         }
         dy += 4
