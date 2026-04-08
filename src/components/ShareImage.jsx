@@ -40,7 +40,7 @@ export default function ShareImage({ workout, onClose }) {
     const accent = '#e01e1e'
     const white = '#ffffff'
     const bg = '#0a0a0e'
-    const px = 56
+    const px = 70
     const cw = W - px * 2
 
     // ── BACKGROUND ──
@@ -48,16 +48,16 @@ export default function ShareImage({ workout, onClose }) {
     ctx.fillRect(0, 0, W, H)
 
     // Subtle top-right glow
-    const glow = ctx.createRadialGradient(W, 0, 0, W, 0, 450)
+    const glow = ctx.createRadialGradient(W, 0, 0, W, 0, 500)
     glow.addColorStop(0, hexA(accent, 0.05))
     glow.addColorStop(1, 'transparent')
     ctx.fillStyle = glow
     ctx.fillRect(0, 0, W, H)
 
-    let y = 50
+    let y = 68
 
     // ── LOGO ROW ──
-    ctx.font = '700 36px monospace'
+    ctx.font = '700 44px monospace'
     ctx.textAlign = 'left'
     ctx.fillStyle = white
     const ronaW = ctx.measureText('RONA').width
@@ -65,42 +65,42 @@ export default function ShareImage({ workout, onClose }) {
     ctx.fillStyle = accent
     ctx.fillText('PUMP', px + ronaW, y)
 
-    ctx.font = '30px sans-serif'
+    ctx.font = '36px sans-serif'
     ctx.textAlign = 'right'
     ctx.fillText('\u{1F98D}', W - px, y)
 
     // ── ACCENT DIVIDER ──
-    y += 16
+    y += 20
     const divGrad = ctx.createLinearGradient(px, 0, px + cw * 0.45, 0)
     divGrad.addColorStop(0, accent)
     divGrad.addColorStop(1, 'transparent')
     ctx.fillStyle = divGrad
     ctx.beginPath()
-    ctx.roundRect(px, y, cw, 4, 2)
+    ctx.roundRect(px, y, cw, 5, 3)
     ctx.fill()
 
     // ── "WORKOUT OF THE DAY" LABEL ──
-    y += 28
-    ctx.font = '500 18px monospace'
+    y += 36
+    ctx.font = '500 22px monospace'
     ctx.textAlign = 'left'
     ctx.fillStyle = hexA(white, 0.28)
-    ctx.letterSpacing = '3px'
+    ctx.letterSpacing = '4px'
     ctx.fillText('WORKOUT OF THE DAY', px, y)
     ctx.letterSpacing = '0px'
 
     // ── WORKOUT NAME ──
-    y += 10
-    ctx.font = '700 48px sans-serif'
+    y += 12
+    ctx.font = '700 58px sans-serif'
     ctx.fillStyle = white
     ctx.textAlign = 'left'
     const nameLines = wrapLines(ctx, w.name || 'Unnamed Workout', cw)
     for (const nl of nameLines) {
-      y += 48
+      y += 58
       ctx.fillText(nl, px, y)
     }
 
     // ── TAGS ROW ──
-    y += 18
+    y += 22
     const tags = []
     if (w.score_type && w.score_type !== 'None') tags.push({ text: w.score_type, accent: true })
     const equip = (w.equipment || []).filter(e => e !== 'Bodyweight')
@@ -109,7 +109,7 @@ export default function ShareImage({ workout, onClose }) {
 
     if (tags.length) {
       let tx = px
-      const tagH = 28, tagPad = 14, tagGap = 7, tagFont = 18
+      const tagH = 34, tagPad = 16, tagGap = 8, tagFont = 22
       ctx.font = '600 ' + tagFont + 'px sans-serif'
       for (const tag of tags) {
         const tw = ctx.measureText(tag.text).width + tagPad * 2
@@ -117,38 +117,38 @@ export default function ShareImage({ workout, onClose }) {
 
         ctx.fillStyle = tag.accent ? hexA(accent, 0.14) : hexA(white, 0.06)
         ctx.beginPath()
-        ctx.roundRect(tx, y, tw, tagH, 14)
+        ctx.roundRect(tx, y, tw, tagH, 17)
         ctx.fill()
 
         ctx.fillStyle = tag.accent ? accent : hexA(white, 0.42)
         ctx.font = (tag.accent ? '700 ' : '500 ') + tagFont + 'px sans-serif'
         ctx.textAlign = 'left'
-        ctx.fillText(tag.text, tx + tagPad, y + 20)
+        ctx.fillText(tag.text, tx + tagPad, y + 24)
         tx += tw + tagGap
       }
-      y += tagH + 16
+      y += tagH + 20
     } else {
-      y += 8
+      y += 10
     }
 
     // ── FOOTER (reserve space) ──
-    const footerH = 48
+    const footerH = 56
     const footerY = H - footerH
 
     ctx.fillStyle = hexA(white, 0.05)
     ctx.fillRect(px, footerY, cw, 1)
 
-    ctx.font = '500 22px monospace'
+    ctx.font = '500 26px monospace'
     ctx.fillStyle = hexA(white, 0.42)
     ctx.textAlign = 'left'
-    ctx.fillText('ronapump.com', px, footerY + 30)
+    ctx.fillText('ronapump.com', px, footerY + 36)
     ctx.textAlign = 'right'
-    ctx.fillText('@ronapump', W - px, footerY + 30)
+    ctx.fillText('@ronapump', W - px, footerY + 36)
 
     // ── DESCRIPTION ──
     const descTop = y
-    const descBottom = footerY - 12
-    const fadeH = 50
+    const descBottom = footerY - 14
+    const fadeH = 55
 
     // Clean the description
     let desc = w.description || ''
@@ -163,7 +163,7 @@ export default function ShareImage({ workout, onClose }) {
 
     // Count effective lines to pick font size
     let effectiveLines = 0
-    ctx.font = '28px sans-serif'
+    ctx.font = '34px sans-serif'
     for (const rl of rawLines) {
       const trimmed = rl.trim()
       if (trimmed === '') { effectiveLines += 0.4; continue }
@@ -171,10 +171,11 @@ export default function ShareImage({ workout, onClose }) {
     }
 
     let fontSize, lineH
-    if (effectiveLines <= 10) { fontSize = 30; lineH = 40 }
-    else if (effectiveLines <= 16) { fontSize = 27; lineH = 37 }
-    else if (effectiveLines <= 22) { fontSize = 25; lineH = 34 }
-    else { fontSize = 23; lineH = 31 }
+    if (effectiveLines <= 8) { fontSize = 36; lineH = 48 }
+    else if (effectiveLines <= 12) { fontSize = 33; lineH = 44 }
+    else if (effectiveLines <= 18) { fontSize = 30; lineH = 40 }
+    else if (effectiveLines <= 24) { fontSize = 27; lineH = 37 }
+    else { fontSize = 25; lineH = 34 }
 
     let dy = descTop
     let truncated = false
@@ -183,11 +184,11 @@ export default function ShareImage({ workout, onClose }) {
       if (truncated) break
       const trimmed = rl.trim()
 
-      if (trimmed === '') { dy += lineH * 0.45; continue }
+      if (trimmed === '') { dy += lineH * 0.5; continue }
 
       // Section headers (--- PREFIX)
       if (trimmed.startsWith('--- ')) {
-        dy += 5
+        dy += 6
         ctx.font = '700 ' + (fontSize - 2) + 'px sans-serif'
         ctx.fillStyle = hexA(accent, 0.65)
         ctx.textAlign = 'left'
@@ -196,7 +197,7 @@ export default function ShareImage({ workout, onClose }) {
         if (dy + fontSize > descBottom - fadeH) { truncated = true; break }
         ctx.fillText(headerText, px, dy + fontSize)
         ctx.letterSpacing = '0px'
-        dy += lineH + 2
+        dy += lineH + 4
         continue
       }
 
@@ -208,14 +209,14 @@ export default function ShareImage({ workout, onClose }) {
       let indent = 0
       if (text.startsWith('  \u2022 ') || text.startsWith('  - ')) {
         text = text.slice(4)
-        indent = 28
+        indent = 34
       } else if (text.startsWith('\u2022 ') || text.startsWith('- ')) {
         text = text.slice(2)
         indent = 0
       }
 
       if (isLabel) {
-        dy += 3
+        dy += 4
         ctx.font = '600 ' + fontSize + 'px sans-serif'
         ctx.fillStyle = white
       } else {
