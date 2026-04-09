@@ -144,8 +144,9 @@ export default function ShareImage({ workout, onClose }) {
 
     // ── DESCRIPTION ──
     const descTop = y
-    const descBottom = footerY - 16
-    const fadeH = 55
+    const bannerH = 48
+    // Reserve banner space — if text fits, the extra padding is fine
+    const descBottom = footerY - 14 - bannerH
 
     // Clean the description
     let desc = w.description || ''
@@ -270,15 +271,32 @@ export default function ShareImage({ workout, onClose }) {
       }
     }
 
-    // Clean fade gradient — only when truncated
+    // Truncation banner — only when content overflows
     if (truncated) {
-      const fadeGrad = ctx.createLinearGradient(0, descBottom - fadeH, 0, descBottom)
-      fadeGrad.addColorStop(0, hexA(bg, 0))
-      fadeGrad.addColorStop(0.35, hexA(bg, 0.4))
-      fadeGrad.addColorStop(0.65, hexA(bg, 0.8))
-      fadeGrad.addColorStop(1, bg)
-      ctx.fillStyle = fadeGrad
-      ctx.fillRect(0, descBottom - fadeH, W, fadeH)
+      const bannerY = footerY - bannerH - 6
+
+      // Solid bg to cover any text that bled into banner zone
+      ctx.fillStyle = bg
+      ctx.fillRect(0, bannerY - 4, W, bannerH + 10)
+
+      // Banner background
+      ctx.fillStyle = hexA(accent, 0.1)
+      ctx.beginPath()
+      ctx.roundRect(px, bannerY, cw, bannerH, 8)
+      ctx.fill()
+
+      // Banner border
+      ctx.strokeStyle = hexA(accent, 0.3)
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.roundRect(px, bannerY, cw, bannerH, 8)
+      ctx.stroke()
+
+      // Banner text
+      ctx.font = '600 24px monospace'
+      ctx.fillStyle = accent
+      ctx.textAlign = 'center'
+      ctx.fillText('\u25BE  Full workout at ronapump.com  \u25BE', W / 2, bannerY + 30)
     }
   }
 
