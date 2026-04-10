@@ -77,12 +77,12 @@ export default function StoryCard({ workout, score, session, onClose }) {
     ctx.fillStyle = bg
     ctx.fillRect(0, 0, W, H)
 
-    // ── HARAMBE WATERMARK (subtle, centered, fills visual space) ──
+    // ── HARAMBE WATERMARK (large, fills below header) ──
     if (imgRef.current) {
       ctx.save()
-      ctx.globalAlpha = 0.05
-      const wmSize = 500
-      ctx.drawImage(imgRef.current, cx - wmSize / 2, H * 0.32 - wmSize / 2, wmSize, wmSize)
+      ctx.globalAlpha = 0.07
+      const wmSize = 900
+      ctx.drawImage(imgRef.current, cx - wmSize / 2, H * 0.38 - wmSize / 2, wmSize, wmSize)
       ctx.restore()
     }
 
@@ -168,141 +168,73 @@ export default function StoryCard({ workout, score, session, onClose }) {
       y += tH + 16
     }
 
-    // ── WORKOUT DESCRIPTION (abbreviated) ──
-    let desc = workout?.description || ''
-    if (workout?.name) {
-      const nm = workout.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      desc = desc.replace(new RegExp('[\\u201c"\\u201d]\\s*' + nm + '\\s*[\\u201c"\\u201d]\\s*[-:.]?\\s*', 'gi'), '')
-      desc = desc.replace(/^\s*[\n\r]+/, '').replace(/^\s*[-:](?!-)\s*/, '')
-    }
-    desc = desc.replace(/[\{\}]/g, '').trim()
-
-    if (desc) {
-      y += 8
-      const descFont = 36
-      const descLineH = 48
-      const maxDescLines = score ? 3 : 5
-      const rawLines = desc.split('\n')
-      let lineCount = 0
-
-      for (const rl of rawLines) {
-        if (lineCount >= maxDescLines) break
-        const trimmed = rl.trim()
-        if (trimmed === '') { y += descLineH * 0.4; continue }
-
-        if (trimmed.startsWith('---')) {
-          const sectionText = trimmed.replace(/^-{3,}\s*/, '').trim()
-          if (sectionText && lineCount < maxDescLines) {
-            y += 6
-            ctx.font = '700 ' + descFont + 'px sans-serif'
-            ctx.fillStyle = accent
-            ctx.textAlign = 'left'
-            ctx.fillText(sectionText.toUpperCase(), px, y + descFont)
-            y += descLineH
-            lineCount++
-          }
-          continue
-        }
-
-        const isLabel = /^[\w].*:$/.test(trimmed) || /^(Part [A-Z]|Round \d)/i.test(trimmed)
-        let lineText = trimmed
-        let indent = 0
-        if (lineText.startsWith('  \u2022 ') || lineText.startsWith('  - ')) { lineText = lineText.slice(4); indent = 36 }
-        else if (lineText.startsWith('\u2022 ')) lineText = lineText.slice(2)
-        else if (lineText.startsWith('- ')) lineText = lineText.slice(2)
-
-        if (isLabel) {
-          ctx.font = '700 ' + descFont + 'px sans-serif'
-          ctx.fillStyle = accent
-          lineText = lineText.toUpperCase()
-        } else {
-          ctx.font = descFont + 'px sans-serif'
-          ctx.fillStyle = hexA(clr, 0.8)
-        }
-        ctx.textAlign = 'left'
-
-        const isBullet = trimmed.startsWith('\u2022 ') || trimmed.startsWith('  \u2022 ') || trimmed.startsWith('- ') || trimmed.startsWith('  - ')
-        const bp = isBullet ? '\u2022  ' : ''
-        const bpW = bp ? ctx.measureText(bp).width : 0
-        const wrapped = wrapText(ctx, lineText, cw - indent - bpW)
-
-        for (let wi = 0; wi < wrapped.length; wi++) {
-          if (lineCount >= maxDescLines) break
-          const prefix = (wi === 0 && bp) ? bp : (wi > 0 && bp ? '    ' : '')
-          ctx.fillText(prefix + wrapped[wi], px + indent, y + descFont)
-          y += descLineH
-          lineCount++
-        }
-      }
-    }
-
     // ── SCORE SECTION ──
     if (score) {
-      y += 24
+      y += 40
       ctx.fillStyle = hexA(clr, 0.08)
       ctx.fillRect(px, y, cw, 1)
-      y += 36
+      y += 50
 
-      ctx.font = '500 24px monospace'
+      ctx.font = '500 34px monospace'
       ctx.fillStyle = hexA(clr, 0.4)
       ctx.textAlign = 'center'
       ctx.letterSpacing = '4px'
       ctx.fillText('YOUR SCORE', cx, y)
       ctx.letterSpacing = '0px'
-      y += 20
+      y += 24
 
       ctx.font = '700 160px monospace'
       ctx.fillStyle = accent
       const scoreStr = String(score)
       if (ctx.measureText(scoreStr).width > W - 160) ctx.font = '700 110px monospace'
       ctx.fillText(scoreStr, cx, y + 124)
-      y += 140
+      y += 148
 
       if (workout?.score_type && workout.score_type !== 'None') {
-        y += 4
-        ctx.font = '500 28px monospace'
-        ctx.fillStyle = hexA(clr, 0.3)
+        y += 8
+        ctx.font = '500 36px monospace'
+        ctx.fillStyle = hexA(clr, 0.35)
         ctx.fillText(workout.score_type.toUpperCase(), cx, y)
-        y += 20
+        y += 28
       }
     }
 
     // ── PERSONAL INFO ──
-    y += 28
+    y += 40
     ctx.fillStyle = hexA(clr, 0.08)
     ctx.fillRect(px, y, cw, 1)
-    y += 40
+    y += 50
 
     const userName = profile?.display_name || 'Athlete'
     const rank = profile?.gorilla_rank || 'Baby Gorilla'
 
-    ctx.font = '700 44px sans-serif'
+    ctx.font = '700 54px sans-serif'
     ctx.fillStyle = clr
     ctx.textAlign = 'center'
     ctx.fillText(userName, cx, y)
-    y += 40
+    y += 50
 
-    ctx.font = '600 30px sans-serif'
+    ctx.font = '600 36px sans-serif'
     ctx.fillStyle = accent
     ctx.fillText(rank, cx, y)
-    y += 38
+    y += 46
 
     const parts = []
     parts.push(new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }))
     if (streak >= 3) parts.push('\uD83D\uDD25 ' + streak + ' day streak')
     if (totalWorkouts > 1) parts.push('#' + totalWorkouts)
-    ctx.font = '400 24px sans-serif'
-    ctx.fillStyle = hexA(clr, 0.35)
+    ctx.font = '400 30px sans-serif'
+    ctx.fillStyle = hexA(clr, 0.4)
     ctx.fillText(parts.join('  \u00B7  '), cx, y)
 
     // ── FOOTER ──
-    const footerY = H - 60
+    const footerY = H - 66
     ctx.fillStyle = hexA(clr, 0.08)
     ctx.fillRect(px, footerY, cw, 1)
-    ctx.font = '500 26px monospace'
+    ctx.font = '500 30px monospace'
     ctx.fillStyle = hexA(clr, 0.5)
     ctx.textAlign = 'center'
-    ctx.fillText('ronapump.com  \u00B7  @ronapump', cx, footerY + 38)
+    ctx.fillText('ronapump.com  \u00B7  @ronapump', cx, footerY + 42)
   }
 
   function downloadImage() {
