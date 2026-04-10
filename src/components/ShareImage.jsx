@@ -182,10 +182,12 @@ export default function ShareImage({ workout, onClose }) {
     }
 
     let fontSize, lineH
-    if (effectiveLines <= 8) { fontSize = 42; lineH = 54 }
-    else if (effectiveLines <= 12) { fontSize = 38; lineH = 50 }
-    else if (effectiveLines <= 16) { fontSize = 35; lineH = 46 }
-    else if (effectiveLines <= 22) { fontSize = 32; lineH = 42 }
+    if (effectiveLines <= 4) { fontSize = 52; lineH = 66 }
+    else if (effectiveLines <= 6) { fontSize = 46; lineH = 60 }
+    else if (effectiveLines <= 10) { fontSize = 42; lineH = 54 }
+    else if (effectiveLines <= 14) { fontSize = 38; lineH = 50 }
+    else if (effectiveLines <= 20) { fontSize = 35; lineH = 46 }
+    else if (effectiveLines <= 26) { fontSize = 32; lineH = 42 }
     else { fontSize = 28; lineH = 38 }
 
     let dy = descTop
