@@ -313,8 +313,9 @@ export default function ShareImage({ workout, onClose }) {
 
       if (isLabel) {
         dy += 4
-        ctx.font = '600 ' + fontSize + 'px sans-serif'
-        ctx.fillStyle = text
+        ctx.font = '700 ' + fontSize + 'px sans-serif'
+        ctx.fillStyle = accent
+        lineText = lineText.toUpperCase()
       } else {
         ctx.font = fontSize + 'px sans-serif'
         ctx.fillStyle = hexA(text, 0.88)
