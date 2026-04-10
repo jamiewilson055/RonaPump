@@ -85,7 +85,7 @@ export default function StoryCard({ workout, score, session, onClose }) {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
-    const W = 1080, H = 1920
+    const W = 1080, H = 1350
     canvas.width = W
     canvas.height = H
 
@@ -100,33 +100,28 @@ export default function StoryCard({ workout, score, session, onClose }) {
     ctx.fillStyle = bg
     ctx.fillRect(0, 0, W, H)
 
-    // Warm glow behind center
-    const glow = ctx.createRadialGradient(cx, H * 0.45, 0, cx, H * 0.45, 500)
-    glow.addColorStop(0, hexA(accent, 0.035))
+    // Warm glow behind Harambe area
+    const glow = ctx.createRadialGradient(cx, 220, 0, cx, 220, 400)
+    glow.addColorStop(0, hexA(accent, 0.04))
     glow.addColorStop(1, 'transparent')
     ctx.fillStyle = glow
     ctx.fillRect(0, 0, W, H)
 
-    // ═══════════════════════════════════════
-    // ZONE 1 — BRAND (top ~400px)
-    // ═══════════════════════════════════════
-
-    // Logo
-    ctx.font = '700 56px monospace'
-    ctx.textAlign = 'center'
+    // ── RONAPUMP LOGO (centered) ──
+    ctx.font = '700 44px monospace'
     const ronaW = ctx.measureText('RONA').width
     const pumpW = ctx.measureText('PUMP').width
     const logoTotal = ronaW + pumpW
     ctx.textAlign = 'left'
     ctx.fillStyle = text
-    ctx.fillText('RONA', cx - logoTotal / 2, 140)
+    ctx.fillText('RONA', cx - logoTotal / 2, 72)
     ctx.fillStyle = accent
-    ctx.fillText('PUMP', cx - logoTotal / 2 + ronaW, 140)
+    ctx.fillText('PUMP', cx - logoTotal / 2 + ronaW, 72)
 
-    // Harambe (centered, prominent)
-    const imgSize = 150
+    // ── HARAMBE (centered, big) ──
+    const imgSize = 180
     const imgR = imgSize / 2
-    const imgCy = 290
+    const imgCy = 200
     const borderW = 4
 
     if (imgRef.current) {
@@ -143,27 +138,18 @@ export default function StoryCard({ workout, score, session, onClose }) {
     ctx.lineWidth = borderW
     ctx.stroke()
 
-    // "WORKOUT COMPLETE" with flanking accent lines
-    const wcY = 420
-    ctx.font = '600 26px monospace'
+    // ── "WORKOUT COMPLETE" (bold, accent, prominent) ──
+    let y = imgCy + imgR + 50
+    ctx.font = '700 38px monospace'
     ctx.textAlign = 'center'
     ctx.fillStyle = accent
-    ctx.letterSpacing = '6px'
-    const wcText = 'WORKOUT COMPLETE'
-    ctx.fillText(wcText, cx, wcY)
+    ctx.letterSpacing = '3px'
+    ctx.fillText('WORKOUT COMPLETE', cx, y)
     ctx.letterSpacing = '0px'
-    const wcW = ctx.measureText(wcText).width + 40 // account for letter spacing
-    ctx.fillStyle = hexA(accent, 0.4)
-    ctx.fillRect(cx - wcW / 2 - 100, wcY - 5, 80, 2)
-    ctx.fillRect(cx + wcW / 2 + 20, wcY - 5, 80, 2)
 
-    // ═══════════════════════════════════════
-    // ZONE 2 — THE WORKOUT (400-750)
-    // ═══════════════════════════════════════
-
-    // Workout name — BIG, centered, in quotes
-    let y = 510
-    const nameSize = score ? 76 : 88 // bigger when no score to fill
+    // ── WORKOUT NAME (centered, in quotes) ──
+    y += 50
+    const nameSize = score ? 66 : 76
     ctx.font = '700 ' + nameSize + 'px sans-serif'
     ctx.fillStyle = text
     ctx.textAlign = 'center'
@@ -171,11 +157,11 @@ export default function StoryCard({ workout, score, session, onClose }) {
     const nameLines = wrapLines(ctx, "' " + nameRaw + " '", W - 120)
     for (const nl of nameLines) {
       ctx.fillText(nl, cx, y)
-      y += nameSize + 10
+      y += nameSize + 8
     }
 
-    // Tags (centered)
-    y += 10
+    // ── TAGS (centered) ──
+    y += 6
     const tags = []
     const cats = (workout?.categories || []).slice(0, 2)
     cats.forEach(c => tags.push({ label: c, color: 'category' }))
@@ -188,7 +174,7 @@ export default function StoryCard({ workout, score, session, onClose }) {
     equip.slice(0, 3).forEach(e => tags.push({ label: e, color: 'equip' }))
 
     if (tags.length) {
-      const tagH = 42, tagPad = 18, tagGap = 10, tagFont = 24
+      const tagH = 40, tagPad = 16, tagGap = 10, tagFont = 22
       let totalTagW = -tagGap
       for (const tag of tags) {
         ctx.font = '600 ' + tagFont + 'px sans-serif'
@@ -204,7 +190,7 @@ export default function StoryCard({ workout, score, session, onClose }) {
           : tag.color === 'duration' ? hexA(dur, 0.14)
           : hexA(text, 0.06)
         ctx.beginPath()
-        ctx.roundRect(tx, y, tw, tagH, 21)
+        ctx.roundRect(tx, y, tw, tagH, 20)
         ctx.fill()
 
         ctx.fillStyle = tag.color === 'category' ? accent
@@ -212,123 +198,97 @@ export default function StoryCard({ workout, score, session, onClose }) {
           : hexA(text, 0.5)
         ctx.font = (tag.color === 'equip' ? '500 ' : '700 ') + tagFont + 'px sans-serif'
         ctx.textAlign = 'center'
-        ctx.fillText(tag.label, tx + tw / 2, y + 29)
+        ctx.fillText(tag.label, tx + tw / 2, y + 27)
         tx += tw + tagGap
       }
       y += tagH
     }
 
-    // ═══════════════════════════════════════
-    // ZONE 3 — THE SCORE (hero section)
-    // ═══════════════════════════════════════
-
+    // ── SCORE (the hero — only when score exists) ──
     if (score) {
-      const scoreZoneCenter = 1050
+      y += 50
 
-      // Large accent circle behind score for visual weight
+      // Accent circle behind score
+      const scoreCy = y + 80
       ctx.beginPath()
-      ctx.arc(cx, scoreZoneCenter, 220, 0, Math.PI * 2)
+      ctx.arc(cx, scoreCy, 130, 0, Math.PI * 2)
       ctx.fillStyle = hexA(accent, 0.06)
       ctx.fill()
-      ctx.beginPath()
-      ctx.arc(cx, scoreZoneCenter, 160, 0, Math.PI * 2)
-      ctx.fillStyle = hexA(accent, 0.04)
-      ctx.fill()
 
-      // "YOUR SCORE"
-      ctx.font = '500 24px monospace'
+      ctx.font = '500 22px monospace'
       ctx.fillStyle = hexA(text, 0.4)
       ctx.textAlign = 'center'
-      ctx.letterSpacing = '4px'
-      ctx.fillText('YOUR SCORE', cx, scoreZoneCenter - 100)
+      ctx.letterSpacing = '3px'
+      ctx.fillText('YOUR SCORE', cx, y + 10)
       ctx.letterSpacing = '0px'
 
-      // Score — THE BIGGEST THING ON THE CARD
-      ctx.font = '700 180px monospace'
+      // Score value
+      ctx.font = '700 140px monospace'
       ctx.fillStyle = accent
-      ctx.textAlign = 'center'
-      // If score is long, scale down
       const scoreStr = String(score)
-      const scoreW = ctx.measureText(scoreStr).width
-      if (scoreW > W - 160) {
-        ctx.font = '700 120px monospace'
+      if (ctx.measureText(scoreStr).width > W - 160) {
+        ctx.font = '700 100px monospace'
       }
-      ctx.fillText(scoreStr, cx, scoreZoneCenter + 50)
+      ctx.fillText(scoreStr, cx, y + 130)
 
       // Score type
       if (workout?.score_type && workout.score_type !== 'None') {
-        ctx.font = '500 30px monospace'
+        ctx.font = '500 26px monospace'
         ctx.fillStyle = hexA(text, 0.35)
-        ctx.fillText(workout.score_type.toUpperCase(), cx, scoreZoneCenter + 100)
+        ctx.fillText(workout.score_type.toUpperCase(), cx, y + 170)
       }
+
+      y += 200
     } else {
-      // No score — draw a centered checkmark accent
-      const checkY = 980
-      ctx.beginPath()
-      ctx.arc(cx, checkY, 80, 0, Math.PI * 2)
-      ctx.fillStyle = hexA(accent, 0.08)
-      ctx.fill()
-      ctx.font = '700 80px sans-serif'
-      ctx.fillStyle = accent
-      ctx.textAlign = 'center'
-      ctx.fillText('\u2713', cx, checkY + 28)
+      y += 40
     }
 
-    // ═══════════════════════════════════════
-    // ZONE 4 — PERSONAL (1350-1700)
-    // ═══════════════════════════════════════
-
-    const personalY = 1400
+    // ── PERSONAL INFO ──
+    const infoY = score ? Math.max(y + 20, 1020) : Math.max(y + 40, 900)
     const userName = profile?.display_name || 'Athlete'
     const rank = profile?.gorilla_rank || 'Baby Gorilla'
 
-    // Name
-    ctx.font = '700 52px sans-serif'
+    ctx.font = '700 46px sans-serif'
     ctx.fillStyle = text
     ctx.textAlign = 'center'
-    ctx.fillText(userName, cx, personalY)
+    ctx.fillText(userName, cx, infoY)
 
-    // Rank
-    ctx.font = '600 30px sans-serif'
+    ctx.font = '600 28px sans-serif'
     ctx.fillStyle = accent
-    ctx.fillText(rank, cx, personalY + 48)
+    ctx.fillText(rank, cx, infoY + 42)
 
-    // Streak (only if meaningful — 3+ days)
-    let infoY = personalY + 100
+    // Streak (only if 3+)
+    let subY = infoY + 84
     if (streak >= 3) {
-      ctx.font = '500 28px sans-serif'
-      ctx.fillStyle = hexA(text, 0.5)
-      ctx.fillText('\uD83D\uDD25 ' + streak + ' day streak', cx, infoY)
-      infoY += 44
+      ctx.font = '500 26px sans-serif'
+      ctx.fillStyle = hexA(text, 0.45)
+      ctx.fillText('\uD83D\uDD25 ' + streak + ' day streak', cx, subY)
+      subY += 36
     }
 
     // Total workouts
     if (totalWorkouts > 1) {
-      ctx.font = '500 28px sans-serif'
-      ctx.fillStyle = hexA(text, 0.35)
-      ctx.fillText('Workout #' + totalWorkouts, cx, infoY)
-      infoY += 44
+      ctx.font = '400 24px sans-serif'
+      ctx.fillStyle = hexA(text, 0.3)
+      ctx.fillText('Workout #' + totalWorkouts, cx, subY)
+      subY += 36
     }
 
     // Date
     const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-    ctx.font = '400 26px sans-serif'
-    ctx.fillStyle = hexA(text, 0.3)
-    ctx.textAlign = 'center'
-    ctx.fillText(dateStr, cx, infoY)
+    ctx.font = '400 24px sans-serif'
+    ctx.fillStyle = hexA(text, 0.25)
+    ctx.fillText(dateStr, cx, subY)
 
-    // ═══════════════════════════════════════
-    // ZONE 5 — FOOTER
-    // ═══════════════════════════════════════
-
-    const footerY = H - 100
+    // ── FOOTER ──
+    const footerY = H - 60
     ctx.fillStyle = hexA(text, 0.08)
-    ctx.fillRect(140, footerY, W - 280, 1)
+    ctx.fillRect(120, footerY, W - 240, 1)
 
-    ctx.font = '500 28px monospace'
-    ctx.fillStyle = hexA(text, 0.5)
+    ctx.font = '500 24px monospace'
+    ctx.fillStyle = hexA(text, 0.45)
     ctx.textAlign = 'center'
-    ctx.fillText('ronapump.com  \u00B7  @ronapump', cx, footerY + 48)
+    ctx.fillText('ronapump.com  \u00B7  @ronapump', cx, footerY + 36)
   }
 
   function downloadImage() {
