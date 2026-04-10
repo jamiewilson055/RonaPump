@@ -74,7 +74,7 @@ export default function ShareImage({ workout, onClose }) {
     // ── HARAMBE WATERMARK ──
     if (imgRef.current) {
       ctx.save()
-      ctx.globalAlpha = 0.05
+      ctx.globalAlpha = 0.10
       const wmSize = Math.max(W, H)
       ctx.drawImage(imgRef.current, W / 2 - wmSize / 2, H / 2 - wmSize / 2, wmSize, wmSize)
       ctx.restore()
