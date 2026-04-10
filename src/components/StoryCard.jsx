@@ -66,7 +66,12 @@ export default function StoryCard({ workout, score, session, onClose }) {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
-    const W = 1080, H = 1350
+    const W = 1080
+    // Pre-measure name to estimate height
+    ctx.font = '700 ' + (score ? 80 : 96) + 'px sans-serif'
+    const preNameLines = wrapText(ctx, "' " + (workout?.name || 'Workout') + " '", W - 120)
+    const nameExtra = (preNameLines.length - 1) * ((score ? 80 : 96) * 1.15)
+    const H = score ? Math.round(1150 + nameExtra) : Math.round(900 + nameExtra)
     canvas.width = W; canvas.height = H
 
     const s = STYLES[style]
@@ -228,13 +233,13 @@ export default function StoryCard({ workout, score, session, onClose }) {
     ctx.fillText(parts.join('  \u00B7  '), cx, y)
 
     // ── FOOTER ──
-    const footerY = H - 66
+    y += 50
     ctx.fillStyle = hexA(clr, 0.08)
-    ctx.fillRect(px, footerY, cw, 1)
+    ctx.fillRect(px, y, cw, 1)
     ctx.font = '500 30px monospace'
     ctx.fillStyle = hexA(clr, 0.5)
     ctx.textAlign = 'center'
-    ctx.fillText('ronapump.com  \u00B7  @ronapump', cx, footerY + 42)
+    ctx.fillText('ronapump.com  \u00B7  @ronapump', cx, y + 42)
   }
 
   function downloadImage() {
