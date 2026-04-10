@@ -116,7 +116,7 @@ export default function ShareImage({ workout, onClose }) {
     y += 30
     ctx.font = '500 22px monospace'
     ctx.textAlign = 'left'
-    ctx.fillStyle = hexA(text, 0.3)
+    ctx.fillStyle = hexA(text, 0.45)
     ctx.letterSpacing = '4px'
     ctx.fillText('WORKOUT OF THE DAY', px, y)
     ctx.letterSpacing = '0px'
@@ -178,7 +178,7 @@ export default function ShareImage({ workout, onClose }) {
           ctx.fillStyle = dur
           ctx.font = '700 ' + tagFont + 'px sans-serif'
         } else {
-          ctx.fillStyle = hexA(text, 0.42)
+          ctx.fillStyle = hexA(text, 0.55)
           ctx.font = '500 ' + tagFont + 'px sans-serif'
         }
         ctx.textAlign = 'left'
