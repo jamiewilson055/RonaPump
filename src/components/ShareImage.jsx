@@ -1,9 +1,18 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 
 export default function ShareImage({ workout, onClose }) {
   const canvasRef = useRef(null)
+  const imgRef = useRef(null)
   const [copied, setCopied] = useState(false)
+  const [imgLoaded, setImgLoaded] = useState(false)
   const w = workout
+
+  useEffect(() => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => { imgRef.current = img; setImgLoaded(true) }
+    img.src = '/harambe.png'
+  }, [])
 
   function hexA(hex, a) {
     const r = parseInt(hex.slice(1, 3), 16)
@@ -65,15 +74,34 @@ export default function ShareImage({ workout, onClose }) {
     ctx.fillStyle = accent
     ctx.fillText('PUMP', px + ronaW, y)
 
-    ctx.font = '38px sans-serif'
-    ctx.textAlign = 'right'
-    ctx.fillText('\u{1F98D}', W - px, y)
+    // ── HARAMBE CIRCLE (top right) ──
+    const imgSize = 72
+    const imgR = imgSize / 2
+    const imgCx = W - px - imgR
+    const imgCy = y - 10
+    const borderW = 3
 
-    // ── ACCENT DIVIDER — FULL WIDTH ──
+    if (imgRef.current) {
+      ctx.save()
+      ctx.beginPath()
+      ctx.arc(imgCx, imgCy, imgR, 0, Math.PI * 2)
+      ctx.clip()
+      ctx.drawImage(imgRef.current, imgCx - imgR, imgCy - imgR, imgSize, imgSize)
+      ctx.restore()
+    }
+    // Red circle border
+    ctx.beginPath()
+    ctx.arc(imgCx, imgCy, imgR + borderW / 2, 0, Math.PI * 2)
+    ctx.strokeStyle = accent
+    ctx.lineWidth = borderW
+    ctx.stroke()
+
+    // ── ACCENT DIVIDER — stops before Harambe ──
     y += 18
+    const dividerEnd = imgCx - imgR - 20
     ctx.fillStyle = accent
     ctx.beginPath()
-    ctx.roundRect(px, y, cw, 5, 3)
+    ctx.roundRect(px, y, dividerEnd - px, 5, 3)
     ctx.fill()
 
     // ── "WORKOUT OF THE DAY" LABEL ──
@@ -358,7 +386,7 @@ export default function ShareImage({ workout, onClose }) {
     })
   }
 
-  setTimeout(drawImage, 50)
+  useEffect(() => { if (imgLoaded) drawImage() }, [imgLoaded])
 
   return (
     <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
