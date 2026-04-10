@@ -75,6 +75,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
     if (wod.name) text += wod.name + '\n\n'
     text += wod.description || ''
     if (wod.estimated_duration_mins) text += `\n\n⏱ ${wod.estimated_duration_mins} min`
+    else if (wod.estimated_duration_min && wod.estimated_duration_max) text += `\n\n⏱ ${wod.estimated_duration_min}-${wod.estimated_duration_max} min`
     if (wod.equipment?.filter(e => e !== 'Bodyweight').length) text += `\n🏋 ${wod.equipment.filter(e => e !== 'Bodyweight').join(', ')}`
     text += '\n\n🦍 — RonaPump | www.ronapump.com'
     navigator.clipboard.writeText(text).then(() => {
@@ -264,6 +265,18 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
   const pl = wod.performance_log || []
   const scoreLabel = wod.score_type === 'Time' ? 'Time' : wod.score_type === 'Rounds + Reps' ? 'Score' : wod.score_type === 'Calories' ? 'Cals' : 'Result'
 
+  const durDisplay = wod.estimated_duration_mins
+    ? `${wod.estimated_duration_mins}m`
+    : (wod.estimated_duration_min && wod.estimated_duration_max)
+      ? `${wod.estimated_duration_min}-${wod.estimated_duration_max}m`
+      : null
+
+  const bs = (() => {
+    if (!pl.length) return null
+    if (wod.score_type === 'Time') return pl.reduce((b, e) => (!b || (e.score && e.score < b)) ? e.score : b, null)
+    return pl.reduce((b, e) => (!b || (e.score && e.score > b)) ? e.score : b, null)
+  })()
+
   return (
     <>
       <div className={`wod-card${expanded ? ' wod-exp' : ''}`} onMouseDown={(e) => { e._clickX = e.clientX; e._clickY = e.clientY }} onClick={(e) => {
@@ -275,7 +288,9 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
         <div className="wod-top">
           <div className="wod-label-inline">WOD</div>
           <div className="wod-name">{wod.name || 'Unnamed Workout'}</div>
-          {wod.estimated_duration_mins && <span className="wdr">{wod.estimated_duration_mins}m</span>}
+          {durDisplay && <span className="wdr">{durDisplay}</span>}
+          {wod.score_type !== 'None' && <span className="wst">{wod.score_type}</span>}
+          {bs && <span className="wbs">{bs}</span>}
           <button
             className={`wod-roll${spinning ? ' spin' : ''}`}
             onClick={handleShuffle}

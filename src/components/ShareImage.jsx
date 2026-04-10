@@ -105,9 +105,11 @@ export default function ShareImage({ workout, onClose }) {
     const cats = (w.categories || []).slice(0, 2)
     cats.forEach(c => tags.push({ text: c, color: 'category' }))
 
-    // Duration (teal)
+    // Duration (teal) — exact or range
     if (w.estimated_duration_mins) {
       tags.push({ text: w.estimated_duration_mins + ' min', color: 'duration' })
+    } else if (w.estimated_duration_min && w.estimated_duration_max) {
+      tags.push({ text: w.estimated_duration_min + '-' + w.estimated_duration_max + ' min', color: 'duration' })
     }
 
     // Equipment (grey) — up to 3, excluding Bodyweight
