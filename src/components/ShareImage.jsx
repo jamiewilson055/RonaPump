@@ -40,7 +40,7 @@ export default function ShareImage({ workout, onClose }) {
     const accent = '#e01e1e'
     const white = '#ffffff'
     const bg = '#0a0a0e'
-    const px = 72
+    const px = 100
     const cw = W - px * 2
 
     // ── BACKGROUND ──
@@ -54,7 +54,7 @@ export default function ShareImage({ workout, onClose }) {
     ctx.fillStyle = glow
     ctx.fillRect(0, 0, W, H)
 
-    let y = 72
+    let y = 100
 
     // ── LOGO ROW ──
     ctx.font = '700 46px monospace'
@@ -129,7 +129,7 @@ export default function ShareImage({ workout, onClose }) {
     }
 
     // ── FOOTER (reserve space) ──
-    const footerH = 58
+    const footerH = 72
     const footerY = H - footerH
 
     ctx.fillStyle = hexA(white, 0.08)
