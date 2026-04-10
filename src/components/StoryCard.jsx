@@ -82,12 +82,12 @@ export default function StoryCard({ workout, score, session, onClose }) {
     ctx.fillStyle = bg
     ctx.fillRect(0, 0, W, H)
 
-    // ── HARAMBE WATERMARK (scales with canvas) ──
+    // ── HARAMBE WATERMARK (edge to edge) ──
     if (imgRef.current) {
       ctx.save()
       ctx.globalAlpha = 0.07
-      const wmSize = Math.round(H * 0.75)
-      ctx.drawImage(imgRef.current, cx - wmSize / 2, H * 0.45 - wmSize / 2, wmSize, wmSize)
+      const wmSize = Math.max(W, H)
+      ctx.drawImage(imgRef.current, cx - wmSize / 2, H / 2 - wmSize / 2, wmSize, wmSize)
       ctx.restore()
     }
 
