@@ -33,14 +33,14 @@ export default function ShareImage({ workout, onClose }) {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
-    const W = 1080, H = 1080
+    const W = 1080, H = 1350
     canvas.width = W
     canvas.height = H
 
     const accent = '#e01e1e'
     const white = '#ffffff'
     const bg = '#0a0a0e'
-    const px = 40
+    const px = 72
     const cw = W - px * 2
 
     // ── BACKGROUND ──
@@ -54,7 +54,7 @@ export default function ShareImage({ workout, onClose }) {
     ctx.fillStyle = glow
     ctx.fillRect(0, 0, W, H)
 
-    let y = 44
+    let y = 72
 
     // ── LOGO ROW ──
     ctx.font = '700 46px monospace'
