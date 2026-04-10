@@ -271,11 +271,12 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
       ? `${wod.estimated_duration_min}-${wod.estimated_duration_max}m`
       : null
 
-  const bs = (() => {
-    if (!pl.length) return null
-    if (wod.score_type === 'Time') return pl.reduce((b, e) => (!b || (e.score && e.score < b)) ? e.score : b, null)
-    return pl.reduce((b, e) => (!b || (e.score && e.score > b)) ? e.score : b, null)
-  })()
+  const myBest = session ? (() => {
+    const my = pl.filter(e => e.user_id === session.user.id && e.score)
+    if (!my.length) return null
+    if (wod.score_type === 'Time') return my.reduce((b, e) => (!b || e.score < b) ? e.score : b, null)
+    return my.reduce((b, e) => (!b || e.score > b) ? e.score : b, null)
+  })() : null
 
   return (
     <>
@@ -290,7 +291,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
           <div className="wod-name">{wod.name || 'Unnamed Workout'}</div>
           {durDisplay && <span className="wdr">{durDisplay}</span>}
           {wod.score_type !== 'None' && <span className="wst">{wod.score_type}</span>}
-          {bs && <span className="wbs">{bs}</span>}
+          {myBest && <span className="wbs">{myBest}</span>}
           <button
             className={`wod-roll${spinning ? ' spin' : ''}`}
             onClick={handleShuffle}

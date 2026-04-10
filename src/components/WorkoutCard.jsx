@@ -146,6 +146,12 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const hasDone = w.my_log_count > 0
   const bs = bestScore(w)
   const pl = w.performance_log || []
+  const myBest = session ? (() => {
+    const my = pl.filter(e => e.user_id === session.user.id && e.score)
+    if (!my.length) return null
+    if (w.score_type === 'Time') return my.reduce((b, e) => (!b || e.score < b) ? e.score : b, null)
+    return my.reduce((b, e) => (!b || e.score > b) ? e.score : b, null)
+  })() : null
   // Leaderboard shows all completions
   const leaderboardPl = pl.filter(p => p.notes !== 'Quick logged')
   const totalLoggers = new Set(leaderboardPl.map(p => p.user_id)).size
@@ -398,7 +404,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
         </div>
         {durDisplay && <span className="wdr">{durDisplay}</span>}
         {w.score_type !== 'None' && <span className="wst">{w.score_type}</span>}
-        {bs && <span className="wbs">{bs}</span>}
+        {myBest && <span className="wbs">{myBest}</span>}
         {w.original_date_display && <span className="wdt">{w.original_date_display}</span>}
       </div>
 
