@@ -14,6 +14,7 @@ function formatDesc(text) {
     if (line.startsWith('  • ')) return <div key={i} className="desc-li sub">{renderBold(line.slice(4))}</div>
     if (line.startsWith('• ')) return <div key={i} className="desc-li">{renderBold(line.slice(2))}</div>
     if (line.startsWith('--- ')) return <div key={i} className="desc-section">{renderBold(line.slice(4))}</div>
+    if (/^[\w].*:$/.test(line.trim())) return <div key={i} className="desc-section">{renderBold(line.trim())}</div>
     if (line.trim() === '') return <br key={i} />
     return <div key={i}>{renderBold(line)}</div>
   })
@@ -515,7 +516,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
             </div>
             <label>Movement Type</label>
             <div className="cr">
-              {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'KB Swing', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat', 'Thruster'].map(m => (
+              {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'KB Swing', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat', 'Thruster', 'Wall Ball'].map(m => (
                 <button key={m} className={`ch${editForm.movement_categories.includes(m) ? ' on' : ''}`} onClick={() => toggleEditArray('movement_categories', m)}>{m}</button>
               ))}
             </div>

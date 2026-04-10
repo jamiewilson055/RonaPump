@@ -283,7 +283,7 @@ export default function ShareImage({ workout, onClose }) {
         ctx.textAlign = 'left'
 
         // Wrap section text so long headers don't overflow
-        const sectionWrapped = wrapLines(ctx, sectionText, cw)
+        const sectionWrapped = wrapLines(ctx, sectionText.toUpperCase(), cw)
         for (let si = 0; si < sectionWrapped.length; si++) {
           if (dy + fontSize > descBottom) { truncated = true; break }
 
