@@ -14,7 +14,7 @@ function formatDesc(text) {
     if (line.startsWith('  • ')) return <div key={i} className="desc-li sub">{renderBold(line.slice(4))}</div>
     if (line.startsWith('• ')) return <div key={i} className="desc-li">{renderBold(line.slice(2))}</div>
     if (line.startsWith('--- ')) return <div key={i} className="desc-section">{renderBold(line.slice(4))}</div>
-    if (/^[\w].*:$/.test(line.trim())) return <div key={i} className="desc-section">{renderBold(line.trim())}</div>
+    if (/^[\w].*:$/.test(line.trim())) return <div key={i} style={{ fontWeight: 700, color: 'var(--acc)', textTransform: 'uppercase', padding: '4px 0 0' }}>{renderBold(line.trim())}</div>
     if (line.trim() === '') return <br key={i} />
     return <div key={i}>{renderBold(line)}</div>
   })
