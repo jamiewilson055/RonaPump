@@ -49,7 +49,7 @@ export default function StoryCard({ workout, score, session, onClose }) {
     return `rgba(${r},${g},${b},${a})`
   }
 
-  function wrapCenter(ctx, str, maxW) {
+  function wrapText(ctx, str, maxW) {
     const words = str.split(' ')
     const lines = []
     let line = ''
@@ -66,24 +66,30 @@ export default function StoryCard({ workout, score, session, onClose }) {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
-    const W = 1080, H = 1080
+    const W = 1080, H = 1350
     canvas.width = W; canvas.height = H
 
     const s = STYLES[style]
     const accent = s.accent, clr = s.txt, bg = s.bg, dur = s.dur
-    const cx = W / 2, px = 80
+    const cx = W / 2, px = 72, cw = W - px * 2
 
     // ── BACKGROUND ──
     ctx.fillStyle = bg
     ctx.fillRect(0, 0, W, H)
 
-    // ═══════════════════════════════════════
-    // HEADER ROW: Harambe (left) + Logo (right)
-    // ═══════════════════════════════════════
-    const hdrY = 60
-    const imgSz = 80, imgR = imgSz / 2
+    // ── HARAMBE WATERMARK (subtle, centered, fills visual space) ──
+    if (imgRef.current) {
+      ctx.save()
+      ctx.globalAlpha = 0.05
+      const wmSize = 500
+      ctx.drawImage(imgRef.current, cx - wmSize / 2, H * 0.32 - wmSize / 2, wmSize, wmSize)
+      ctx.restore()
+    }
 
-    // Harambe circle (left side)
+    // ── HEADER ROW: Harambe (left) + RONAPUMP (right) ──
+    const imgSz = 100, imgR = imgSz / 2
+    const hdrY = 56
+
     if (imgRef.current) {
       ctx.save()
       ctx.beginPath()
@@ -93,54 +99,46 @@ export default function StoryCard({ workout, score, session, onClose }) {
       ctx.restore()
     }
     ctx.beginPath()
-    ctx.arc(px + imgR, hdrY + imgR, imgR + 1.5, 0, Math.PI * 2)
-    ctx.strokeStyle = accent; ctx.lineWidth = 3; ctx.stroke()
+    ctx.arc(px + imgR, hdrY + imgR, imgR + 2, 0, Math.PI * 2)
+    ctx.strokeStyle = accent; ctx.lineWidth = 3.5; ctx.stroke()
 
-    // RONAPUMP logo (right-aligned to Harambe)
-    ctx.font = '700 34px monospace'
+    ctx.font = '700 48px monospace'
+    const rW = ctx.measureText('RONA').width, pW = ctx.measureText('PUMP').width
     ctx.textAlign = 'right'
     ctx.fillStyle = clr
-    const pumpW = ctx.measureText('PUMP').width
-    const ronaW = ctx.measureText('RONA').width
-    ctx.fillText('RONA', W - px - pumpW, hdrY + 45)
+    ctx.fillText('RONA', W - px - pW, hdrY + 60)
     ctx.fillStyle = accent
-    ctx.fillText('PUMP', W - px, hdrY + 45)
+    ctx.fillText('PUMP', W - px, hdrY + 60)
 
-    // Accent line under header
-    const hdrBottom = hdrY + imgSz + 20
+    // Accent line below header
+    let y = hdrY + imgSz + 22
     ctx.fillStyle = accent
-    ctx.fillRect(px, hdrBottom, W - px * 2, 3)
+    ctx.fillRect(px, y, cw, 4)
 
-    // ═══════════════════════════════════════
-    // WORKOUT COMPLETE
-    // ═══════════════════════════════════════
-    let y = hdrBottom + 44
-    ctx.font = '700 28px monospace'
+    // ── WORKOUT COMPLETE ── (y ~ 196)
+    y += 52
+    ctx.font = '700 34px monospace'
     ctx.textAlign = 'center'
     ctx.fillStyle = accent
     ctx.letterSpacing = '4px'
     ctx.fillText('WORKOUT COMPLETE', cx, y)
     ctx.letterSpacing = '0px'
 
-    // ═══════════════════════════════════════
-    // WORKOUT NAME
-    // ═══════════════════════════════════════
-    y += 44
-    const nameSize = score ? 70 : 90
+    // ── WORKOUT NAME ── (generous clearance from WC text)
+    y += 90
+    const nameSize = score ? 80 : 96
     ctx.font = '700 ' + nameSize + 'px sans-serif'
     ctx.fillStyle = clr
     ctx.textAlign = 'center'
     const nameStr = "' " + (workout?.name || 'Workout') + " '"
-    const nameLines = wrapCenter(ctx, nameStr, W - 120)
+    const nameLines = wrapText(ctx, nameStr, W - 120)
     for (const nl of nameLines) {
       ctx.fillText(nl, cx, y)
-      y += nameSize + 8
+      y += nameSize * 1.15
     }
 
-    // ═══════════════════════════════════════
-    // TAGS
-    // ═══════════════════════════════════════
-    y += 4
+    // ── TAGS ──
+    y += 10
     const tags = []
     const cats = (workout?.categories || []).slice(0, 2)
     cats.forEach(c => tags.push({ label: c, type: 'cat' }))
@@ -152,7 +150,7 @@ export default function StoryCard({ workout, score, session, onClose }) {
     ;(workout?.equipment || []).filter(e => e !== 'Bodyweight').slice(0, 3).forEach(e => tags.push({ label: e, type: 'eq' }))
 
     if (tags.length) {
-      const tH = 36, tP = 14, tG = 8, tF = 21
+      const tH = 40, tP = 16, tG = 10, tF = 24
       let tw = -tG
       for (const t of tags) { ctx.font = '600 ' + tF + 'px sans-serif'; tw += ctx.measureText(t.label).width + tP * 2 + tG }
       let tx = cx - tw / 2
@@ -160,94 +158,151 @@ export default function StoryCard({ workout, score, session, onClose }) {
         ctx.font = '600 ' + tF + 'px sans-serif'
         const w = ctx.measureText(t.label).width + tP * 2
         ctx.fillStyle = t.type === 'cat' ? hexA(accent, 0.14) : t.type === 'dur' ? hexA(dur, 0.14) : hexA(clr, 0.06)
-        ctx.beginPath(); ctx.roundRect(tx, y, w, tH, 18); ctx.fill()
+        ctx.beginPath(); ctx.roundRect(tx, y, w, tH, 20); ctx.fill()
         ctx.fillStyle = t.type === 'cat' ? accent : t.type === 'dur' ? dur : hexA(clr, 0.5)
         ctx.font = (t.type === 'eq' ? '500 ' : '700 ') + tF + 'px sans-serif'
         ctx.textAlign = 'center'
-        ctx.fillText(t.label, tx + w / 2, y + 24)
+        ctx.fillText(t.label, tx + w / 2, y + 28)
         tx += w + tG
       }
       y += tH + 16
     }
 
-    // ═══════════════════════════════════════
-    // SCORE SECTION
-    // ═══════════════════════════════════════
-    if (score) {
-      // Divider before score
-      y += 10
-      ctx.fillStyle = hexA(clr, 0.08)
-      ctx.fillRect(px, y, W - px * 2, 1)
-      y += 32
+    // ── WORKOUT DESCRIPTION (abbreviated) ──
+    let desc = workout?.description || ''
+    if (workout?.name) {
+      const nm = workout.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      desc = desc.replace(new RegExp('[\\u201c"\\u201d]\\s*' + nm + '\\s*[\\u201c"\\u201d]\\s*[-:.]?\\s*', 'gi'), '')
+      desc = desc.replace(/^\s*[\n\r]+/, '').replace(/^\s*[-:](?!-)\s*/, '')
+    }
+    desc = desc.replace(/[\{\}]/g, '').trim()
 
-      ctx.font = '500 22px monospace'
+    if (desc) {
+      y += 8
+      const descFont = 36
+      const descLineH = 48
+      const maxDescLines = score ? 3 : 5
+      const rawLines = desc.split('\n')
+      let lineCount = 0
+
+      for (const rl of rawLines) {
+        if (lineCount >= maxDescLines) break
+        const trimmed = rl.trim()
+        if (trimmed === '') { y += descLineH * 0.4; continue }
+
+        if (trimmed.startsWith('---')) {
+          const sectionText = trimmed.replace(/^-{3,}\s*/, '').trim()
+          if (sectionText && lineCount < maxDescLines) {
+            y += 6
+            ctx.font = '700 ' + descFont + 'px sans-serif'
+            ctx.fillStyle = accent
+            ctx.textAlign = 'left'
+            ctx.fillText(sectionText.toUpperCase(), px, y + descFont)
+            y += descLineH
+            lineCount++
+          }
+          continue
+        }
+
+        const isLabel = /^[\w].*:$/.test(trimmed) || /^(Part [A-Z]|Round \d)/i.test(trimmed)
+        let lineText = trimmed
+        let indent = 0
+        if (lineText.startsWith('  \u2022 ') || lineText.startsWith('  - ')) { lineText = lineText.slice(4); indent = 36 }
+        else if (lineText.startsWith('\u2022 ')) lineText = lineText.slice(2)
+        else if (lineText.startsWith('- ')) lineText = lineText.slice(2)
+
+        if (isLabel) {
+          ctx.font = '700 ' + descFont + 'px sans-serif'
+          ctx.fillStyle = accent
+          lineText = lineText.toUpperCase()
+        } else {
+          ctx.font = descFont + 'px sans-serif'
+          ctx.fillStyle = hexA(clr, 0.8)
+        }
+        ctx.textAlign = 'left'
+
+        const isBullet = trimmed.startsWith('\u2022 ') || trimmed.startsWith('  \u2022 ') || trimmed.startsWith('- ') || trimmed.startsWith('  - ')
+        const bp = isBullet ? '\u2022  ' : ''
+        const bpW = bp ? ctx.measureText(bp).width : 0
+        const wrapped = wrapText(ctx, lineText, cw - indent - bpW)
+
+        for (let wi = 0; wi < wrapped.length; wi++) {
+          if (lineCount >= maxDescLines) break
+          const prefix = (wi === 0 && bp) ? bp : (wi > 0 && bp ? '    ' : '')
+          ctx.fillText(prefix + wrapped[wi], px + indent, y + descFont)
+          y += descLineH
+          lineCount++
+        }
+      }
+    }
+
+    // ── SCORE SECTION ──
+    if (score) {
+      y += 24
+      ctx.fillStyle = hexA(clr, 0.08)
+      ctx.fillRect(px, y, cw, 1)
+      y += 36
+
+      ctx.font = '500 24px monospace'
       ctx.fillStyle = hexA(clr, 0.4)
       ctx.textAlign = 'center'
-      ctx.letterSpacing = '3px'
+      ctx.letterSpacing = '4px'
       ctx.fillText('YOUR SCORE', cx, y)
       ctx.letterSpacing = '0px'
-      y += 16
+      y += 20
 
-      // The score — BIG
-      ctx.font = '700 130px monospace'
+      ctx.font = '700 160px monospace'
       ctx.fillStyle = accent
       const scoreStr = String(score)
-      if (ctx.measureText(scoreStr).width > W - 160) ctx.font = '700 90px monospace'
-      ctx.fillText(scoreStr, cx, y + 100)
-      y += 112
+      if (ctx.measureText(scoreStr).width > W - 160) ctx.font = '700 110px monospace'
+      ctx.fillText(scoreStr, cx, y + 124)
+      y += 140
 
       if (workout?.score_type && workout.score_type !== 'None') {
         y += 4
-        ctx.font = '500 26px monospace'
+        ctx.font = '500 28px monospace'
         ctx.fillStyle = hexA(clr, 0.3)
         ctx.fillText(workout.score_type.toUpperCase(), cx, y)
         y += 20
       }
     }
 
-    // ═══════════════════════════════════════
-    // PERSONAL INFO
-    // ═══════════════════════════════════════
-    // Divider
-    y += 16
+    // ── PERSONAL INFO ──
+    y += 28
     ctx.fillStyle = hexA(clr, 0.08)
-    ctx.fillRect(px, y, W - px * 2, 1)
-    y += 32
+    ctx.fillRect(px, y, cw, 1)
+    y += 40
 
     const userName = profile?.display_name || 'Athlete'
     const rank = profile?.gorilla_rank || 'Baby Gorilla'
 
-    ctx.font = '700 38px sans-serif'
+    ctx.font = '700 44px sans-serif'
     ctx.fillStyle = clr
     ctx.textAlign = 'center'
     ctx.fillText(userName, cx, y)
-    y += 32
+    y += 40
 
-    ctx.font = '600 26px sans-serif'
+    ctx.font = '600 30px sans-serif'
     ctx.fillStyle = accent
     ctx.fillText(rank, cx, y)
-    y += 34
+    y += 38
 
-    // Date line with optional streak and total
     const parts = []
-    parts.push(new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))
+    parts.push(new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }))
     if (streak >= 3) parts.push('\uD83D\uDD25 ' + streak + ' day streak')
     if (totalWorkouts > 1) parts.push('#' + totalWorkouts)
-    ctx.font = '400 22px sans-serif'
+    ctx.font = '400 24px sans-serif'
     ctx.fillStyle = hexA(clr, 0.35)
     ctx.fillText(parts.join('  \u00B7  '), cx, y)
 
-    // ═══════════════════════════════════════
-    // FOOTER
-    // ═══════════════════════════════════════
-    y += 40
-    ctx.fillStyle = hexA(clr, 0.06)
-    ctx.fillRect(px, y, W - px * 2, 1)
-    y += 28
-    ctx.font = '500 22px monospace'
-    ctx.fillStyle = hexA(clr, 0.4)
+    // ── FOOTER ──
+    const footerY = H - 60
+    ctx.fillStyle = hexA(clr, 0.08)
+    ctx.fillRect(px, footerY, cw, 1)
+    ctx.font = '500 26px monospace'
+    ctx.fillStyle = hexA(clr, 0.5)
     ctx.textAlign = 'center'
-    ctx.fillText('ronapump.com  \u00B7  @ronapump', cx, y)
+    ctx.fillText('ronapump.com  \u00B7  @ronapump', cx, footerY + 38)
   }
 
   function downloadImage() {
