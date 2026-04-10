@@ -99,28 +99,52 @@ export default function ShareImage({ workout, onClose }) {
     // ── TAGS ROW ──
     y += 24
     const tags = []
-    if (w.score_type && w.score_type !== 'None') tags.push({ text: w.score_type, accent: true })
+    const teal = '#2dd4bf'
+
+    // Category (red accent) — up to 2
+    const cats = (w.categories || []).slice(0, 2)
+    cats.forEach(c => tags.push({ text: c, color: 'category' }))
+
+    // Duration (teal)
+    if (w.estimated_duration_mins) {
+      tags.push({ text: w.estimated_duration_mins + ' min', color: 'duration' })
+    }
+
+    // Equipment (grey) — up to 3, excluding Bodyweight
     const equip = (w.equipment || []).filter(e => e !== 'Bodyweight')
-    equip.slice(0, 3).forEach(e => tags.push({ text: e }))
-    if (w.estimated_duration_mins) tags.push({ text: w.estimated_duration_mins + ' min' })
+    equip.slice(0, 3).forEach(e => tags.push({ text: e, color: 'equip' }))
 
     if (tags.length) {
       let tx = px
-      const tagH = 36, tagPad = 16, tagGap = 10, tagFont = 22
-      ctx.font = '600 ' + tagFont + 'px sans-serif'
+      const tagH = 40, tagPad = 18, tagGap = 10, tagFont = 24
       for (const tag of tags) {
+        ctx.font = '600 ' + tagFont + 'px sans-serif'
         const tw = ctx.measureText(tag.text).width + tagPad * 2
         if (tx + tw > W - px) break
 
-        ctx.fillStyle = tag.accent ? hexA(accent, 0.14) : hexA(white, 0.06)
+        if (tag.color === 'category') {
+          ctx.fillStyle = hexA(accent, 0.14)
+        } else if (tag.color === 'duration') {
+          ctx.fillStyle = hexA(teal, 0.14)
+        } else {
+          ctx.fillStyle = hexA(white, 0.06)
+        }
         ctx.beginPath()
-        ctx.roundRect(tx, y, tw, tagH, 18)
+        ctx.roundRect(tx, y, tw, tagH, 20)
         ctx.fill()
 
-        ctx.fillStyle = tag.accent ? accent : hexA(white, 0.42)
-        ctx.font = (tag.accent ? '700 ' : '500 ') + tagFont + 'px sans-serif'
+        if (tag.color === 'category') {
+          ctx.fillStyle = accent
+          ctx.font = '700 ' + tagFont + 'px sans-serif'
+        } else if (tag.color === 'duration') {
+          ctx.fillStyle = teal
+          ctx.font = '700 ' + tagFont + 'px sans-serif'
+        } else {
+          ctx.fillStyle = hexA(white, 0.42)
+          ctx.font = '500 ' + tagFont + 'px sans-serif'
+        }
         ctx.textAlign = 'left'
-        ctx.fillText(tag.text, tx + tagPad, y + 25)
+        ctx.fillText(tag.text, tx + tagPad, y + 28)
         tx += tw + tagGap
       }
       y += tagH + 22
@@ -186,9 +210,9 @@ export default function ShareImage({ workout, onClose }) {
     else if (effectiveLines <= 6) { fontSize = 54; lineH = 68 }
     else if (effectiveLines <= 10) { fontSize = 52; lineH = 66 }
     else if (effectiveLines <= 14) { fontSize = 46; lineH = 60 }
-    else if (effectiveLines <= 20) { fontSize = 42; lineH = 54 }
-    else if (effectiveLines <= 26) { fontSize = 36; lineH = 48 }
-    else { fontSize = 32; lineH = 42 }
+    else if (effectiveLines <= 20) { fontSize = 44; lineH = 56 }
+    else if (effectiveLines <= 26) { fontSize = 38; lineH = 50 }
+    else { fontSize = 34; lineH = 44 }
 
     let dy = descTop
     let truncated = false
