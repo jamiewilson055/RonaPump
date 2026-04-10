@@ -29,8 +29,8 @@ export default function ShareImage({ workout, onClose }) {
     return `rgba(${r},${g},${b},${a})`
   }
 
-  function wrapLines(ctx, text, maxW) {
-    const words = text.split(' ')
+  function wrapLines(ctx, lineText, maxW) {
+    const words = lineText.split(' ')
     const lines = []
     let line = ''
     for (const word of words) {
@@ -136,9 +136,12 @@ export default function ShareImage({ workout, onClose }) {
 
     // ── ACCENT UNDERLINE BELOW NAME ──
     y += 12
+    ctx.font = '700 62px sans-serif'
+    const longestName = nameLines.reduce((a, b) => ctx.measureText(a).width > ctx.measureText(b).width ? a : b, '')
+    const underlineW = ctx.measureText(longestName).width
     ctx.fillStyle = hexA(accent, 0.6)
     ctx.beginPath()
-    ctx.roundRect(px, y, Math.min(ctx.measureText(nameLines[nameLines.length - 1] || '').width, 320), 4, 2)
+    ctx.roundRect(px, y, underlineW, 4, 2)
     ctx.fill()
 
     // ── TAGS ROW ──
@@ -308,15 +311,15 @@ export default function ShareImage({ workout, onClose }) {
       const isLabel = /^[\w].*:$/.test(trimmed) || /^(Part [A-Z]|Round \d)/i.test(trimmed)
 
       // Bullet handling — require dash+space to avoid matching --- sections
-      let text = trimmed
+      let lineText = trimmed
       let indent = 0
-      if (text.startsWith('  \u2022 ') || text.startsWith('  - ')) {
-        text = text.slice(4)
+      if (lineText.startsWith('  \u2022 ') || lineText.startsWith('  - ')) {
+        lineText = lineText.slice(4)
         indent = 36
-      } else if (text.startsWith('\u2022 ')) {
-        text = text.slice(2)
-      } else if (text.startsWith('- ')) {
-        text = text.slice(2)
+      } else if (lineText.startsWith('\u2022 ')) {
+        lineText = lineText.slice(2)
+      } else if (lineText.startsWith('- ')) {
+        lineText = lineText.slice(2)
       }
 
       if (isLabel) {
@@ -333,7 +336,7 @@ export default function ShareImage({ workout, onClose }) {
       const isBullet = trimmed.startsWith('\u2022 ') || trimmed.startsWith('  \u2022 ') || trimmed.startsWith('- ') || trimmed.startsWith('  - ')
       const bulletPrefix = isBullet ? '\u2022  ' : ''
       const bpW = bulletPrefix ? ctx.measureText(bulletPrefix).width : 0
-      const wrapped = wrapLines(ctx, text, cw - indent - bpW)
+      const wrapped = wrapLines(ctx, lineText, cw - indent - bpW)
 
       for (let wi = 0; wi < wrapped.length; wi++) {
         if (dy + fontSize > descBottom) { truncated = true; break }
