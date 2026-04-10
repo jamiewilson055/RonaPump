@@ -5,14 +5,12 @@ export default function ShareImage({ workout, onClose }) {
   const imgRef = useRef(null)
   const [copied, setCopied] = useState(false)
   const [imgLoaded, setImgLoaded] = useState(false)
-  const [style, setStyle] = useState(0)
+  const [style, setStyle] = useState(1)
   const w = workout
 
   const STYLES = [
     { name: 'Dark', bg: '#0a0a0e', text: '#ffffff', accent: '#e01e1e', dur: '#2dd4bf' },
     { name: 'Light', bg: '#f5f0e8', text: '#1a1a1a', accent: '#c41818', dur: '#0f8a6e' },
-    { name: 'Fire', bg: '#1a0505', text: '#ffffff', accent: '#ff4422', dur: '#ffaa44' },
-    { name: 'Slate', bg: '#141820', text: '#e0e8ff', accent: '#4f88ff', dur: '#2dd4bf' },
   ]
 
   useEffect(() => {
@@ -85,7 +83,7 @@ export default function ShareImage({ workout, onClose }) {
     ctx.fillText('PUMP', px + ronaW, y)
 
     // ── HARAMBE CIRCLE (top right) ──
-    const imgSize = 72
+    const imgSize = 90
     const imgR = imgSize / 2
     const imgCx = W - px - imgR
     const imgCy = y - 10
@@ -128,24 +126,15 @@ export default function ShareImage({ workout, onClose }) {
     ctx.font = '700 62px sans-serif'
     ctx.fillStyle = text
     ctx.textAlign = 'left'
-    const nameLines = wrapLines(ctx, w.name || 'Unnamed Workout', cw)
+    const nameRaw = w.name || 'Unnamed Workout'
+    const nameLines = wrapLines(ctx, "' " + nameRaw + " '", cw)
     for (const nl of nameLines) {
       y += 62
       ctx.fillText(nl, px, y)
     }
 
-    // ── ACCENT UNDERLINE BELOW NAME ──
-    y += 12
-    ctx.font = '700 62px sans-serif'
-    const longestName = nameLines.reduce((a, b) => ctx.measureText(a).width > ctx.measureText(b).width ? a : b, '')
-    const underlineW = ctx.measureText(longestName).width
-    ctx.fillStyle = hexA(accent, 0.6)
-    ctx.beginPath()
-    ctx.roundRect(px, y, underlineW, 4, 2)
-    ctx.fill()
-
     // ── TAGS ROW ──
-    y += 18
+    y += 28
     const tags = []
 
     // Category (red accent) — up to 2
