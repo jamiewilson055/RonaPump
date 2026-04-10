@@ -71,78 +71,76 @@ export default function StoryCard({ workout, score, session, onClose }) {
 
     const s = STYLES[style]
     const accent = s.accent, clr = s.txt, bg = s.bg, dur = s.dur
-    const cx = W / 2
-
-    // Measure name lines
-    const nameSize = score ? 58 : 70
-    ctx.font = '700 ' + nameSize + 'px sans-serif'
-    const nameStr = "' " + (workout?.name || 'Workout') + " '"
-    const nameLines = wrapCenter(ctx, nameStr, W - 120)
-
-    const startY = 60
-    const harambeH = 220
+    const cx = W / 2, px = 80
 
     // ── BACKGROUND ──
     ctx.fillStyle = bg
     ctx.fillRect(0, 0, W, H)
-    const glow = ctx.createRadialGradient(cx, H * 0.35, 0, cx, H * 0.35, 400)
-    glow.addColorStop(0, hexA(accent, 0.04))
-    glow.addColorStop(1, 'transparent')
-    ctx.fillStyle = glow
-    ctx.fillRect(0, 0, W, H)
 
-    let y = startY
+    // ═══════════════════════════════════════
+    // HEADER ROW: Harambe (left) + Logo (right)
+    // ═══════════════════════════════════════
+    const hdrY = 60
+    const imgSz = 80, imgR = imgSz / 2
 
-    // ── LOGO ──
-    ctx.font = '700 42px monospace'
-    const rW = ctx.measureText('RONA').width, pW = ctx.measureText('PUMP').width
-    ctx.textAlign = 'left'
-    ctx.fillStyle = clr
-    ctx.fillText('RONA', cx - (rW + pW) / 2, y)
-    ctx.fillStyle = accent
-    ctx.fillText('PUMP', cx - (rW + pW) / 2 + rW, y)
-    y += 16
-
-    // ── HARAMBE ──
-    const imgSz = harambeH, imgR = imgSz / 2, imgCy = y + imgR
+    // Harambe circle (left side)
     if (imgRef.current) {
       ctx.save()
       ctx.beginPath()
-      ctx.arc(cx, imgCy, imgR, 0, Math.PI * 2)
+      ctx.arc(px + imgR, hdrY + imgR, imgR, 0, Math.PI * 2)
       ctx.clip()
-      ctx.drawImage(imgRef.current, cx - imgR, imgCy - imgR, imgSz, imgSz)
+      ctx.drawImage(imgRef.current, px, hdrY, imgSz, imgSz)
       ctx.restore()
     }
     ctx.beginPath()
-    ctx.arc(cx, imgCy, imgR + 2, 0, Math.PI * 2)
-    ctx.strokeStyle = accent; ctx.lineWidth = 4; ctx.stroke()
-    y = imgCy + imgR + 28
+    ctx.arc(px + imgR, hdrY + imgR, imgR + 1.5, 0, Math.PI * 2)
+    ctx.strokeStyle = accent; ctx.lineWidth = 3; ctx.stroke()
 
-    // ── WORKOUT COMPLETE ──
-    ctx.font = '700 32px monospace'
+    // RONAPUMP logo (right-aligned to Harambe)
+    ctx.font = '700 34px monospace'
+    ctx.textAlign = 'right'
+    ctx.fillStyle = clr
+    const pumpW = ctx.measureText('PUMP').width
+    const ronaW = ctx.measureText('RONA').width
+    ctx.fillText('RONA', W - px - pumpW, hdrY + 45)
+    ctx.fillStyle = accent
+    ctx.fillText('PUMP', W - px, hdrY + 45)
+
+    // Accent line under header
+    const hdrBottom = hdrY + imgSz + 20
+    ctx.fillStyle = accent
+    ctx.fillRect(px, hdrBottom, W - px * 2, 3)
+
+    // ═══════════════════════════════════════
+    // WORKOUT COMPLETE
+    // ═══════════════════════════════════════
+    let y = hdrBottom + 44
+    ctx.font = '700 28px monospace'
     ctx.textAlign = 'center'
     ctx.fillStyle = accent
-    ctx.letterSpacing = '3px'
+    ctx.letterSpacing = '4px'
     ctx.fillText('WORKOUT COMPLETE', cx, y)
     ctx.letterSpacing = '0px'
-    y += 14
 
-    // ── Red accent divider ──
-    ctx.fillStyle = accent
-    ctx.fillRect(cx - 100, y, 200, 3)
-    y += 26
-
-    // ── WORKOUT NAME ──
+    // ═══════════════════════════════════════
+    // WORKOUT NAME
+    // ═══════════════════════════════════════
+    y += 44
+    const nameSize = score ? 70 : 90
     ctx.font = '700 ' + nameSize + 'px sans-serif'
     ctx.fillStyle = clr
     ctx.textAlign = 'center'
+    const nameStr = "' " + (workout?.name || 'Workout') + " '"
+    const nameLines = wrapCenter(ctx, nameStr, W - 120)
     for (const nl of nameLines) {
       ctx.fillText(nl, cx, y)
-      y += nameSize + 6
+      y += nameSize + 8
     }
-    y += 6
 
-    // ── TAGS ──
+    // ═══════════════════════════════════════
+    // TAGS
+    // ═══════════════════════════════════════
+    y += 4
     const tags = []
     const cats = (workout?.categories || []).slice(0, 2)
     cats.forEach(c => tags.push({ label: c, type: 'cat' }))
@@ -169,68 +167,87 @@ export default function StoryCard({ workout, score, session, onClose }) {
         ctx.fillText(t.label, tx + w / 2, y + 24)
         tx += w + tG
       }
-      y += tH
+      y += tH + 16
     }
 
-    // ── SCORE ──
+    // ═══════════════════════════════════════
+    // SCORE SECTION
+    // ═══════════════════════════════════════
     if (score) {
-      y += 28
-      ctx.font = '500 20px monospace'
+      // Divider before score
+      y += 10
+      ctx.fillStyle = hexA(clr, 0.08)
+      ctx.fillRect(px, y, W - px * 2, 1)
+      y += 32
+
+      ctx.font = '500 22px monospace'
       ctx.fillStyle = hexA(clr, 0.4)
       ctx.textAlign = 'center'
       ctx.letterSpacing = '3px'
       ctx.fillText('YOUR SCORE', cx, y)
       ctx.letterSpacing = '0px'
-      y += 12
+      y += 16
 
-      ctx.font = '700 110px monospace'
+      // The score — BIG
+      ctx.font = '700 130px monospace'
       ctx.fillStyle = accent
       const scoreStr = String(score)
-      if (ctx.measureText(scoreStr).width > W - 160) ctx.font = '700 80px monospace'
-      ctx.fillText(scoreStr, cx, y + 84)
-      y += 96
+      if (ctx.measureText(scoreStr).width > W - 160) ctx.font = '700 90px monospace'
+      ctx.fillText(scoreStr, cx, y + 100)
+      y += 112
 
       if (workout?.score_type && workout.score_type !== 'None') {
-        y += 6
-        ctx.font = '500 24px monospace'
+        y += 4
+        ctx.font = '500 26px monospace'
         ctx.fillStyle = hexA(clr, 0.3)
         ctx.fillText(workout.score_type.toUpperCase(), cx, y)
-        y += 14
+        y += 20
       }
     }
 
-    // ── PERSONAL ──
-    y += 28
+    // ═══════════════════════════════════════
+    // PERSONAL INFO
+    // ═══════════════════════════════════════
+    // Divider
+    y += 16
+    ctx.fillStyle = hexA(clr, 0.08)
+    ctx.fillRect(px, y, W - px * 2, 1)
+    y += 32
+
     const userName = profile?.display_name || 'Athlete'
     const rank = profile?.gorilla_rank || 'Baby Gorilla'
 
-    ctx.font = '700 36px sans-serif'
+    ctx.font = '700 38px sans-serif'
     ctx.fillStyle = clr
     ctx.textAlign = 'center'
     ctx.fillText(userName, cx, y)
+    y += 32
 
-    ctx.font = '500 24px sans-serif'
+    ctx.font = '600 26px sans-serif'
     ctx.fillStyle = accent
-    ctx.fillText(rank, cx, y + 34)
+    ctx.fillText(rank, cx, y)
+    y += 34
 
+    // Date line with optional streak and total
     const parts = []
     parts.push(new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))
     if (streak >= 3) parts.push('\uD83D\uDD25 ' + streak + ' day streak')
     if (totalWorkouts > 1) parts.push('#' + totalWorkouts)
-
-    ctx.font = '400 20px sans-serif'
+    ctx.font = '400 22px sans-serif'
     ctx.fillStyle = hexA(clr, 0.35)
-    ctx.fillText(parts.join('  \u00B7  '), cx, y + 64)
+    ctx.fillText(parts.join('  \u00B7  '), cx, y)
 
-    // ── FOOTER ──
-    y += 100
-    const footerY = Math.min(y, H - 50)
-    ctx.fillStyle = hexA(clr, 0.08)
-    ctx.fillRect(120, footerY, W - 240, 1)
+    // ═══════════════════════════════════════
+    // FOOTER
+    // ═══════════════════════════════════════
+    y += 40
+    ctx.fillStyle = hexA(clr, 0.06)
+    ctx.fillRect(px, y, W - px * 2, 1)
+    y += 28
     ctx.font = '500 22px monospace'
-    ctx.fillStyle = hexA(clr, 0.45)
+    ctx.fillStyle = hexA(clr, 0.4)
     ctx.textAlign = 'center'
-    ctx.fillText('ronapump.com  \u00B7  @ronapump', cx, footerY + 30)
+    ctx.fillText('ronapump.com  \u00B7  @ronapump', cx, y)
   }
 
   function downloadImage() {
