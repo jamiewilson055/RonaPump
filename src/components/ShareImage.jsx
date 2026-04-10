@@ -70,14 +70,14 @@ export default function ShareImage({ workout, onClose }) {
     ctx.fillText('\u{1F98D}', W - px, y)
 
     // ── ACCENT DIVIDER — FULL WIDTH ──
-    y += 22
+    y += 18
     ctx.fillStyle = accent
     ctx.beginPath()
     ctx.roundRect(px, y, cw, 5, 3)
     ctx.fill()
 
     // ── "WORKOUT OF THE DAY" LABEL ──
-    y += 38
+    y += 30
     ctx.font = '500 22px monospace'
     ctx.textAlign = 'left'
     ctx.fillStyle = hexA(white, 0.3)
@@ -86,7 +86,7 @@ export default function ShareImage({ workout, onClose }) {
     ctx.letterSpacing = '0px'
 
     // ── WORKOUT NAME ──
-    y += 14
+    y += 10
     ctx.font = '700 62px sans-serif'
     ctx.fillStyle = white
     ctx.textAlign = 'left'
@@ -96,8 +96,15 @@ export default function ShareImage({ workout, onClose }) {
       ctx.fillText(nl, px, y)
     }
 
+    // ── ACCENT UNDERLINE BELOW NAME ──
+    y += 12
+    ctx.fillStyle = hexA(accent, 0.6)
+    ctx.beginPath()
+    ctx.roundRect(px, y, Math.min(ctx.measureText(nameLines[nameLines.length - 1] || '').width, 320), 4, 2)
+    ctx.fill()
+
     // ── TAGS ROW ──
-    y += 24
+    y += 18
     const tags = []
     const teal = '#2dd4bf'
 
