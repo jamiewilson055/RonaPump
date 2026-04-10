@@ -5,7 +5,15 @@ export default function ShareImage({ workout, onClose }) {
   const imgRef = useRef(null)
   const [copied, setCopied] = useState(false)
   const [imgLoaded, setImgLoaded] = useState(false)
+  const [style, setStyle] = useState(0)
   const w = workout
+
+  const STYLES = [
+    { name: 'Dark', bg: '#0a0a0e', text: '#ffffff', accent: '#e01e1e', dur: '#2dd4bf' },
+    { name: 'Light', bg: '#f5f0e8', text: '#1a1a1a', accent: '#c41818', dur: '#0f8a6e' },
+    { name: 'Fire', bg: '#1a0505', text: '#ffffff', accent: '#ff4422', dur: '#ffaa44' },
+    { name: 'Slate', bg: '#141820', text: '#e0e8ff', accent: '#4f88ff', dur: '#2dd4bf' },
+  ]
 
   useEffect(() => {
     const img = new Image()
@@ -46,9 +54,11 @@ export default function ShareImage({ workout, onClose }) {
     canvas.width = W
     canvas.height = H
 
-    const accent = '#e01e1e'
-    const white = '#ffffff'
-    const bg = '#0a0a0e'
+    const s = STYLES[style]
+    const accent = s.accent
+    const text = s.text
+    const bg = s.bg
+    const dur = s.dur
     const px = 72
     const cw = W - px * 2
 
@@ -68,7 +78,7 @@ export default function ShareImage({ workout, onClose }) {
     // ── LOGO ROW ──
     ctx.font = '700 46px monospace'
     ctx.textAlign = 'left'
-    ctx.fillStyle = white
+    ctx.fillStyle = text
     const ronaW = ctx.measureText('RONA').width
     ctx.fillText('RONA', px, y)
     ctx.fillStyle = accent
@@ -108,7 +118,7 @@ export default function ShareImage({ workout, onClose }) {
     y += 30
     ctx.font = '500 22px monospace'
     ctx.textAlign = 'left'
-    ctx.fillStyle = hexA(white, 0.3)
+    ctx.fillStyle = hexA(text, 0.3)
     ctx.letterSpacing = '4px'
     ctx.fillText('WORKOUT OF THE DAY', px, y)
     ctx.letterSpacing = '0px'
@@ -116,7 +126,7 @@ export default function ShareImage({ workout, onClose }) {
     // ── WORKOUT NAME ──
     y += 10
     ctx.font = '700 62px sans-serif'
-    ctx.fillStyle = white
+    ctx.fillStyle = text
     ctx.textAlign = 'left'
     const nameLines = wrapLines(ctx, w.name || 'Unnamed Workout', cw)
     for (const nl of nameLines) {
@@ -134,7 +144,6 @@ export default function ShareImage({ workout, onClose }) {
     // ── TAGS ROW ──
     y += 18
     const tags = []
-    const teal = '#2dd4bf'
 
     // Category (red accent) — up to 2
     const cats = (w.categories || []).slice(0, 2)
@@ -162,9 +171,9 @@ export default function ShareImage({ workout, onClose }) {
         if (tag.color === 'category') {
           ctx.fillStyle = hexA(accent, 0.14)
         } else if (tag.color === 'duration') {
-          ctx.fillStyle = hexA(teal, 0.14)
+          ctx.fillStyle = hexA(dur, 0.14)
         } else {
-          ctx.fillStyle = hexA(white, 0.06)
+          ctx.fillStyle = hexA(text, 0.06)
         }
         ctx.beginPath()
         ctx.roundRect(tx, y, tw, tagH, 20)
@@ -174,10 +183,10 @@ export default function ShareImage({ workout, onClose }) {
           ctx.fillStyle = accent
           ctx.font = '700 ' + tagFont + 'px sans-serif'
         } else if (tag.color === 'duration') {
-          ctx.fillStyle = teal
+          ctx.fillStyle = dur
           ctx.font = '700 ' + tagFont + 'px sans-serif'
         } else {
-          ctx.fillStyle = hexA(white, 0.42)
+          ctx.fillStyle = hexA(text, 0.42)
           ctx.font = '500 ' + tagFont + 'px sans-serif'
         }
         ctx.textAlign = 'left'
@@ -193,11 +202,11 @@ export default function ShareImage({ workout, onClose }) {
     const footerH = 58
     const footerY = H - footerH
 
-    ctx.fillStyle = hexA(white, 0.08)
+    ctx.fillStyle = hexA(text, 0.08)
     ctx.fillRect(px, footerY, cw, 1)
 
     ctx.font = '500 28px monospace'
-    ctx.fillStyle = hexA(white, 0.6)
+    ctx.fillStyle = hexA(text, 0.6)
     ctx.textAlign = 'left'
     ctx.fillText('ronapump.com', px, footerY + 38)
     ctx.textAlign = 'right'
@@ -313,10 +322,10 @@ export default function ShareImage({ workout, onClose }) {
       if (isLabel) {
         dy += 4
         ctx.font = '600 ' + fontSize + 'px sans-serif'
-        ctx.fillStyle = white
+        ctx.fillStyle = text
       } else {
         ctx.font = fontSize + 'px sans-serif'
-        ctx.fillStyle = hexA(white, 0.88)
+        ctx.fillStyle = hexA(text, 0.88)
       }
 
       ctx.textAlign = 'left'
@@ -386,7 +395,7 @@ export default function ShareImage({ workout, onClose }) {
     })
   }
 
-  useEffect(() => { if (imgLoaded) drawImage() }, [imgLoaded])
+  useEffect(() => { if (imgLoaded) drawImage() }, [imgLoaded, style])
 
   return (
     <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
@@ -394,6 +403,15 @@ export default function ShareImage({ workout, onClose }) {
         <h2>Share to Instagram</h2>
         <div style={{ fontSize: '12px', color: 'var(--tx3)', marginBottom: '10px' }}>
           Download or copy this image to share on your Instagram feed.
+        </div>
+        <div className="story-styles">
+          {STYLES.map((s, i) => (
+            <button key={i} className={`story-style-btn${style === i ? ' on' : ''}`}
+              style={{ background: s.bg, borderColor: style === i ? s.accent : 'var(--brd)' }}
+              onClick={() => setStyle(i)}>
+              <span style={{ color: s.accent, fontSize: '10px', fontWeight: 700 }}>{s.name}</span>
+            </button>
+          ))}
         </div>
         <canvas ref={canvasRef} style={{ width: '100%', borderRadius: '8px', border: '1px solid var(--brd)' }} />
         <div className="mf" style={{ marginTop: '12px' }}>
