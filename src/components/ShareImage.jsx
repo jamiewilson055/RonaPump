@@ -71,6 +71,15 @@ export default function ShareImage({ workout, onClose }) {
     ctx.fillStyle = glow
     ctx.fillRect(0, 0, W, H)
 
+    // ── HARAMBE WATERMARK ──
+    if (imgRef.current) {
+      ctx.save()
+      ctx.globalAlpha = 0.05
+      const wmSize = Math.max(W, H)
+      ctx.drawImage(imgRef.current, W / 2 - wmSize / 2, H / 2 - wmSize / 2, wmSize, wmSize)
+      ctx.restore()
+    }
+
     let y = 72
 
     // ── LOGO ROW ──
