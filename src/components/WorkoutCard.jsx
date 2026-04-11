@@ -446,19 +446,12 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
                     if (isEditingThis && editLogForm) {
                       return (
-                        <tr key={e.id}>
-                          <td style={{ fontWeight: 600, color: 'var(--tx2)', fontSize: '11px' }}>{e.display_name}</td>
-                          <td><input type="date" value={editLogForm.completed_at} onChange={ev => setEditLogForm({ ...editLogForm, completed_at: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
-                          <td><input value={editLogForm.score} onChange={ev => setEditLogForm({ ...editLogForm, score: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
-                          <td><input value={editLogForm.notes} onChange={ev => setEditLogForm({ ...editLogForm, notes: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
-                          <td style={{ whiteSpace: 'nowrap' }}>
-                            <label className="rx-toggle" style={{ marginRight: '4px' }}>
-                              <input type="checkbox" checked={editLogForm.is_rx} onChange={ev => setEditLogForm({ ...editLogForm, is_rx: ev.target.checked })} />
-                              <span className={editLogForm.is_rx ? 'rx-on' : 'rx-off'}>Rx</span>
-                            </label>
-                            <span className="del-entry" onClick={saveEditLog} style={{ color: 'var(--grn)', marginRight: '4px' }}>✓</span>
-                            <span className="del-entry" onClick={() => { setEditingLogId(null); setEditLogForm(null) }}>✕</span>
-                          </td>
+                        <tr key={e.id} style={{ background: 'var(--acc-d)' }}>
+                          <td style={{ fontWeight: 600, color: 'var(--acc)', fontSize: '11px' }}>{e.display_name}</td>
+                          <td style={{ color: 'var(--acc)', fontSize: '11px' }}>{e.completed_at || '—'}</td>
+                          <td style={{ color: 'var(--acc)', fontSize: '11px' }}>{e.score || '—'}</td>
+                          <td style={{ color: 'var(--acc)', fontSize: '10px' }}>{e.notes || '—'}</td>
+                          <td style={{ fontSize: '10px', color: 'var(--acc)' }}>editing</td>
                         </tr>
                       )
                     }
@@ -488,11 +481,27 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
                 </tbody>
               </table>
             )}
+            {editingLogId && editLogForm && (
+              <div className="plog-form" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px', padding: '10px', background: 'var(--s1)', borderRadius: '8px', border: '1px solid var(--acc)', marginTop: '8px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--acc)', fontWeight: 600, marginBottom: '4px' }}>Edit Entry</div>
+                <input placeholder={`${scoreLabel}`} value={editLogForm.score} onChange={ev => setEditLogForm({ ...editLogForm, score: ev.target.value })} style={{ fontSize: '15px', padding: '10px 12px' }} />
+                <input type="date" value={editLogForm.completed_at} onChange={ev => setEditLogForm({ ...editLogForm, completed_at: ev.target.value })} style={{ fontSize: '15px', padding: '10px 12px' }} />
+                <textarea placeholder="Notes (optional)" value={editLogForm.notes} onChange={ev => setEditLogForm({ ...editLogForm, notes: ev.target.value })} rows={2} style={{ fontSize: '15px', padding: '10px 12px' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+                  <label className="rx-toggle">
+                    <input type="checkbox" checked={editLogForm.is_rx} onChange={ev => setEditLogForm({ ...editLogForm, is_rx: ev.target.checked })} />
+                    <span className={editLogForm.is_rx ? 'rx-on' : 'rx-off'}>Rx</span>
+                  </label>
+                  <button className="ab p" onClick={saveEditLog} style={{ flex: 1 }}>Save</button>
+                  <button className="ab" onClick={() => { setEditingLogId(null); setEditLogForm(null) }}>Cancel</button>
+                </div>
+              </div>
+            )}
             {addingLog && (
               <div className="plog-form">
                 <input placeholder={`${scoreLabel} (optional)`} value={logScore} onChange={e => setLogScore(e.target.value)} />
                 <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} />
-                <input placeholder="Notes (optional)" value={logNotes} onChange={e => setLogNotes(e.target.value)} />
+                <textarea placeholder="Notes (optional)" value={logNotes} onChange={e => setLogNotes(e.target.value)} rows={2} />
                 <label className="rx-toggle" title="Rx = prescribed weights/movements">
                   <input type="checkbox" checked={logRx} onChange={e => setLogRx(e.target.checked)} />
                   <span className={logRx ? 'rx-on' : 'rx-off'}>Rx</span>

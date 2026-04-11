@@ -346,7 +346,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
                 <div className="plog-form">
                   <input placeholder={scoreLabel} value={logScore} onChange={e => setLogScore(e.target.value)} />
                   <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} />
-                  <input placeholder="Notes (optional)" value={logNotes} onChange={e => setLogNotes(e.target.value)} />
+                  <textarea placeholder="Notes (optional)" value={logNotes} onChange={e => setLogNotes(e.target.value)} rows={2} />
                   <button className="ab p" onClick={addLog}>Save</button>
                 </div>
               )}
