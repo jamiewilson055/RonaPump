@@ -267,8 +267,9 @@ input, select, textarea { font-family: inherit; }
 .del-entry { color: var(--tx3); cursor: pointer; font-size: 10px; }
 .del-entry:hover { color: var(--acc); }
 .plog-form { display: flex; gap: 6px; margin-top: 6px; align-items: center; }
-.plog-form input { background: var(--bg); border: 1px solid var(--brd); border-radius: 5px; padding: 6px 8px; color: var(--tx); font-size: 12px; outline: none; flex: 1; min-width: 60px; }
-.plog-form input:focus { border-color: var(--acc); }
+.plog-form input, .plog-form textarea { background: var(--bg); border: 1px solid var(--brd); border-radius: 5px; padding: 6px 8px; color: var(--tx); font-size: 12px; outline: none; flex: 1; min-width: 60px; font-family: inherit; }
+.plog-form input:focus, .plog-form textarea:focus { border-color: var(--acc); }
+.plog-form textarea { resize: vertical; min-height: 40px; }
 
 /* Pagination */
 .pgr { display: flex; justify-content: center; gap: 4px; padding: 14px 0; }
@@ -399,7 +400,9 @@ input, select, textarea { font-family: inherit; }
   .srow { flex-direction: column; }
   .wc-top { flex-wrap: wrap; gap: 6px; }
   .wtg { padding-left: 14px; }
-  .plog-form { flex-wrap: wrap; }
+  .plog-form { flex-direction: column; align-items: stretch; }
+  .plog-form input, .plog-form textarea { font-size: 16px; padding: 12px 14px; min-width: unset; }
+  .plog-form textarea { min-height: 60px; }
   .pr-form { flex-direction: column; }
   .pr-group-hd { flex-wrap: wrap; gap: 6px; }
   .wod-desc { white-space: normal; }
