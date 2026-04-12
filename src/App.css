@@ -261,8 +261,8 @@ input, select, textarea { font-family: inherit; }
 .st-badge { font-size: 10px; background: var(--cyn-d); color: var(--cyn); padding: 2px 6px; border-radius: 3px; margin-left: 6px; font-weight: 400; }
 .plog-add { font-size: 11px; color: var(--acc); cursor: pointer; }
 .plog-table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
-.plog-table th { text-align: left; color: var(--tx3); font-weight: 500; padding: 4px 8px; border-bottom: 1px solid var(--brd); font-size: 10px; }
-.plog-table td { padding: 5px 8px; border-bottom: 1px solid var(--brd); color: var(--tx2); }
+.plog-table th { text-align: left; color: var(--tx3); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--brd); font-size: 10px; }
+.plog-table td { padding: 6px 8px; border-bottom: 1px solid var(--brd); color: var(--tx2); }
 .plog-table .best { color: var(--grn); font-weight: 600; }
 .del-entry { color: var(--tx3); cursor: pointer; font-size: 16px; padding: 4px 6px; border-radius: 4px; }
 .del-entry:hover { color: var(--acc); background: var(--s2); }
@@ -587,6 +587,7 @@ input, select, textarea { font-family: inherit; }
 .lb-name { display: flex; align-items: center; gap: 4px; font-size: 12px; }
 .lb-medal { font-size: 13px; }
 .plog-table th:first-child, .plog-table td:first-child { min-width: 80px; }
+.plog-table th:last-child, .plog-table td:last-child { text-align: right; width: 1%; white-space: nowrap; padding-right: 4px; }
 
 /* Visibility badges */
 .vis-tag { font-size: 11px; margin-left: 4px; vertical-align: middle; }
