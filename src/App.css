@@ -593,10 +593,13 @@ input, select, textarea { font-family: inherit; }
 .vis-tag { font-size: 11px; margin-left: 4px; vertical-align: middle; }
 
 /* Card left border by visibility */
-.wc.wc-official { border-left: 3px solid var(--acc); }
-.wc.wc-community { border-left: 3px solid var(--cyn); }
-.wc.wc-private { border-left: 3px solid var(--tx3); opacity: 0.85; }
-.wc.wc-pending { border-left: 3px solid var(--ylw); }
+.wc.wc-official, .wc.wc-community, .wc.wc-private, .wc.wc-pending { position: relative; }
+.wc.wc-official::before, .wc.wc-community::before, .wc.wc-private::before, .wc.wc-pending::before { content: ''; position: absolute; left: -1px; top: -1px; bottom: -1px; width: 3px; border-radius: 7px 0 0 7px; pointer-events: none; z-index: 1; }
+.wc.wc-official::before { background: var(--acc); }
+.wc.wc-community::before { background: var(--cyn); }
+.wc.wc-private { opacity: 0.85; }
+.wc.wc-private::before { background: var(--tx3); }
+.wc.wc-pending::before { background: var(--ylw); }
 
 /* Admin Queue */
 .admin-queue { background: var(--s1); border: 1px solid var(--acc); border-radius: 8px; padding: 14px; margin-bottom: 14px; }
