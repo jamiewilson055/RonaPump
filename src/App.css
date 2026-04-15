@@ -261,12 +261,11 @@ input, select, textarea { font-family: inherit; }
 .st-badge { font-size: 10px; background: var(--cyn-d); color: var(--cyn); padding: 2px 6px; border-radius: 3px; margin-left: 6px; font-weight: 400; }
 .plog-add { font-size: 11px; color: var(--acc); cursor: pointer; }
 .plog-table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
-.plog-table th { text-align: left; color: var(--tx3); font-weight: 500; padding: 5px 8px; border-bottom: 1px solid var(--brd); font-size: 10px; line-height: 18px; }
-.plog-table td { padding: 5px 8px; border-bottom: 1px solid var(--brd); color: var(--tx2); white-space: nowrap; }
-.plog-table td:nth-child(4) { white-space: normal; width: 99%; }
+.plog-table th { text-align: left; color: var(--tx3); font-weight: 500; padding: 4px 8px; border-bottom: 1px solid var(--brd); font-size: 10px; line-height: 18px; }
+.plog-table td { padding: 5px 8px; border-bottom: 1px solid var(--brd); color: var(--tx2); }
 .plog-table .best { color: var(--grn); font-weight: 600; }
-.del-entry { color: var(--tx3); cursor: pointer; font-size: 13px; padding: 2px 4px; border-radius: 3px; }
-.del-entry:hover { color: var(--acc); background: var(--s2); }
+.del-entry { color: var(--tx3); cursor: pointer; font-size: 12px; }
+.del-entry:hover { color: var(--acc); }
 .plog-form { display: flex; gap: 6px; margin-top: 6px; align-items: center; }
 .plog-form input, .plog-form textarea { background: var(--bg); border: 1px solid var(--brd); border-radius: 5px; padding: 6px 8px; color: var(--tx); font-size: 12px; outline: none; flex: 1; min-width: 60px; font-family: inherit; }
 .plog-form input:focus, .plog-form textarea:focus { border-color: var(--acc); }
