@@ -303,13 +303,14 @@ function App() {
   }
 
   const isMainTab = ['all', 'done', 'queue', 'favs'].includes(tab)
-  const isFeatureTab = ['deck', 'ai', 'timer', 'longevity', 'h2h', 'prs', 'activity', 'stats', 'collections', 'train', 'track', 'social'].includes(tab)
+  const isFeatureTab = ['deck', 'ai', 'ai-coach', 'timer', 'longevity', 'h2h', 'prs', 'activity', 'stats', 'collections', 'train', 'track', 'social'].includes(tab)
 
   const SECTION_META = {
     train:       { label: 'Train',          back: 'all',    backLabel: 'Workouts' },
     track:       { label: 'Track',          back: 'all',    backLabel: 'Workouts' },
     social:      { label: 'Social',         back: 'all',    backLabel: 'Workouts' },
     ai:          { label: 'AI Generator',   back: 'train',  backLabel: 'Train' },
+    'ai-coach':  { label: 'AI Coach',       back: 'train',  backLabel: 'Train' },
     deck:        { label: 'Deck of Cards',  back: 'train',  backLabel: 'Train' },
     timer:       { label: 'Timer',          back: 'train',  backLabel: 'Train' },
     longevity:   { label: 'Longevity',      back: 'track',  backLabel: 'Track' },
@@ -375,18 +376,18 @@ function App() {
         </div>
       )}
 
-      <div className={['deck','ai','prs','h2h','timer','longevity','train','track','social'].includes(tab) ? 'mobile-hide' : ''}>
+      <div className={['deck','ai','ai-coach','prs','h2h','timer','longevity','train','track','social'].includes(tab) ? 'mobile-hide' : ''}>
         <QuoteBar isAdmin={profile?.is_admin || false} />
       </div>
 
       {/* Bigger secondary tabs — desktop only */}
-      <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} collectionsCount={collections.length} hideMainOnMobile={['deck','ai','prs','h2h','timer','longevity','train','track','social'].includes(tab)} />
+      <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} collectionsCount={collections.length} hideMainOnMobile={['deck','ai','ai-coach','prs','h2h','timer','longevity','train','track','social'].includes(tab)} />
 
       {/* Two-column layout on desktop for main workout tabs */}
       {isMainTab ? (
         <div className="desktop-layout">
           <div className="desktop-main">
-            {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && tab !== 'activity' && tab !== 'deck' && tab !== 'ai' && tab !== 'h2h' && tab !== 'timer' && tab !== 'longevity' && (
+            {tab !== 'prs' && tab !== 'stats' && tab !== 'collections' && tab !== 'activity' && tab !== 'deck' && tab !== 'ai' && tab !== 'ai-coach' && tab !== 'h2h' && tab !== 'timer' && tab !== 'longevity' && (
               <WODCard workouts={workouts} session={session} profile={profile} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} favorites={favorites} toggleFavorite={toggleFavorite} isAdmin={profile?.is_admin || false} collections={collections} onCollectionsChanged={() => session && loadCollections(session.user.id)} />
             )}
             {(profile?.is_admin) && tab === 'all' && <AdminQueue onWorkoutsChanged={loadWorkouts} />}
@@ -411,7 +412,8 @@ function App() {
             <div className="sidebar-card sidebar-nav">
               <div className="sidebar-nav-label">⚡ Train</div>
               <div className="sidebar-nav-grid">
-                <button className={`sidebar-nav-btn${tab === 'ai' ? ' on' : ''}`} onClick={() => setTab('ai')}>🤖 AI</button>
+                <button className={`sidebar-nav-btn${tab === 'ai' ? ' on' : ''}`} onClick={() => setTab('ai')}>🤖 AI Gen</button>
+                <button className={`sidebar-nav-btn${tab === 'ai-coach' ? ' on' : ''}`} onClick={() => setTab('ai-coach')}>🧠 Coach</button>
                 <button className={`sidebar-nav-btn${tab === 'deck' ? ' on' : ''}`} onClick={() => setTab('deck')}>🃏 Deck</button>
                 <button className={`sidebar-nav-btn${tab === 'timer' ? ' on' : ''}`} onClick={() => setTab('timer')}>⏱ Timer</button>
               </div>
@@ -501,7 +503,7 @@ function App() {
                   <div className="group-card-name">AI Generator</div>
                   <div className="group-card-desc">Describe what you want — we build it</div>
                 </button>
-                <button className="group-card" onClick={() => setTab('ai')}>
+                <button className="group-card" onClick={() => setTab('ai-coach')}>
                   <span className="group-card-icon">🧠</span>
                   <div className="group-card-name">AI Coach</div>
                   <div className="group-card-desc">Daily smart picks based on your history</div>
@@ -563,11 +565,9 @@ function App() {
           ) : tab === 'deck' ? (
             <DeckOfCards session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} isAdmin={profile?.is_admin || false} />
           ) : tab === 'ai' ? (
-            <>
-              <AIGenerator session={session} profile={profile} onAuthRequired={() => setShowAuth(true)} isAdmin={profile?.is_admin || false} onWorkoutsChanged={loadWorkouts} />
-              <div style={{ borderTop: '1px solid var(--brd)', margin: '24px 0' }}></div>
-              <AICoach session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} />
-            </>
+            <AIGenerator session={session} profile={profile} onAuthRequired={() => setShowAuth(true)} isAdmin={profile?.is_admin || false} onWorkoutsChanged={loadWorkouts} />
+          ) : tab === 'ai-coach' ? (
+            <AICoach session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} />
           ) : tab === 'h2h' ? (
             <Challenges session={session} onAuthRequired={() => setShowAuth(true)} workouts={workouts} />
           ) : tab === 'timer' ? (
