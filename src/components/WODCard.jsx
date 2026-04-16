@@ -15,13 +15,13 @@ function formatDesc(text) {
     if (line.startsWith('• ')) return <div key={i} className="desc-li">{renderBold(line.slice(2))}</div>
     if (line.startsWith('--- ')) return <div key={i} className="desc-section">{renderBold(line.slice(4))}</div>
     // Lines ending with ':' (optionally wrapped in **bold**) get the section header style,
-    // with the trailing colon stripped for visual parity with --- section headers
+    // with the trailing colon stripped and no top border (distinguishes from --- sections)
     const trimmed = line.trim()
     if (trimmed.endsWith(':**') && trimmed.length > 3) {
-      return <div key={i} className="desc-section">{renderBold(trimmed.slice(0, -3) + '**')}</div>
+      return <div key={i} className="desc-section" style={{ borderTop: 'none', paddingTop: 0 }}>{renderBold(trimmed.slice(0, -3) + '**')}</div>
     }
     if (trimmed.endsWith(':') && trimmed.length > 1) {
-      return <div key={i} className="desc-section">{renderBold(trimmed.slice(0, -1))}</div>
+      return <div key={i} className="desc-section" style={{ borderTop: 'none', paddingTop: 0 }}>{renderBold(trimmed.slice(0, -1))}</div>
     }
     if (line.trim() === '') return <br key={i} />
     return <div key={i}>{renderBold(line)}</div>
