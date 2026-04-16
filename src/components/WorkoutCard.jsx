@@ -15,7 +15,7 @@ function cleanDesc(w) {
     const nm = w.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const p1 = new RegExp('[\\u201c"\\u201d]\\s*' + nm + '\\s*[\\u201c"\\u201d]\\s*[-:.]?\\s*', 'gi')
     d = d.replace(p1, '')
-    d = d.replace(/^\s*[\n\r]+/, '').replace(/^\s*(?!---\s)[-:]\s*/, '')
+    d = d.replace(/^\s*[\n\r]+/, '').replace(/^\s*[-:]\s*/, '')
   }
   // Clean stray braces and trailing whitespace
   d = d.replace(/[\{\}]/g, '').trim()
@@ -32,7 +32,9 @@ function formatDesc(text) {
     if (line.startsWith('  • ')) return <div key={i} className="desc-li sub">{renderBold(line.slice(4))}</div>
     if (line.startsWith('• ')) return <div key={i} className="desc-li">{renderBold(line.slice(2))}</div>
     if (line.startsWith('--- ')) return <div key={i} className="desc-section">{renderBold(line.slice(4))}</div>
-    if (/^[\w].*:$/.test(line.trim())) return <div key={i} style={{ fontWeight: 700, color: 'var(--acc)', textTransform: 'uppercase', padding: '4px 0 0' }}>{renderBold(line.trim())}</div>
+    // Lines ending with ':' (optionally wrapped in **bold**) get the section header style
+    const stripped = line.trim().replace(/\*\*$/, '')
+    if (stripped.length > 0 && stripped.endsWith(':')) return <div key={i} className="desc-section">{renderBold(line)}</div>
     if (line.trim() === '') return <br key={i} />
     return <div key={i}>{renderBold(line)}</div>
   })
@@ -100,26 +102,6 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const [showShareImage, setShowShareImage] = useState(false)
   const [showStoryCard, setShowStoryCard] = useState(false)
   const [lastLogScore, setLastLogScore] = useState(null)
-  const [swapOpen, setSwapOpen] = useState(false)
-  const [swapConstraints, setSwapConstraints] = useState([])
-  const [swapLoading, setSwapLoading] = useState(false)
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
-  const EMOJI_CATEGORIES = [
-    { label: '💪 Fitness', emojis: ['💪', '🏋️', '🏃', '🔥', '⏱', '🦍', '💀', '😤', '🫡', '🎯', '🏆', '⚡', '🧨', '💣', '🚀', '👊', '✅', '❌', '⬆️', '⬇️'] },
-    { label: '🔢 Numbers', emojis: ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '🔟', '💯', '0️⃣'] },
-    { label: '⚙️ Gear', emojis: ['🏋️‍♂️', '🏋️‍♀️', '🚴', '🚣', '🏊', '⛷️', '🧗', '🤸', '🏃‍♂️', '🏃‍♀️', '🥇', '🥈', '🥉', '🎽'] },
-    { label: '😀 Faces', emojis: ['😀', '😎', '🤯', '😈', '🥵', '😮‍💨', '🫠', '💀', '👀', '🙌', '👏', '🤝', '✊', '🤘'] },
-    { label: '📝 Misc', emojis: ['📌', '📝', '📊', '🗓️', '⭐', '💡', '🔄', '⏩', '▶️', '⏸️', '🟢', '🔴', '🟡', '⚪', '🔵', '➡️', '⬅️'] },
-  ]
-  function insertEmoji(emoji) {
-    const ta = document.getElementById('wk-edit-desc')
-    if (!ta) return
-    const start = ta.selectionStart
-    const before = editForm.description.slice(0, start)
-    const after = editForm.description.slice(start)
-    setEditForm({ ...editForm, description: before + emoji + after })
-    setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + emoji.length }, 0)
-  }
 
   function shareWorkout() {
     let text = ''
@@ -147,12 +129,6 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const hasDone = w.my_log_count > 0
   const bs = bestScore(w)
   const pl = w.performance_log || []
-  const myBest = session ? (() => {
-    const my = pl.filter(e => e.user_id === session.user.id && e.score)
-    if (!my.length) return null
-    if (w.score_type === 'Time') return my.reduce((b, e) => (!b || e.score < b) ? e.score : b, null)
-    return my.reduce((b, e) => (!b || e.score > b) ? e.score : b, null)
-  })() : null
   // Leaderboard shows all completions
   const leaderboardPl = pl.filter(p => p.notes !== 'Quick logged')
   const totalLoggers = new Set(leaderboardPl.map(p => p.user_id)).size
@@ -217,7 +193,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
   function startEditLog(entry) {
     setEditingLogId(entry.id)
-    setEditLogForm({ score: entry.score || '', completed_at: entry.completed_at || '', notes: entry.notes || '', is_rx: entry.is_rx !== false })
+    setEditLogForm({ score: entry.score || '', completed_at: entry.completed_at || '', notes: entry.notes || '' })
   }
 
   async function saveEditLog() {
@@ -226,7 +202,6 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
       score: editLogForm.score.trim() || null,
       completed_at: editLogForm.completed_at,
       notes: editLogForm.notes.trim() || null,
-      is_rx: editLogForm.is_rx,
     }).eq('id', editingLogId)
     setEditingLogId(null)
     setEditLogForm(null)
@@ -279,43 +254,6 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     })
   }
 
-  function toggleSwapConstraint(c) {
-    setSwapConstraints(prev => {
-      if (c === 'Bodyweight Only') return prev.includes(c) ? prev.filter(x => x !== c) : [c]
-      const next = prev.filter(x => x !== 'Bodyweight Only')
-      return next.includes(c) ? next.filter(x => x !== c) : [...next, c]
-    })
-  }
-
-  async function doSwap() {
-    if (!swapConstraints.length || swapLoading) return
-    setSwapLoading(true)
-    try {
-      const res = await fetch('/api/generate-workout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode: 'swap',
-          description: editForm.description,
-          constraints: swapConstraints,
-          name: editForm.name,
-          equipment: editForm.equipment,
-        })
-      })
-      if (!res.ok) throw new Error('Server error')
-      const data = await res.json()
-      if (data.description) {
-        setEditForm(prev => ({ ...prev, description: data.description }))
-        if (data.equipment) setEditForm(prev => ({ ...prev, equipment: data.equipment }))
-      }
-      setSwapOpen(false)
-      setSwapConstraints([])
-    } catch (err) {
-      alert('Swap failed — try again')
-    }
-    setSwapLoading(false)
-  }
-
   async function saveEdit() {
     if (!editForm.description.trim()) { alert('Description is required.'); return }
 
@@ -363,9 +301,6 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     setEditing(false)
     setEditForm(null)
     setRemixing(false)
-    setSwapOpen(false)
-    setSwapConstraints([])
-    setShowEmojiPicker(false)
     onWorkoutsChanged()
   }
 
@@ -405,7 +340,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
         </div>
         {durDisplay && <span className="wdr">{durDisplay}</span>}
         {w.score_type !== 'None' && <span className="wst">{w.score_type}</span>}
-        {myBest && <span className="wbs">{myBest}</span>}
+        {bs && <span className="wbs">{bs}</span>}
         {w.original_date_display && <span className="wdt">{w.original_date_display}</span>}
       </div>
 
@@ -446,12 +381,15 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
                     if (isEditingThis && editLogForm) {
                       return (
-                        <tr key={e.id} style={{ background: 'var(--acc-d)' }}>
-                          <td style={{ fontWeight: 600, color: 'var(--acc)', fontSize: '11px' }}>{e.display_name}</td>
-                          <td style={{ color: 'var(--acc)', fontSize: '11px' }}>{e.completed_at || '—'}</td>
-                          <td style={{ color: 'var(--acc)', fontSize: '11px' }}>{e.score || '—'}</td>
-                          <td style={{ color: 'var(--acc)', fontSize: '10px' }}>{e.notes || '—'}</td>
-                          <td style={{ fontSize: '10px', color: 'var(--acc)' }}>editing</td>
+                        <tr key={e.id}>
+                          <td style={{ fontWeight: 600, color: 'var(--tx2)', fontSize: '11px' }}>{e.display_name}</td>
+                          <td><input type="date" value={editLogForm.completed_at} onChange={ev => setEditLogForm({ ...editLogForm, completed_at: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
+                          <td><input value={editLogForm.score} onChange={ev => setEditLogForm({ ...editLogForm, score: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
+                          <td><input value={editLogForm.notes} onChange={ev => setEditLogForm({ ...editLogForm, notes: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
+                          <td style={{ whiteSpace: 'nowrap' }}>
+                            <span className="del-entry" onClick={saveEditLog} style={{ color: 'var(--grn)', marginRight: '4px' }}>✓</span>
+                            <span className="del-entry" onClick={() => { setEditingLogId(null); setEditLogForm(null) }}>✕</span>
+                          </td>
                         </tr>
                       )
                     }
@@ -472,8 +410,8 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
                         </td>
                         <td style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
                         <td style={{ whiteSpace: 'nowrap' }}>
-                          {(e.is_mine || isAdmin) && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); startEditLog(e) }} style={{ marginRight: '4px' }} title="Edit">✎</span>}
-                          {(e.is_mine || isAdmin) && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); deleteLog(e.id) }}>✕</span>}
+                          {e.is_mine && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); startEditLog(e) }} style={{ marginRight: '4px' }} title="Edit">✎</span>}
+                          {e.is_mine && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); deleteLog(e.id) }}>✕</span>}
                         </td>
                       </tr>
                     )
@@ -481,27 +419,11 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
                 </tbody>
               </table>
             )}
-            {editingLogId && editLogForm && (
-              <div className="plog-form" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px', padding: '10px', background: 'var(--s1)', borderRadius: '8px', border: '1px solid var(--acc)', marginTop: '8px' }}>
-                <div style={{ fontSize: '11px', color: 'var(--acc)', fontWeight: 600, marginBottom: '4px' }}>Edit Entry</div>
-                <input placeholder={`${scoreLabel}`} value={editLogForm.score} onChange={ev => setEditLogForm({ ...editLogForm, score: ev.target.value })} style={{ fontSize: '15px', padding: '10px 12px' }} />
-                <input type="date" value={editLogForm.completed_at} onChange={ev => setEditLogForm({ ...editLogForm, completed_at: ev.target.value })} style={{ fontSize: '15px', padding: '10px 12px' }} />
-                <textarea placeholder="Notes (optional)" value={editLogForm.notes} onChange={ev => setEditLogForm({ ...editLogForm, notes: ev.target.value })} rows={2} style={{ fontSize: '15px', padding: '10px 12px' }} />
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
-                  <label className="rx-toggle">
-                    <input type="checkbox" checked={editLogForm.is_rx} onChange={ev => setEditLogForm({ ...editLogForm, is_rx: ev.target.checked })} />
-                    <span className={editLogForm.is_rx ? 'rx-on' : 'rx-off'}>Rx</span>
-                  </label>
-                  <button className="ab p" onClick={saveEditLog} style={{ flex: 1 }}>Save</button>
-                  <button className="ab" onClick={() => { setEditingLogId(null); setEditLogForm(null) }}>Cancel</button>
-                </div>
-              </div>
-            )}
             {addingLog && (
               <div className="plog-form">
                 <input placeholder={`${scoreLabel} (optional)`} value={logScore} onChange={e => setLogScore(e.target.value)} />
                 <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} />
-                <textarea placeholder="Notes (optional)" value={logNotes} onChange={e => setLogNotes(e.target.value)} rows={2} />
+                <input placeholder="Notes (optional)" value={logNotes} onChange={e => setLogNotes(e.target.value)} />
                 <label className="rx-toggle" title="Rx = prescribed weights/movements">
                   <input type="checkbox" checked={logRx} onChange={e => setLogRx(e.target.checked)} />
                   <span className={logRx ? 'rx-on' : 'rx-off'}>Rx</span>
@@ -524,7 +446,9 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
             <button className="ab p" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }} style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)' }}>{addingLog ? 'Cancel' : '✓ Complete Workout'}</button>
             <button className={`ab ${isFav ? '' : 'g'}`} onClick={() => toggleFavorite(w.id)}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>
             <button className="ab" onClick={() => { if (!session) { onAuthRequired(); return } setShowCollections(!showCollections) }}>{showCollections ? 'Hide' : '📁 Save'}</button>
-            <button className="ab" onClick={startRemix}>🔀 Remix</button>
+            {session && w.created_by !== session?.user?.id && (
+              <button className="ab" onClick={startRemix}>🔀 Remix</button>
+            )}
             <button className="ab" onClick={() => setShowSimilar(!showSimilar)}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
             <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
             <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
@@ -591,7 +515,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     </div>
 
     {editing && editForm && (
-      <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) { setEditing(false); setEditForm(null); setRemixing(false); setSwapOpen(false); setSwapConstraints([]); setShowEmojiPicker(false) } }}>
+      <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) { setEditing(false); setEditForm(null); setRemixing(false) } }}>
         <div className="mc">
           <h2>{remixing ? '🔀 Remix Workout' : 'Edit Workout'}</h2>
           {remixing && (
@@ -628,52 +552,31 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
               const ta = document.getElementById('wk-edit-desc')
               if (!ta) return
               const start = ta.selectionStart
+              const end = ta.selectionEnd
+              const selected = editForm.description.slice(start, end)
+              if (selected) {
+                const before = editForm.description.slice(0, start)
+                const after = editForm.description.slice(end)
+                setEditForm({ ...editForm, description: before + '**' + selected + '**' + after })
+                setTimeout(() => { ta.focus(); ta.selectionStart = start; ta.selectionEnd = end + 4 }, 0)
+              } else {
+                const before = editForm.description.slice(0, start)
+                const after = editForm.description.slice(start)
+                setEditForm({ ...editForm, description: before + '****' + after })
+                setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + 2 }, 0)
+              }
+            }}><b>B</b> Bold</button>
+            <button type="button" className="fmt-btn" onClick={() => {
+              const ta = document.getElementById('wk-edit-desc')
+              if (!ta) return
+              const start = ta.selectionStart
               const before = editForm.description.slice(0, start)
               const after = editForm.description.slice(start)
               const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
               setEditForm({ ...editForm, description: before + nl + '--- ' + after })
               setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 4 }, 0)
             }}>— Section</button>
-            <button type="button" className={`fmt-btn${swapOpen ? ' fmt-active' : ''}`} onClick={() => { setSwapOpen(!swapOpen); if (swapOpen) setSwapConstraints([]) }}>🔄 Swap</button>
-            <button type="button" className="fmt-btn" style={showEmojiPicker ? { background: 'var(--acc)', color: '#fff', borderColor: 'var(--acc)' } : {}} onClick={() => setShowEmojiPicker(!showEmojiPicker)}>😀 Emoji</button>
           </div>
-          {swapOpen && (
-            <div className="swap-panel">
-              <div className="swap-hint">Remove equipment you don't have — AI rewrites the workout</div>
-              <div className="cr">
-                {editForm.equipment.filter(e => e !== 'Bodyweight').map(eq => (
-                  <button key={eq} className={`ch${swapConstraints.includes('No ' + eq) ? ' on' : ''}`}
-                    onClick={() => toggleSwapConstraint('No ' + eq)}>✕ {eq}</button>
-                ))}
-                {editForm.description.toLowerCase().match(/\brun\b/) && (
-                  <button className={`ch${swapConstraints.includes('No Running') ? ' on' : ''}`}
-                    onClick={() => toggleSwapConstraint('No Running')}>✕ Running</button>
-                )}
-                <button className={`ch${swapConstraints.includes('Bodyweight Only') ? ' on' : ''}`}
-                  onClick={() => toggleSwapConstraint('Bodyweight Only')}>💪 Bodyweight Only</button>
-              </div>
-              <button className="ab p swap-go" disabled={!swapConstraints.length || swapLoading} onClick={doSwap}>
-                {swapLoading ? '⏳ Rewriting...' : `🔄 Apply ${swapConstraints.length ? '(' + swapConstraints.length + ')' : ''}`}
-              </button>
-            </div>
-          )}
-          {showEmojiPicker && (
-            <div style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: '6px', padding: '8px', marginBottom: '6px', maxHeight: '200px', overflowY: 'auto' }}>
-              {EMOJI_CATEGORIES.map(cat => (
-                <div key={cat.label} style={{ marginBottom: '6px' }}>
-                  <div style={{ fontSize: '10px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: '4px' }}>{cat.label}</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px' }}>
-                    {cat.emojis.map((em, i) => (
-                      <button key={i} type="button" onClick={() => insertEmoji(em)} style={{ background: 'none', border: '1px solid transparent', borderRadius: '4px', cursor: 'pointer', fontSize: '18px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.08)'; e.currentTarget.style.borderColor = 'var(--brd)' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.borderColor = 'transparent' }}
-                      >{em}</button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
           <textarea id="wk-edit-desc" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} placeholder="Full workout details..." style={{ minHeight: '140px' }} />
 
           <label>Score Type</label>
@@ -697,7 +600,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
           <label>Equipment</label>
           <div className="cr">
-            {['Air Bike', 'Barbell', 'Bench', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Jump Rope', 'Weighted Vest'].map(eq => (
+            {['Barbell', 'Bench', 'Bike (Assault/Echo)', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Speed Rope', 'Weighted Vest'].map(eq => (
               <button key={eq} className={`ch${editForm.equipment.includes(eq) ? ' on' : ''}`}
                 onClick={() => toggleEditArray('equipment', eq)}>{eq}</button>
             ))}
@@ -713,7 +616,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
           <label>Category</label>
           <div className="cr">
-            {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Partner', 'Track Workouts'].map(c => (
+            {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Outdoor', 'Track Workouts'].map(c => (
               <button key={c} className={`ch${editForm.categories.includes(c) ? ' on' : ''}`}
                 onClick={() => toggleEditArray('categories', c)}>{c}</button>
             ))}
@@ -721,7 +624,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
           <label>Movement Type</label>
           <div className="cr">
-            {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'KB Swing', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat', 'Thruster', 'Wall Ball'].map(m => (
+            {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat'].map(m => (
               <button key={m} className={`ch${editForm.movement_categories.includes(m) ? ' on' : ''}`}
                 onClick={() => toggleEditArray('movement_categories', m)}>{m}</button>
             ))}
@@ -736,7 +639,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
           </div>
 
           <div className="mf">
-            <button className="ab" onClick={() => { setEditing(false); setEditForm(null); setRemixing(false); setSwapOpen(false); setSwapConstraints([]); setShowEmojiPicker(false) }}>Cancel</button>
+            <button className="ab" onClick={() => { setEditing(false); setEditForm(null); setRemixing(false) }}>Cancel</button>
             <button className="ab p" onClick={saveEdit}>{remixing ? '🔀 Save My Version' : 'Save'}</button>
           </div>
         </div>

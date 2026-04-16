@@ -16,6 +16,9 @@ function formatDesc(text) {
     if (line.startsWith('  • ')) return <div key={i} className="desc-li sub">{renderBold(line.slice(4))}</div>
     if (line.startsWith('• ')) return <div key={i} className="desc-li">{renderBold(line.slice(2))}</div>
     if (line.startsWith('--- ')) return <div key={i} className="desc-section">{renderBold(line.slice(4))}</div>
+    // Lines ending with ':' (optionally wrapped in **bold**) get the section header style
+    const stripped = line.trim().replace(/\*\*$/, '')
+    if (stripped.length > 0 && stripped.endsWith(':')) return <div key={i} className="desc-section">{renderBold(line)}</div>
     if (line.trim() === '') return <br key={i} />
     return <div key={i}>{renderBold(line)}</div>
   })
