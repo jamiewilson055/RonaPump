@@ -28,10 +28,19 @@ function formatDesc(text) {
     if (parts.length === 1) return str
     return parts.map((part, i) => i % 2 === 1 ? <b key={i}>{part}</b> : part)
   }
-  return text.split('\n').map((line, i) => {
+  return (text || '').split('\n').map((line, i) => {
     if (line.startsWith('  • ')) return <div key={i} className="desc-li sub">{renderBold(line.slice(4))}</div>
     if (line.startsWith('• ')) return <div key={i} className="desc-li">{renderBold(line.slice(2))}</div>
     if (line.startsWith('--- ')) return <div key={i} className="desc-section">{renderBold(line.slice(4))}</div>
+    // Lines ending with ':' (optionally wrapped in **bold**) get the section header style,
+    // with the trailing colon stripped and no top border (distinguishes from --- sections)
+    const trimmed = line.trim()
+    if (trimmed.endsWith(':**') && trimmed.length > 3) {
+      return <div key={i} className="desc-section" style={{ borderTop: 'none', paddingTop: 0 }}>{renderBold(trimmed.slice(0, -3) + '**')}</div>
+    }
+    if (trimmed.endsWith(':') && trimmed.length > 1) {
+      return <div key={i} className="desc-section" style={{ borderTop: 'none', paddingTop: 0 }}>{renderBold(trimmed.slice(0, -1))}</div>
+    }
     if (line.trim() === '') return <br key={i} />
     return <div key={i}>{renderBold(line)}</div>
   })
@@ -190,7 +199,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
   function startEditLog(entry) {
     setEditingLogId(entry.id)
-    setEditLogForm({ score: entry.score || '', completed_at: entry.completed_at || '', notes: entry.notes || '', is_rx: entry.is_rx !== false })
+    setEditLogForm({ score: entry.score || '', completed_at: entry.completed_at || '', notes: entry.notes || '' })
   }
 
   async function saveEditLog() {
@@ -199,7 +208,6 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
       score: editLogForm.score.trim() || null,
       completed_at: editLogForm.completed_at,
       notes: editLogForm.notes.trim() || null,
-      is_rx: editLogForm.is_rx,
     }).eq('id', editingLogId)
     setEditingLogId(null)
     setEditLogForm(null)
@@ -382,13 +390,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
                         <tr key={e.id}>
                           <td style={{ fontWeight: 600, color: 'var(--tx2)', fontSize: '11px' }}>{e.display_name}</td>
                           <td><input type="date" value={editLogForm.completed_at} onChange={ev => setEditLogForm({ ...editLogForm, completed_at: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
-                          <td>
-                            <input value={editLogForm.score} onChange={ev => setEditLogForm({ ...editLogForm, score: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} />
-                            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', marginTop: '3px', fontSize: '10px', cursor: 'pointer' }} title="Rx = prescribed weights/movements">
-                              <input type="checkbox" checked={!!editLogForm.is_rx} onChange={ev => setEditLogForm({ ...editLogForm, is_rx: ev.target.checked })} style={{ margin: 0 }} />
-                              <span style={{ color: editLogForm.is_rx ? 'var(--red)' : 'var(--tx2)', fontWeight: 600 }}>{editLogForm.is_rx ? 'Rx' : 'Scaled'}</span>
-                            </label>
-                          </td>
+                          <td><input value={editLogForm.score} onChange={ev => setEditLogForm({ ...editLogForm, score: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
                           <td><input value={editLogForm.notes} onChange={ev => setEditLogForm({ ...editLogForm, notes: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
                           <td style={{ whiteSpace: 'nowrap' }}>
                             <span className="del-entry" onClick={saveEditLog} style={{ color: 'var(--grn)', marginRight: '4px' }}>✓</span>
@@ -414,8 +416,8 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
                         </td>
                         <td style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
                         <td style={{ whiteSpace: 'nowrap' }}>
-                          {(e.is_mine || isAdmin) && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); startEditLog(e) }} style={{ marginRight: '4px' }} title={e.is_mine ? 'Edit' : 'Edit (admin)'}>✎</span>}
-                          {(e.is_mine || isAdmin) && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); deleteLog(e.id) }} title={e.is_mine ? 'Delete' : 'Delete (admin)'}>✕</span>}
+                          {e.is_mine && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); startEditLog(e) }} style={{ marginRight: '4px' }} title="Edit">✎</span>}
+                          {e.is_mine && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); deleteLog(e.id) }}>✕</span>}
                         </td>
                       </tr>
                     )
