@@ -15,7 +15,7 @@ function cleanDesc(w) {
     const nm = w.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const p1 = new RegExp('[\\u201c"\\u201d]\\s*' + nm + '\\s*[\\u201c"\\u201d]\\s*[-:.]?\\s*', 'gi')
     d = d.replace(p1, '')
-    d = d.replace(/^\s*[\n\r]+/, '').replace(/^\s*[-:]\s*/, '')
+    d = d.replace(/^\s*[\n\r]+/, '').replace(/^\s*[-:](?!-)\s*/, '')
   }
   // Clean stray braces and trailing whitespace
   d = d.replace(/[\{\}]/g, '').trim()
