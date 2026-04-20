@@ -76,14 +76,6 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     })
   }
 
-  function copyLink() {
-    const slug = w.name ? w.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : w.id
-    navigator.clipboard.writeText(`www.ronapump.com/workout/${slug}`).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }
-
   const hasDone = w.my_log_count > 0
   const bs = bestScore(w)
   const pl = w.performance_log || []
@@ -327,7 +319,6 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
             <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
             <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
             <button className="ab" onClick={shareWorkout}>{copied ? '✓ Copied!' : '📋 Share'}</button>
-            <button className="ab" onClick={copyLink}>{copied ? '✓ Copied!' : '🔗 Link'}</button>
             {isAdmin && <button className="ab p" onClick={startEdit}>Edit</button>}
             {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}
             {!isAdmin && w.created_by === session?.user?.id && w.visibility === 'private' && (

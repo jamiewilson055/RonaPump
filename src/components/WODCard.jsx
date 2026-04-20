@@ -79,14 +79,6 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
     if (onWorkoutsChanged) onWorkoutsChanged()
   }
 
-  function copyLink() {
-    if (!wod) return
-    const slug = (wod.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-    navigator.clipboard.writeText(`https://www.ronapump.com/workout/${slug}`)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
   function findSimilar() {
     if (!wod || !workouts) return
     setShowSimilar(!showSimilar)
@@ -204,7 +196,6 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
               <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
               <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
               <button className="ab" onClick={shareWorkout}>📋 Share</button>
-              <button className="ab" onClick={copyLink}>{copied ? '✓ Copied!' : '🔗 Link'}</button>
               {isAdmin && <button className="ab p" onClick={() => setEditMode('edit')}>Edit</button>}
               {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}
             </div>

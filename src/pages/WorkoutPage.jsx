@@ -208,23 +208,6 @@ export default function WorkoutPage() {
     try { localStorage.setItem('ronapump_active_workout', JSON.stringify({ id: workout.id, name: workout.name || 'Workout', slug, startedAt: Date.now() })) } catch {}
   }
 
-  function copyLink() {
-    const url = window.location.href
-    navigator.clipboard.writeText(url).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }).catch(() => {
-      const ta = document.createElement('textarea')
-      ta.value = url
-      ta.style.cssText = 'position:fixed;opacity:0;left:-9999px'
-      document.body.appendChild(ta)
-      ta.focus()
-      ta.select()
-      try { document.execCommand('copy'); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {}
-      document.body.removeChild(ta)
-    })
-  }
-
   function startEdit() { setEditMode('edit') }
   function startRemix() {
     if (!session) return
@@ -421,7 +404,6 @@ export default function WorkoutPage() {
           <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
           <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
           <button className="ab" onClick={shareWorkout}>📋 Share</button>
-          <button className="ab" onClick={copyLink}>{copied ? '✓ Copied!' : '🔗 Link'}</button>
           {isAdmin && <button className="ab p" onClick={startEdit}>Edit</button>}
           {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}
         </div>
