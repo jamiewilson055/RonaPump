@@ -1,59 +1,13 @@
 import { useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
+import { formatDesc, cleanDesc, bestScore } from '../lib/workoutFormat'
 import WorkoutTimer from './WorkoutTimer'
+import WorkoutEditModal from './WorkoutEditModal'
 import WorkoutComments from './WorkoutComments'
 import PublicProfile from '../pages/PublicProfile'
 import { trackWorkoutView } from './SignupGate'
 import ShareImage from './ShareImage'
 import StoryCard from './StoryCard'
-
-const SCORE_TYPES = ['Time', 'Rounds + Reps', 'Reps', 'Calories', 'Distance', 'Load', 'None']
-
-function cleanDesc(w) {
-  let d = w.description || ''
-  if (w.name) {
-    const nm = w.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const p1 = new RegExp('[\\u201c"\\u201d]\\s*' + nm + '\\s*[\\u201c"\\u201d]\\s*[-:.]?\\s*', 'gi')
-    d = d.replace(p1, '')
-    d = d.replace(/^\s*[\n\r]+/, '').replace(/^\s*[-:](?!-)\s*/, '')
-  }
-  // Clean stray braces and trailing whitespace
-  d = d.replace(/[\{\}]/g, '').trim()
-  return d
-}
-
-function formatDesc(text) {
-  function renderBold(str) {
-    const parts = str.split(/\*\*(.*?)\*\*/)
-    if (parts.length === 1) return str
-    return parts.map((part, i) => i % 2 === 1 ? <b key={i}>{part}</b> : part)
-  }
-  return text.split('\n').map((line, i) => {
-    if (line.startsWith('  • ')) return <div key={i} className="desc-li sub">{renderBold(line.slice(4))}</div>
-    if (line.startsWith('• ')) return <div key={i} className="desc-li">{renderBold(line.slice(2))}</div>
-    if (line.startsWith('--- ')) return <div key={i} className="desc-section">{renderBold(line.slice(4))}</div>
-    // Lines ending with ':' (optionally wrapped in **bold**) get the section header style,
-    // with the trailing colon stripped and no top border (distinguishes from --- sections)
-    const trimmed = line.trim()
-    if (trimmed.endsWith(':**') && trimmed.length > 3) {
-      return <div key={i} className="desc-section" style={{ borderTop: 'none', paddingTop: 0 }}>{renderBold(trimmed.slice(0, -3) + '**')}</div>
-    }
-    if (trimmed.endsWith(':') && trimmed.length > 1) {
-      return <div key={i} className="desc-section" style={{ borderTop: 'none', paddingTop: 0 }}>{renderBold(trimmed.slice(0, -1))}</div>
-    }
-    if (line.trim() === '') return <br key={i} />
-    return <div key={i}>{renderBold(line)}</div>
-  })
-}
-
-function bestScore(w) {
-  const pl = w.performance_log || []
-  if (!pl.length) return null
-  if (w.score_type === 'Time') {
-    return pl.reduce((b, e) => (!b || (e.score && e.score < b)) ? e.score : b, null)
-  }
-  return pl.reduce((b, e) => (!b || (e.score && e.score > b)) ? e.score : b, null)
-}
 
 function SimilarCard({ workout: s }) {
   const [open, setOpen] = useState(false)
@@ -92,8 +46,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const [logScore, setLogScore] = useState('')
   const [logDate, setLogDate] = useState(new Date().toISOString().slice(0, 10))
   const [logNotes, setLogNotes] = useState('')
-  const [editing, setEditing] = useState(false)
-  const [editForm, setEditForm] = useState(null)
+  const [editMode, setEditMode] = useState(null) // null | 'edit' | 'remix'
   const [copied, setCopied] = useState(false)
   const [logSort, setLogSort] = useState('date') // date, score
   const [editingLogId, setEditingLogId] = useState(null)
@@ -101,7 +54,6 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const [showSimilar, setShowSimilar] = useState(false)
   const [showCollections, setShowCollections] = useState(false)
   const [showTimer, setShowTimer] = useState(false)
-  const [remixing, setRemixing] = useState(false)
   const [showComments, setShowComments] = useState(false)
   const [viewingProfile, setViewingProfile] = useState(null)
   const [logRx, setLogRx] = useState(true)
@@ -215,101 +167,12 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     onWorkoutsChanged()
   }
 
-  function startEdit() {
-    setEditForm({
-      name: w.name || '',
-      description: w.description || '',
-      score_type: w.score_type || 'None',
-      estimated_duration_mins: w.estimated_duration_mins || '',
-      estimated_duration_min: w.estimated_duration_min || '',
-      estimated_duration_max: w.estimated_duration_max || '',
-      equipment: [...(w.equipment || [])],
-      workout_types: [...(w.workout_types || [])],
-      categories: [...(w.categories || [])],
-      movement_categories: [...(w.movement_categories || [])],
-      body_parts: [...(w.body_parts || [])],
-    })
-    setRemixing(false)
-    setEditing(true)
-  }
-
+  function startEdit() { setEditMode('edit') }
   function startRemix() {
     if (!session) { onAuthRequired(); return }
-    setEditForm({
-      name: (w.name || 'Unnamed') + ' (My Version)',
-      description: w.description || '',
-      score_type: w.score_type || 'None',
-      estimated_duration_mins: w.estimated_duration_mins || '',
-      estimated_duration_min: w.estimated_duration_min || '',
-      estimated_duration_max: w.estimated_duration_max || '',
-      equipment: [...(w.equipment || [])],
-      workout_types: [...(w.workout_types || [])],
-      categories: [...(w.categories || [])],
-      movement_categories: [...(w.movement_categories || [])],
-      body_parts: [...(w.body_parts || [])],
-    })
-    setRemixing(true)
-    setEditing(true)
+    setEditMode('remix')
   }
 
-  function toggleEditArray(field, val) {
-    setEditForm(prev => {
-      const arr = [...prev[field]]
-      const idx = arr.indexOf(val)
-      if (idx >= 0) arr.splice(idx, 1); else arr.push(val)
-      return { ...prev, [field]: arr }
-    })
-  }
-
-  async function saveEdit() {
-    if (!editForm.description.trim()) { alert('Description is required.'); return }
-
-    if (remixing) {
-      // Create a new private copy
-      const { error } = await supabase.from('workouts').insert({
-        name: editForm.name.trim() || null,
-        description: editForm.description.trim(),
-        score_type: editForm.score_type,
-        estimated_duration_mins: editForm.estimated_duration_mins ? parseInt(editForm.estimated_duration_mins) : null,
-        estimated_duration_min: editForm.estimated_duration_min ? parseInt(editForm.estimated_duration_min) : null,
-        estimated_duration_max: editForm.estimated_duration_max ? parseInt(editForm.estimated_duration_max) : null,
-        equipment: editForm.equipment.length ? editForm.equipment : ['Bodyweight'],
-        workout_types: editForm.workout_types.length ? editForm.workout_types : ['For Time'],
-        categories: editForm.categories,
-        movement_categories: editForm.movement_categories.length ? editForm.movement_categories : [],
-        body_parts: editForm.body_parts || [],
-        created_by: session.user.id,
-        visibility: 'private',
-        source: 'remix-of-' + w.id,
-      })
-      if (error) { alert('Error saving: ' + error.message); return }
-    } else {
-      // Normal edit (update in place)
-      const { error } = await supabase
-        .from('workouts')
-        .update({
-          name: editForm.name.trim() || null,
-          description: editForm.description.trim(),
-          score_type: editForm.score_type,
-          estimated_duration_mins: editForm.estimated_duration_mins ? parseInt(editForm.estimated_duration_mins) : null,
-          estimated_duration_min: editForm.estimated_duration_min ? parseInt(editForm.estimated_duration_min) : null,
-          estimated_duration_max: editForm.estimated_duration_max ? parseInt(editForm.estimated_duration_max) : null,
-          equipment: editForm.equipment.length ? editForm.equipment : ['Bodyweight'],
-          workout_types: editForm.workout_types.length ? editForm.workout_types : ['General'],
-          categories: editForm.categories,
-          movement_categories: editForm.movement_categories.length ? editForm.movement_categories : [],
-          body_parts: editForm.body_parts || [],
-          auto_named: false,
-        })
-        .eq('id', w.id)
-      if (error) { alert('Error saving: ' + error.message); return }
-    }
-
-    setEditing(false)
-    setEditForm(null)
-    setRemixing(false)
-    onWorkoutsChanged()
-  }
 
   async function deleteWorkout() {
     const label = w.name ? `"${w.name}"` : 'this workout'
@@ -322,7 +185,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
     <>
     <div className={`wc${expanded ? ' exp' : ''} wc-${w.visibility || 'official'}`} id={`wc-${w.id}`} onClick={(e) => {
       // Don't toggle if editing or any modal is open
-      if (editing || addingLog || editingLogId || showCollections || showShareImage) return
+      if (editMode || addingLog || editingLogId || showCollections || showShareImage) return
       // Don't toggle if text is selected
       const sel = window.getSelection()
       if (sel && sel.toString().length > 0) return
@@ -459,13 +322,12 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
             <button className="ab p" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }} style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)' }}>{addingLog ? 'Cancel' : '✓ Complete Workout'}</button>
             <button className={`ab ${isFav ? '' : 'g'}`} onClick={() => toggleFavorite(w.id)}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>
             <button className="ab" onClick={() => { if (!session) { onAuthRequired(); return } setShowCollections(!showCollections) }}>{showCollections ? 'Hide' : '📁 Save'}</button>
-            {session && w.created_by !== session?.user?.id && (
-              <button className="ab" onClick={startRemix}>🔀 Remix</button>
-            )}
+            <button className="ab" onClick={startRemix}>🔀 Remix</button>
             <button className="ab" onClick={() => setShowSimilar(!showSimilar)}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
             <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
             <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
-            <button className="ab" onClick={copyLink}>🔗 Link</button>
+            <button className="ab" onClick={shareWorkout}>{copied ? '✓ Copied!' : '📋 Share'}</button>
+            <button className="ab" onClick={copyLink}>{copied ? '✓ Copied!' : '🔗 Link'}</button>
             {isAdmin && <button className="ab p" onClick={startEdit}>Edit</button>}
             {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}
             {!isAdmin && w.created_by === session?.user?.id && w.visibility === 'private' && (
@@ -527,136 +389,14 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
       )}
     </div>
 
-    {editing && editForm && (
-      <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) { setEditing(false); setEditForm(null); setRemixing(false) } }}>
-        <div className="mc">
-          <h2>{remixing ? '🔀 Remix Workout' : 'Edit Workout'}</h2>
-          {remixing && (
-            <div style={{ fontSize: '12px', color: 'var(--tx3)', marginBottom: '10px', lineHeight: 1.5 }}>
-              Modify this workout to fit your equipment or preferences. It'll be saved as a private copy in My Workouts.
-            </div>
-          )}
-          <label>Name</label>
-          <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="e.g. The Grind" />
-
-          <label>Description / Details</label>
-          <div className="fmt-bar">
-            <button type="button" className="fmt-btn" onClick={() => {
-              const ta = document.getElementById('wk-edit-desc')
-              if (!ta) return
-              const start = ta.selectionStart
-              const before = editForm.description.slice(0, start)
-              const after = editForm.description.slice(start)
-              const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
-              setEditForm({ ...editForm, description: before + nl + '• ' + after })
-              setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 2 }, 0)
-            }}>• Bullet</button>
-            <button type="button" className="fmt-btn" onClick={() => {
-              const ta = document.getElementById('wk-edit-desc')
-              if (!ta) return
-              const start = ta.selectionStart
-              const before = editForm.description.slice(0, start)
-              const after = editForm.description.slice(start)
-              const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
-              setEditForm({ ...editForm, description: before + nl + '  • ' + after })
-              setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 4 }, 0)
-            }}>  ◦ Sub-bullet</button>
-            <button type="button" className="fmt-btn" onClick={() => {
-              const ta = document.getElementById('wk-edit-desc')
-              if (!ta) return
-              const start = ta.selectionStart
-              const end = ta.selectionEnd
-              const selected = editForm.description.slice(start, end)
-              if (selected) {
-                const before = editForm.description.slice(0, start)
-                const after = editForm.description.slice(end)
-                setEditForm({ ...editForm, description: before + '**' + selected + '**' + after })
-                setTimeout(() => { ta.focus(); ta.selectionStart = start; ta.selectionEnd = end + 4 }, 0)
-              } else {
-                const before = editForm.description.slice(0, start)
-                const after = editForm.description.slice(start)
-                setEditForm({ ...editForm, description: before + '****' + after })
-                setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + 2 }, 0)
-              }
-            }}><b>B</b> Bold</button>
-            <button type="button" className="fmt-btn" onClick={() => {
-              const ta = document.getElementById('wk-edit-desc')
-              if (!ta) return
-              const start = ta.selectionStart
-              const before = editForm.description.slice(0, start)
-              const after = editForm.description.slice(start)
-              const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
-              setEditForm({ ...editForm, description: before + nl + '--- ' + after })
-              setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 4 }, 0)
-            }}>— Section</button>
-          </div>
-          <textarea id="wk-edit-desc" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} placeholder="Full workout details..." style={{ minHeight: '140px' }} />
-
-          <label>Score Type</label>
-          <div className="st-sel">
-            {SCORE_TYPES.map(t => (
-              <button key={t} className={`st-opt${editForm.score_type === t ? ' on' : ''}`}
-                onClick={() => setEditForm({ ...editForm, score_type: t })}>{t}</button>
-            ))}
-          </div>
-
-          <label>Duration (exact minutes, if known)</label>
-          <input type="number" value={editForm.estimated_duration_mins} onChange={e => setEditForm({ ...editForm, estimated_duration_mins: e.target.value })} placeholder="e.g. 30" />
-
-          <label>Duration Range (if exact is unknown)</label>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <input type="number" value={editForm.estimated_duration_min} onChange={e => setEditForm({ ...editForm, estimated_duration_min: e.target.value })} placeholder="Min" style={{ width: '80px' }} />
-            <span style={{ color: 'var(--tx3)' }}>–</span>
-            <input type="number" value={editForm.estimated_duration_max} onChange={e => setEditForm({ ...editForm, estimated_duration_max: e.target.value })} placeholder="Max" style={{ width: '80px' }} />
-            <span style={{ color: 'var(--tx3)', fontSize: '12px' }}>minutes</span>
-          </div>
-
-          <label>Equipment</label>
-          <div className="cr">
-            {['Barbell', 'Bench', 'Bike (Assault/Echo)', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Speed Rope', 'Weighted Vest'].map(eq => (
-              <button key={eq} className={`ch${editForm.equipment.includes(eq) ? ' on' : ''}`}
-                onClick={() => toggleEditArray('equipment', eq)}>{eq}</button>
-            ))}
-          </div>
-
-          <label>Workout Type</label>
-          <div className="cr">
-            {['AMRAP', 'EMOM', 'For Calories', 'For Distance', 'For Time', 'Interval', 'Ladder', 'Rounds', 'Strength'].map(t => (
-              <button key={t} className={`ch${editForm.workout_types.includes(t) ? ' on' : ''}`}
-                onClick={() => toggleEditArray('workout_types', t)}>{t}</button>
-            ))}
-          </div>
-
-          <label>Category</label>
-          <div className="cr">
-            {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Outdoor', 'Track Workouts'].map(c => (
-              <button key={c} className={`ch${editForm.categories.includes(c) ? ' on' : ''}`}
-                onClick={() => toggleEditArray('categories', c)}>{c}</button>
-            ))}
-          </div>
-
-          <label>Movement Type</label>
-          <div className="cr">
-            {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat'].map(m => (
-              <button key={m} className={`ch${editForm.movement_categories.includes(m) ? ' on' : ''}`}
-                onClick={() => toggleEditArray('movement_categories', m)}>{m}</button>
-            ))}
-          </div>
-
-          <label>Body Part</label>
-          <div className="cr">
-            {['Upper Body', 'Lower Body', 'Full Body'].map(b => (
-              <button key={b} className={`ch${editForm.body_parts.includes(b) ? ' on' : ''}`}
-                onClick={() => toggleEditArray('body_parts', b)}>{b}</button>
-            ))}
-          </div>
-
-          <div className="mf">
-            <button className="ab" onClick={() => { setEditing(false); setEditForm(null); setRemixing(false) }}>Cancel</button>
-            <button className="ab p" onClick={saveEdit}>{remixing ? '🔀 Save My Version' : 'Save'}</button>
-          </div>
-        </div>
-      </div>
+    {editMode && (
+      <WorkoutEditModal
+        workout={w}
+        mode={editMode}
+        session={session}
+        onClose={() => setEditMode(null)}
+        onSaved={() => { setEditMode(null); onWorkoutsChanged && onWorkoutsChanged() }}
+      />
     )}
 
     {showTimer && <WorkoutTimer workout={w} onClose={() => setShowTimer(false)} session={session} onWorkoutsChanged={onWorkoutsChanged} />}

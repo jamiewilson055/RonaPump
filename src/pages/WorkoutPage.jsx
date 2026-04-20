@@ -1,43 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { formatDesc, bestScore } from '../lib/workoutFormat'
 import WorkoutTimer from '../components/WorkoutTimer'
+import WorkoutEditModal from '../components/WorkoutEditModal'
 import ShareImage from '../components/ShareImage'
 import StoryCard from '../components/StoryCard'
 import '../App.css'
 
-function formatDesc(text) {
-  function renderBold(str) {
-    const parts = str.split(/\*\*(.*?)\*\*/)
-    if (parts.length === 1) return str
-    return parts.map((part, i) => i % 2 === 1 ? <b key={i}>{part}</b> : part)
-  }
-  return (text || '').split('\n').map((line, i) => {
-    if (line.startsWith('  • ')) return <div key={i} className="desc-li sub">{renderBold(line.slice(4))}</div>
-    if (line.startsWith('• ')) return <div key={i} className="desc-li">{renderBold(line.slice(2))}</div>
-    if (line.startsWith('--- ')) return <div key={i} className="desc-section">{renderBold(line.slice(4))}</div>
-    // Lines ending with ':' (optionally wrapped in **bold**) get the section header style,
-    // with the trailing colon stripped and no top border (distinguishes from --- sections)
-    const trimmed = line.trim()
-    if (trimmed.endsWith(':**') && trimmed.length > 3) {
-      return <div key={i} className="desc-section" style={{ borderTop: 'none', paddingTop: 0 }}>{renderBold(trimmed.slice(0, -3) + '**')}</div>
-    }
-    if (trimmed.endsWith(':') && trimmed.length > 1) {
-      return <div key={i} className="desc-section" style={{ borderTop: 'none', paddingTop: 0 }}>{renderBold(trimmed.slice(0, -1))}</div>
-    }
-    if (line.trim() === '') return <br key={i} />
-    return <div key={i}>{renderBold(line)}</div>
-  })
-}
 
-function bestScore(w) {
-  const pl = w.performance_log || []
-  if (!pl.length) return null
-  if (w.score_type === 'Time') {
-    return pl.reduce((b, e) => (!b || (e.score && e.score < b)) ? e.score : b, null)
-  }
-  return pl.reduce((b, e) => (!b || (e.score && e.score > b)) ? e.score : b, null)
-}
 
 function SimilarCard({ workout: s }) {
   const [open, setOpen] = useState(false)
@@ -102,33 +73,10 @@ export default function WorkoutPage() {
   const [showSimilar, setShowSimilar] = useState(false)
   const [showCollections, setShowCollections] = useState(false)
   const [collections, setCollections] = useState([])
-  const [editing, setEditing] = useState(false)
-  const [remixing, setRemixing] = useState(false)
-  const [editForm, setEditForm] = useState(null)
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
-  const [swapOpen, setSwapOpen] = useState(false)
-  const [swapConstraints, setSwapConstraints] = useState([])
-  const [swapLoading, setSwapLoading] = useState(false)
+  const [editMode, setEditMode] = useState(null) // null | 'edit' | 'remix'
   const [logSort, setLogSort] = useState('date')
   const [editingLogId, setEditingLogId] = useState(null)
   const [editLogForm, setEditLogForm] = useState(null)
-  const EMOJI_CATEGORIES = [
-    { label: '💪 Fitness', emojis: ['💪', '🏋️', '🏃', '🔥', '⏱', '🦍', '💀', '😤', '🫡', '🎯', '🏆', '⚡', '🧨', '💣', '🚀', '👊', '✅', '❌', '⬆️', '⬇️'] },
-    { label: '🔢 Numbers', emojis: ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '🔟', '💯', '0️⃣'] },
-    { label: '⚙️ Gear', emojis: ['🏋️‍♂️', '🏋️‍♀️', '🚴', '🚣', '🏊', '⛷️', '🧗', '🤸', '🏃‍♂️', '🏃‍♀️', '🥇', '🥈', '🥉', '🎽'] },
-    { label: '😀 Faces', emojis: ['😀', '😎', '🤯', '😈', '🥵', '😮‍💨', '🫠', '💀', '👀', '🙌', '👏', '🤝', '✊', '🤘'] },
-    { label: '📝 Misc', emojis: ['📌', '📝', '📊', '🗓️', '⭐', '💡', '🔄', '⏩', '▶️', '⏸️', '🟢', '🔴', '🟡', '⚪', '🔵', '➡️', '⬅️'] },
-  ]
-  function insertEmoji(emoji) {
-    const ta = document.getElementById('wp-edit-desc')
-    if (!ta) return
-    const start = ta.selectionStart
-    const before = editForm.description.slice(0, start)
-    const after = editForm.description.slice(start)
-    setEditForm({ ...editForm, description: before + emoji + after })
-    setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + emoji.length }, 0)
-  }
-
   const isAdmin = profile?.is_admin || false
 
   useEffect(() => {
@@ -277,103 +225,12 @@ export default function WorkoutPage() {
     })
   }
 
-  function startEdit() {
-    setEditForm({
-      name: workout.name || '', description: workout.description || '', score_type: workout.score_type || 'None',
-      estimated_duration_mins: workout.estimated_duration_mins || '',
-      equipment: [...(workout.equipment || [])], workout_types: [...(workout.workout_types || [])],
-      categories: [...(workout.categories || [])], movement_categories: [...(workout.movement_categories || [])],
-      body_parts: [...(workout.body_parts || [])],
-    })
-    setRemixing(false)
-    setEditing(true)
-  }
-
+  function startEdit() { setEditMode('edit') }
   function startRemix() {
     if (!session) return
-    setEditForm({
-      name: (workout.name || 'Unnamed') + ' (My Version)', description: workout.description || '', score_type: workout.score_type || 'None',
-      estimated_duration_mins: workout.estimated_duration_mins || '',
-      equipment: [...(workout.equipment || [])], workout_types: [...(workout.workout_types || [])],
-      categories: [...(workout.categories || [])], movement_categories: [...(workout.movement_categories || [])],
-      body_parts: [...(workout.body_parts || [])],
-    })
-    setRemixing(true)
-    setEditing(true)
+    setEditMode('remix')
   }
 
-  function toggleEditArray(field, val) {
-    setEditForm(prev => {
-      const arr = [...prev[field]]
-      const idx = arr.indexOf(val)
-      if (idx >= 0) arr.splice(idx, 1); else arr.push(val)
-      return { ...prev, [field]: arr }
-    })
-  }
-
-  function toggleSwapConstraint(c) {
-    setSwapConstraints(prev => {
-      if (c === 'Bodyweight Only') return prev.includes(c) ? prev.filter(x => x !== c) : [c]
-      const next = prev.filter(x => x !== 'Bodyweight Only')
-      return next.includes(c) ? next.filter(x => x !== c) : [...next, c]
-    })
-  }
-
-  async function doSwap() {
-    if (!swapConstraints.length || swapLoading) return
-    setSwapLoading(true)
-    try {
-      const res = await fetch('/api/generate-workout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode: 'swap',
-          description: editForm.description,
-          constraints: swapConstraints,
-          name: editForm.name,
-          equipment: editForm.equipment,
-        })
-      })
-      if (!res.ok) throw new Error('Server error')
-      const data = await res.json()
-      if (data.description) {
-        setEditForm(prev => ({ ...prev, description: data.description }))
-        if (data.equipment) setEditForm(prev => ({ ...prev, equipment: data.equipment }))
-      }
-      setSwapOpen(false)
-      setSwapConstraints([])
-    } catch (err) {
-      alert('Swap failed — try again')
-    }
-    setSwapLoading(false)
-  }
-
-  async function saveEdit() {
-    if (!editForm.description.trim()) { alert('Description is required.'); return }
-    if (remixing) {
-      const { error } = await supabase.from('workouts').insert({
-        name: editForm.name.trim() || null, description: editForm.description.trim(), score_type: editForm.score_type,
-        estimated_duration_mins: editForm.estimated_duration_mins ? parseInt(editForm.estimated_duration_mins) : null,
-        equipment: editForm.equipment.length ? editForm.equipment : ['Bodyweight'],
-        workout_types: editForm.workout_types.length ? editForm.workout_types : ['For Time'],
-        categories: editForm.categories, movement_categories: editForm.movement_categories.length ? editForm.movement_categories : [],
-        body_parts: editForm.body_parts || [], created_by: session.user.id, visibility: 'private', source: 'remix-of-' + workout.id,
-      })
-      if (error) { alert('Error saving: ' + error.message); return }
-    } else {
-      const { error } = await supabase.from('workouts').update({
-        name: editForm.name.trim() || null, description: editForm.description.trim(), score_type: editForm.score_type,
-        estimated_duration_mins: editForm.estimated_duration_mins ? parseInt(editForm.estimated_duration_mins) : null,
-        equipment: editForm.equipment.length ? editForm.equipment : ['Bodyweight'],
-        workout_types: editForm.workout_types.length ? editForm.workout_types : ['General'],
-        categories: editForm.categories, movement_categories: editForm.movement_categories.length ? editForm.movement_categories : [],
-        body_parts: editForm.body_parts || [], auto_named: false,
-      }).eq('id', workout.id)
-      if (error) { alert('Error saving: ' + error.message); return }
-    }
-    setEditing(false); setEditForm(null); setRemixing(false); setShowEmojiPicker(false); setSwapOpen(false); setSwapConstraints([])
-    loadWorkout()
-  }
 
   async function deleteWorkout() {
     if (!confirm('Permanently delete this workout? This cannot be undone.')) return
@@ -611,130 +468,14 @@ export default function WorkoutPage() {
       {showShareImage && <ShareImage workout={w} onClose={() => setShowShareImage(false)} />}
       {showStoryCard && <StoryCard workout={w} score={lastLogScore} session={session} onClose={() => setShowStoryCard(false)} />}
 
-      {editing && editForm && (
-        <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) { setEditing(false); setEditForm(null); setRemixing(false); setShowEmojiPicker(false); setSwapOpen(false); setSwapConstraints([]) } }}>
-          <div className="mc">
-            <h2>{remixing ? '🔀 Remix Workout' : 'Edit Workout'}</h2>
-            {remixing && <div style={{ fontSize: '12px', color: 'var(--tx3)', marginBottom: '10px', lineHeight: 1.5 }}>Modify this workout to fit your equipment or preferences. It'll be saved as a private copy.</div>}
-            <label>Name</label>
-            <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="e.g. The Grind" />
-            <label>Description / Details</label>
-            <div className="fmt-bar">
-              <button type="button" className="fmt-btn" onClick={() => {
-                const ta = document.getElementById('wp-edit-desc')
-                if (!ta) return
-                const start = ta.selectionStart
-                const before = editForm.description.slice(0, start)
-                const after = editForm.description.slice(start)
-                const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
-                setEditForm({ ...editForm, description: before + nl + '• ' + after })
-                setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 2 }, 0)
-              }}>• Bullet</button>
-              <button type="button" className="fmt-btn" onClick={() => {
-                const ta = document.getElementById('wp-edit-desc')
-                if (!ta) return
-                const start = ta.selectionStart
-                const before = editForm.description.slice(0, start)
-                const after = editForm.description.slice(start)
-                const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
-                setEditForm({ ...editForm, description: before + nl + '  • ' + after })
-                setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 4 }, 0)
-              }}>  ◦ Sub-bullet</button>
-              <button type="button" className="fmt-btn" onClick={() => {
-                const ta = document.getElementById('wp-edit-desc')
-                if (!ta) return
-                const start = ta.selectionStart
-                const before = editForm.description.slice(0, start)
-                const after = editForm.description.slice(start)
-                const nl = before.length > 0 && !before.endsWith('\n') ? '\n' : ''
-                setEditForm({ ...editForm, description: before + nl + '--- ' + after })
-                setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + nl.length + 4 }, 0)
-              }}>— Section</button>
-              <button type="button" className={`fmt-btn${swapOpen ? ' fmt-active' : ''}`} onClick={() => { setSwapOpen(!swapOpen); if (swapOpen) setSwapConstraints([]) }}>🔄 Swap</button>
-              <button type="button" className="fmt-btn" style={showEmojiPicker ? { background: 'var(--acc)', color: '#fff', borderColor: 'var(--acc)' } : {}} onClick={() => setShowEmojiPicker(!showEmojiPicker)}>😀 Emoji</button>
-            </div>
-            {swapOpen && (
-              <div className="swap-panel">
-                <div className="swap-hint">Remove equipment you don't have — AI rewrites the workout</div>
-                <div className="cr">
-                  {editForm.equipment.filter(e => e !== 'Bodyweight').map(eq => (
-                    <button key={eq} className={`ch${swapConstraints.includes('No ' + eq) ? ' on' : ''}`}
-                      onClick={() => toggleSwapConstraint('No ' + eq)}>✕ {eq}</button>
-                  ))}
-                  {editForm.description.toLowerCase().match(/\brun\b/) && (
-                    <button className={`ch${swapConstraints.includes('No Running') ? ' on' : ''}`}
-                      onClick={() => toggleSwapConstraint('No Running')}>✕ Running</button>
-                  )}
-                  <button className={`ch${swapConstraints.includes('Bodyweight Only') ? ' on' : ''}`}
-                    onClick={() => toggleSwapConstraint('Bodyweight Only')}>💪 Bodyweight Only</button>
-                </div>
-                <button className="ab p swap-go" disabled={!swapConstraints.length || swapLoading} onClick={doSwap}>
-                  {swapLoading ? '⏳ Rewriting...' : `🔄 Apply ${swapConstraints.length ? '(' + swapConstraints.length + ')' : ''}`}
-                </button>
-              </div>
-            )}
-            {showEmojiPicker && (
-              <div style={{ background: 'var(--bg2)', border: '1px solid var(--brd)', borderRadius: '6px', padding: '8px', marginBottom: '6px', maxHeight: '200px', overflowY: 'auto' }}>
-                {EMOJI_CATEGORIES.map(cat => (
-                  <div key={cat.label} style={{ marginBottom: '6px' }}>
-                    <div style={{ fontSize: '10px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: '4px' }}>{cat.label}</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px' }}>
-                      {cat.emojis.map((em, i) => (
-                        <button key={i} type="button" onClick={() => insertEmoji(em)} style={{ background: 'none', border: '1px solid transparent', borderRadius: '4px', cursor: 'pointer', fontSize: '18px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
-                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.08)'; e.currentTarget.style.borderColor = 'var(--brd)' }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.borderColor = 'transparent' }}
-                        >{em}</button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            <textarea id="wp-edit-desc" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} placeholder="Full workout details..." style={{ minHeight: '140px' }} />
-            <label>Score Type</label>
-            <div className="st-sel">
-              {['Time', 'Rounds + Reps', 'Reps', 'Calories', 'Distance', 'Load', 'None'].map(t => (
-                <button key={t} className={`st-opt${editForm.score_type === t ? ' on' : ''}`} onClick={() => setEditForm({ ...editForm, score_type: t })}>{t}</button>
-              ))}
-            </div>
-            <label>Duration (minutes)</label>
-            <input type="number" value={editForm.estimated_duration_mins} onChange={e => setEditForm({ ...editForm, estimated_duration_mins: e.target.value })} placeholder="e.g. 30" />
-            <label>Equipment</label>
-            <div className="cr">
-              {['Air Bike', 'Barbell', 'Bench', 'Bodyweight', 'Box', 'Dumbbell', 'Kettlebell', 'Medicine Ball', 'Pull-Up Bar', 'Rower', 'Sandbag', 'Ski Erg', 'Sled', 'Jump Rope', 'Weighted Vest'].map(eq => (
-                <button key={eq} className={`ch${editForm.equipment.includes(eq) ? ' on' : ''}`} onClick={() => toggleEditArray('equipment', eq)}>{eq}</button>
-              ))}
-            </div>
-            <label>Workout Type</label>
-            <div className="cr">
-              {['AMRAP', 'EMOM', 'For Calories', 'For Distance', 'For Time', 'Interval', 'Ladder', 'Rounds', 'Strength'].map(t => (
-                <button key={t} className={`ch${editForm.workout_types.includes(t) ? ' on' : ''}`} onClick={() => toggleEditArray('workout_types', t)}>{t}</button>
-              ))}
-            </div>
-            <label>Category</label>
-            <div className="cr">
-              {['Cardio Only', 'DB Only', 'RonaAbs', 'Harambe Favorites', 'Home Gym', 'Hotel Workouts', 'HYROX', 'Murph', 'Partner', 'Track Workouts'].map(c => (
-                <button key={c} className={`ch${editForm.categories.includes(c) ? ' on' : ''}`} onClick={() => toggleEditArray('categories', c)}>{c}</button>
-              ))}
-            </div>
-            <label>Movement Type</label>
-            <div className="cr">
-              {['Bench Press', 'Burpee', 'DB Snatch', 'Deadlift', 'Farmers Carry', 'Jump', 'KB Swing', 'Lunge', 'Pull-Up', 'Push-Up', 'Run', 'Shoulder Press', 'Squat', 'Thruster', 'Wall Ball'].map(m => (
-                <button key={m} className={`ch${editForm.movement_categories.includes(m) ? ' on' : ''}`} onClick={() => toggleEditArray('movement_categories', m)}>{m}</button>
-              ))}
-            </div>
-            <label>Body Part</label>
-            <div className="cr">
-              {['Upper Body', 'Lower Body', 'Full Body'].map(b => (
-                <button key={b} className={`ch${editForm.body_parts.includes(b) ? ' on' : ''}`} onClick={() => toggleEditArray('body_parts', b)}>{b}</button>
-              ))}
-            </div>
-            <div className="mf">
-              <button className="ab" onClick={() => { setEditing(false); setEditForm(null); setRemixing(false); setShowEmojiPicker(false); setSwapOpen(false); setSwapConstraints([]) }}>Cancel</button>
-              <button className="ab p" onClick={saveEdit}>{remixing ? '🔀 Save My Version' : 'Save'}</button>
-            </div>
-          </div>
-        </div>
+      {editMode && (
+        <WorkoutEditModal
+          workout={workout}
+          mode={editMode}
+          session={session}
+          onClose={() => setEditMode(null)}
+          onSaved={() => { setEditMode(null); loadWorkout && loadWorkout() }}
+        />
       )}
     </div>
   )
