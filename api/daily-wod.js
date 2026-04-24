@@ -5,6 +5,53 @@ const supabase = createClient(
   'sb_publishable_gByzlgFKT1CqNm6fFPJhxA_hOhrcg8D'
 )
 
+// Strip redundant workout name from start of description (mirrors WorkoutCard cleanDesc)
+function cleanDesc(name, description) {
+  let d = description || ''
+  if (name) {
+    const nm = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const p1 = new RegExp('[\\u201c"\\u201d]\\s*' + nm + '\\s*[\\u201c"\\u201d]\\s*[-:.]?\\s*', 'gi')
+    d = d.replace(p1, '')
+    d = d.replace(/^\s*[\n\r]+/, '').replace(/^\s*[-:]\s*/, '')
+  }
+  d = d.replace(/[\{\}]/g, '').trim()
+  return d
+}
+
+// Escape HTML then convert **bold** → <strong>
+function renderBold(str) {
+  const esc = str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+  return esc.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+}
+
+// Convert app-style markers to email-safe HTML (mirrors WorkoutCard/WODCard formatDesc)
+// Uses padding-left + negative text-indent hanging indent — renders correctly in Gmail,
+// Apple Mail, Outlook desktop/web, and mobile clients (no position:absolute required).
+function formatDescForEmail(text) {
+  if (!text) return ''
+  return text.split('\n').map(line => {
+    // Sub-bullet: '  • ' → deeper indent, hollow circle, dimmer text
+    if (line.startsWith('  • ')) {
+      return `<div style="padding: 2px 0 2px 40px; text-indent: -20px; color: #9090a0;"><span style="color: #6e6e7a;">◦ </span>${renderBold(line.slice(4))}</div>`
+    }
+    // Top-level bullet: '• ' → indented, red bullet
+    if (line.startsWith('• ')) {
+      return `<div style="padding: 2px 0 2px 20px; text-indent: -20px;"><span style="color: #e01e1e;">• </span>${renderBold(line.slice(2))}</div>`
+    }
+    // Section header: '--- ' → bold uppercase red, matches app
+    if (line.startsWith('--- ')) {
+      return `<div style="font-weight: 700; text-transform: uppercase; color: #e01e1e; font-size: 12px; letter-spacing: 0.5px; margin: 12px 0 4px;">${renderBold(line.slice(4))}</div>`
+    }
+    // Empty line → spacer
+    if (line.trim() === '') return `<div style="height: 8px;"></div>`
+    // Regular line
+    return `<div style="padding: 2px 0;">${renderBold(line)}</div>`
+  }).join('')
+}
+
 export default async function handler(req, res) {
   // Verify cron secret or allow manual trigger from admin
   const authHeader = req.headers.authorization
@@ -40,8 +87,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ message: 'No subscribers', wod: wod.name })
     }
 
-    // Format workout details
-    const desc = (wod.description || '').replace(/\*\*/g, '').slice(0, 300)
+    // Format workout details — match app rendering exactly
+    const cleanedDesc = cleanDesc(wod.name, wod.description)
+    const descHtml = formatDescForEmail(cleanedDesc)
     const equipment = (wod.equipment || []).filter(e => e !== 'Bodyweight').join(', ') || 'Bodyweight'
     const duration = wod.estimated_duration_mins ? `${wod.estimated_duration_mins} min` : ''
     const types = (wod.workout_types || []).join(', ')
@@ -68,12 +116,12 @@ export default async function handler(req, res) {
       </div>
       <div style="padding: 24px;">
         <div style="font-size: 22px; font-weight: 700; margin-bottom: 8px;">${wod.name}</div>
-        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+        <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
           ${duration ? `<span style="background: rgba(255,255,255,.08); padding: 3px 10px; border-radius: 12px; font-size: 12px;">${duration}</span>` : ''}
           ${types ? `<span style="background: rgba(255,255,255,.08); padding: 3px 10px; border-radius: 12px; font-size: 12px;">${types}</span>` : ''}
           <span style="background: rgba(255,255,255,.08); padding: 3px 10px; border-radius: 12px; font-size: 12px;">${equipment}</span>
         </div>
-        <div style="font-size: 14px; line-height: 1.7; color: #b0b0b8; white-space: pre-line; margin-bottom: 20px;">${desc}${(wod.description || '').length > 300 ? '...' : ''}</div>
+        <div style="font-size: 14px; line-height: 1.7; color: #ededf0; margin-bottom: 20px;">${descHtml}</div>
         <a href="${link}" style="display: block; background: #e01e1e; color: white; text-align: center; padding: 14px; border-radius: 8px; font-weight: 700; font-size: 16px; text-decoration: none;">Open Workout →</a>
       </div>
       <div style="padding: 16px 24px; border-top: 1px solid #1a1a25; text-align: center; font-size: 11px; color: #6e6e7a;">
