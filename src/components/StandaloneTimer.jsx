@@ -62,6 +62,22 @@ function playGorillaGrunt() {
   } catch (e) {}
 }
 
+// Speak "Workout complete" then play gorilla grunt — precisely chained via onend
+function playWorkoutComplete() {
+  try {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel()
+      const u = new SpeechSynthesisUtterance('Workout complete')
+      u.rate = 1.0; u.volume = 1.0
+      u.onend = () => { setTimeout(() => playGorillaGrunt(), 200) }
+      u.onerror = () => { try { playGorillaGrunt() } catch {} }
+      window.speechSynthesis.speak(u)
+    } else {
+      playGorillaGrunt()
+    }
+  } catch { try { playGorillaGrunt() } catch {} }
+}
+
 function fmt(s) {
   const m = Math.floor(Math.abs(s) / 60)
   const sec = Math.abs(s) % 60
@@ -261,7 +277,7 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
         setTime(remaining)
         if (remaining <= 0 && lastSecRef.current !== -999) {
           lastSecRef.current = -999
-          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock(); return
+          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) { playDone(); playWorkoutComplete() } releaseWakeLock(); return
         }
         if (elapsed !== lastSecRef.current && sound) {
           lastSecRef.current = elapsed
@@ -284,14 +300,14 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
         setTime(Math.min(elapsed, cap))
         if (elapsed >= cap && lastSecRef.current !== -999) {
           lastSecRef.current = -999
-          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
+          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) { playDone(); playWorkoutComplete() } releaseWakeLock()
         }
       }, 250)
     })
   }
 
   function finishForTime() {
-    clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
+    clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) { playDone(); playWorkoutComplete() } releaseWakeLock()
   }
 
   // ============= EMOM =============
@@ -305,7 +321,7 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
         setTime(elapsed)
         if (elapsed >= totalEmom && lastSecRef.current < totalEmom) {
           lastSecRef.current = totalEmom
-          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
+          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) { playDone(); playWorkoutComplete() } releaseWakeLock()
           setCurrentRound(emomRounds); setIntervalTimeLeft(0); return
         }
         const round = Math.min(Math.floor(elapsed / emomInterval) + 1, emomRounds)
@@ -343,7 +359,7 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
         setTime(elapsed)
         if (elapsed >= totalDur && lastSecRef.current < totalDur) {
           lastSecRef.current = totalDur
-          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
+          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) { playDone(); playWorkoutComplete() } releaseWakeLock()
           setIntervalTimeLeft(0); return
         }
         // Figure out which set/round/phase from elapsed
@@ -392,7 +408,7 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
         setTime(elapsed)
         if (elapsed >= totalDur && lastSecRef.current < totalDur) {
           lastSecRef.current = totalDur
-          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
+          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) { playDone(); playWorkoutComplete() } releaseWakeLock()
           setIntervalTimeLeft(0); return
         }
         const posInTotal = Math.min(elapsed, totalDur - 1)
@@ -447,7 +463,7 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
         setTime(remaining)
         if (remaining <= 0 && lastSecRef.current !== -999) {
           lastSecRef.current = -999
-          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
+          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) { playDone(); playWorkoutComplete() } releaseWakeLock()
         }
         if (elapsed !== lastSecRef.current && sound) {
           lastSecRef.current = elapsed
@@ -461,7 +477,7 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
         setTime(Math.min(elapsed, cap))
         if (elapsed >= cap && lastSecRef.current !== -999) {
           lastSecRef.current = -999
-          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
+          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) { playDone(); playWorkoutComplete() } releaseWakeLock()
         }
       }, 250)
     } else if (mode === 'emom') {
@@ -471,7 +487,7 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
         setTime(elapsed)
         if (elapsed >= totalEmom && lastSecRef.current < totalEmom) {
           lastSecRef.current = totalEmom
-          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
+          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) { playDone(); playWorkoutComplete() } releaseWakeLock()
           setCurrentRound(emomRounds); setIntervalTimeLeft(0); return
         }
         const round = Math.min(Math.floor(elapsed / emomInterval) + 1, emomRounds)
@@ -500,7 +516,7 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
         setTime(elapsed)
         if (elapsed >= totalDur && lastSecRef.current < totalDur) {
           lastSecRef.current = totalDur
-          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
+          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) { playDone(); playWorkoutComplete() } releaseWakeLock()
           setIntervalTimeLeft(0); return
         }
         let rem = elapsed, set = 1
@@ -530,7 +546,7 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
         setTime(elapsed)
         if (elapsed >= totalDur && lastSecRef.current < totalDur) {
           lastSecRef.current = totalDur
-          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) playDone(); releaseWakeLock()
+          clearInterval(intervalRef.current); setRunning(false); setPhase('done'); if (sound) { playDone(); playWorkoutComplete() } releaseWakeLock()
           setIntervalTimeLeft(0); return
         }
         const posInTotal = Math.min(elapsed, totalDur - 1)

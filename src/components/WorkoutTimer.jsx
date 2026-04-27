@@ -87,6 +87,22 @@ function playGorillaGrunt() {
   } catch (e) {}
 }
 
+// Speak "Workout complete" then play gorilla grunt — precisely chained via onend
+function playWorkoutComplete() {
+  try {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel()
+      const u = new SpeechSynthesisUtterance('Workout complete')
+      u.rate = 1.0; u.volume = 1.0
+      u.onend = () => { setTimeout(() => playGorillaGrunt(), 200) }
+      u.onerror = () => { try { playGorillaGrunt() } catch {} }
+      window.speechSynthesis.speak(u)
+    } else {
+      playGorillaGrunt()
+    }
+  } catch { try { playGorillaGrunt() } catch {} }
+}
+
 export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChanged }) {
   const [mode, setMode] = useState(null)
   const [totalSeconds, setTotalSeconds] = useState(0)
@@ -262,7 +278,7 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
           if (next > lastBeepSecRef.current) {
             for (let s = lastBeepSecRef.current + 1; s <= next; s++) {
               if (mode === 'countdown' && s >= totalSeconds) {
-                setRunning(false); setFinished(true); playTripleBeep(); lastBeepSecRef.current = s; return totalSeconds
+                setRunning(false); setFinished(true); playTripleBeep(); playWorkoutComplete(); lastBeepSecRef.current = s; return totalSeconds
               }
               if (mode === 'countdown') {
                 const remaining = totalSeconds - s
@@ -272,7 +288,7 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
                 const eRounds = parseInt(emomRounds) || 10
                 const eInterval = parseInt(emomInterval) || 60
                 const totalEmom = eRounds * eInterval
-                if (s >= totalEmom) { setRunning(false); setFinished(true); playTripleBeep(); lastBeepSecRef.current = s; return totalEmom }
+                if (s >= totalEmom) { setRunning(false); setFinished(true); playTripleBeep(); playWorkoutComplete(); lastBeepSecRef.current = s; return totalEmom }
                 if (s % eInterval === 0 && s > 0) playDoubleBeep()
                 const timeInRound = s % eInterval
                 const timeLeft = eInterval - timeInRound
@@ -285,7 +301,7 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
                 const rds = parseInt(intervalRounds) || 8
                 const roundTime = wk + rs
                 const totalInt = rds * roundTime
-                if (s >= totalInt) { setRunning(false); setFinished(true); playTripleBeep(); lastBeepSecRef.current = s; return totalInt }
+                if (s >= totalInt) { setRunning(false); setFinished(true); playTripleBeep(); playWorkoutComplete(); lastBeepSecRef.current = s; return totalInt }
                 const posInRound = s % roundTime
                 if (posInRound === 0 && s > 0) { playDoubleBeep(); speakWork() }
                 if (posInRound === wk) { playBeep(440, 0.2, 0.3); speakRest() }
@@ -331,6 +347,7 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
     setRunning(false)
     setFinished(true)
     playTripleBeep()
+    playWorkoutComplete()
     // Auto-fill score with elapsed time for time-based workouts
     if (isTimeScore || mode === 'stopwatch') {
       setTimerLogScore(formatTime(elapsed))
