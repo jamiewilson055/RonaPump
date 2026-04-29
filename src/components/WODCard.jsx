@@ -1,11 +1,39 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { formatDesc } from '../lib/workoutFormat'
 import WorkoutTimer from './WorkoutTimer'
-import WorkoutEditModal from './WorkoutEditModal'
 import ShareImage from './ShareImage'
 import StoryCard from './StoryCard'
 
+function previewDesc(text) {
+  if (!text) return ''
+  return text
+    .split('\n')
+    .map(line => {
+      const trimmed = line.trim()
+      if (!trimmed) return ''
+      if (trimmed.startsWith('--- ')) return trimmed.slice(4)
+      if (line.startsWith('  • ')) return '• ' + trimmed.slice(2)
+      return trimmed
+    })
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+}
+
+function formatDesc(text) {
+  function renderBold(str) {
+    const parts = str.split(/\*\*(.*?)\*\*/)
+    if (parts.length === 1) return str
+    return parts.map((part, i) => i % 2 === 1 ? <b key={i}>{part}</b> : part)
+  }
+  return (text || '').split('\n').map((line, i) => {
+    if (line.startsWith('  • ')) return <div key={i} className="desc-li sub">{renderBold(line.slice(4))}</div>
+    if (line.startsWith('• ')) return <div key={i} className="desc-li">{renderBold(line.slice(2))}</div>
+    if (line.startsWith('--- ')) return <div key={i} className="desc-section">{renderBold(line.slice(4))}</div>
+    if (line.trim() === '') return <br key={i} />
+    return <div key={i}>{renderBold(line)}</div>
+  })
+}
 
 export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsChanged, favorites, toggleFavorite, isAdmin, collections, onCollectionsChanged }) {
   const [wod, setWod] = useState(null)
@@ -24,7 +52,6 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
   const [showCollections, setShowCollections] = useState(false)
   const [showSimilar, setShowSimilar] = useState(false)
   const [similarResults, setSimilarResults] = useState([])
-  const [editMode, setEditMode] = useState(null) // null | 'edit' | 'remix'
 
   const pick = useCallback(() => {
     const pool = workouts.filter(w => w.description && w.description.length > 40 && w.visibility !== 'private')
@@ -79,6 +106,14 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
     if (onWorkoutsChanged) onWorkoutsChanged()
   }
 
+  function copyLink() {
+    if (!wod) return
+    const slug = (wod.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    navigator.clipboard.writeText(`https://www.ronapump.com/workout/${slug}`)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   function findSimilar() {
     if (!wod || !workouts) return
     setShowSimilar(!showSimilar)
@@ -114,6 +149,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
   const isFav = favorites?.has(wod.id)
   const pl = wod.performance_log || []
   const scoreLabel = wod.score_type === 'Time' ? 'Time' : wod.score_type === 'Rounds + Reps' ? 'Score' : wod.score_type === 'Calories' ? 'Cals' : 'Result'
+  const descPreview = previewDesc(wod.description)
 
   return (
     <>
@@ -137,7 +173,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
 
         {!expanded && (
           <>
-            <div className="wod-desc">{wod.description?.slice(0, 140)}{wod.description?.length > 140 ? '...' : ''}</div>
+            <div className="wod-desc">{descPreview.slice(0, 140)}{descPreview.length > 140 ? '...' : ''}</div>
             <div className="wod-tags">
               {wod.equipment?.filter(q => q !== 'Bodyweight').slice(0, 4).map(q => <span key={q} className="tg te">{q}</span>)}
               {wod.workout_types?.filter(t => t !== 'General').slice(0, 3).map(t => <span key={t} className="tg tw">{t}</span>)}
@@ -191,12 +227,18 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
               <button className="ab p" onClick={() => { if (!session) { onAuthRequired(); return } setAddingLog(!addingLog) }} style={{ background: 'var(--grn-d)', color: 'var(--grn)', borderColor: 'var(--grn)' }}>{addingLog ? 'Cancel' : '✓ Complete Workout'}</button>
               {toggleFavorite && <button className={`ab ${isFav ? '' : 'g'}`} onClick={() => toggleFavorite(wod.id)}>{isFav ? '★ Unfavorite' : '☆ Favorite'}</button>}
               <button className="ab" onClick={() => { if (!session) { onAuthRequired(); return } setShowCollections(!showCollections) }}>{showCollections ? 'Hide' : '📁 Save'}</button>
-              <button className="ab" onClick={() => { if (!session) { onAuthRequired(); return } setEditMode('remix') }}>🔀 Remix</button>
+              <button className="ab" onClick={() => {
+                const slug = (wod.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+                window.location.href = '/workout/' + slug + '?remix=1'
+              }}>🔀 Remix</button>
               <button className="ab" onClick={findSimilar}>{showSimilar ? 'Hide Similar' : '≈ Similar'}</button>
               <button className="ab" onClick={() => setShowShareImage(true)}>📸 Instagram</button>
               <button className="ab" onClick={() => setShowStoryCard(true)}>📱 Story Card</button>
-              <button className="ab" onClick={shareWorkout}>📋 Share</button>
-              {isAdmin && <button className="ab p" onClick={() => setEditMode('edit')}>Edit</button>}
+              <button className="ab" onClick={copyLink}>{copied ? '✓ Copied!' : '🔗 Link'}</button>
+              {isAdmin && <button className="ab p" onClick={() => {
+                const slug = (wod.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+                window.location.href = '/workout/' + slug
+              }}>Edit</button>}
               {isAdmin && <button className="ab del" onClick={deleteWorkout}>Delete</button>}
             </div>
 
@@ -219,10 +261,13 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
                 {similarResults.length === 0 ? (
                   <div style={{ fontSize: '11px', color: 'var(--tx3)' }}>No similar workouts found.</div>
                 ) : similarResults.map(s => (
-                  <div key={s.id} className="similar-card">
+                  <div key={s.id} className="similar-card" onClick={() => {
+                    const slug = (s.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+                    window.location.href = '/workout/' + slug
+                  }} style={{ cursor: 'pointer' }}>
                     <div className="wn" style={{ fontSize: '12px' }}>{s.name}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--tx2)', marginTop: '4px', whiteSpace: 'pre-line' }}>{s.description}</div>
-                    <div style={{ display: 'flex', gap: '3px', marginTop: '6px', flexWrap: 'wrap' }}>
+                    <div style={{ fontSize: '10px', color: 'var(--tx3)' }}>{s.description?.slice(0, 100)}...</div>
+                    <div style={{ display: 'flex', gap: '3px', marginTop: '3px', flexWrap: 'wrap' }}>
                       {s.equipment?.filter(e => e !== 'Bodyweight').slice(0, 3).map(e => <span key={e} className="tg te">{e}</span>)}
                     </div>
                   </div>
@@ -232,15 +277,6 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
           </div>
         )}
       </div>
-      {editMode && (
-        <WorkoutEditModal
-          workout={wod}
-          mode={editMode}
-          session={session}
-          onClose={() => setEditMode(null)}
-          onSaved={() => { setEditMode(null); onWorkoutsChanged && onWorkoutsChanged() }}
-        />
-      )}
       {showTimer && <WorkoutTimer workout={wod} onClose={() => setShowTimer(false)} session={session} onWorkoutsChanged={onWorkoutsChanged} />}
       {showShareImage && <ShareImage workout={wod} onClose={() => setShowShareImage(false)} />}
       {showStoryCard && <StoryCard workout={wod} score={lastLogScore} session={session} onClose={() => setShowStoryCard(false)} />}
