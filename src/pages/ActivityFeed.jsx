@@ -32,6 +32,28 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
     }
   }, [highlightId])
 
+  // Scroll to + highlight the target item once the feed has loaded.
+  // Decoupled from loadActivity so it runs after items render and after the
+  // last of any overlapping loads settles, regardless of render timing.
+  useEffect(() => {
+    if (!highlightId || loading) return
+    const match = activities.find(a => String(a.id) === String(highlightId))
+    if (!match) return
+    let attempts = 0
+    const tryScroll = () => {
+      const el = document.getElementById('activity-' + match.id)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el.style.outline = '2px solid var(--acc)'
+        setTimeout(() => { el.style.outline = '' }, 3000)
+      } else if (attempts++ < 15) {
+        setTimeout(tryScroll, 150)
+      }
+    }
+    const t = setTimeout(tryScroll, 100)
+    return () => clearTimeout(t)
+  }, [highlightId, loading, activities])
+
   async function loadFollowing() {
     const { data } = await supabase.from('user_follows').select('following_id').eq('follower_id', session.user.id)
     if (data) setFollowing(data.map(f => f.following_id))
@@ -78,9 +100,10 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
     // Load likes and comments for these activities
     await loadLikesAndComments(combined)
 
-    // Auto-expand highlighted activity after everything loaded
+    // Auto-expand highlighted activity + preload its comments after load.
+    // The scroll itself is handled by the dedicated effect above.
     if (highlightId) {
-      const match = combined.find(a => a.id === highlightId)
+      const match = combined.find(a => String(a.id) === String(highlightId))
       if (match) {
         setExpandedComments(match.id)
         // Load comments for this activity
@@ -93,20 +116,6 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
           .order('created_at', { ascending: true })
         const key = actKey(match)
         setComments(prev => ({ ...prev, ['data:' + key]: cmts || [] }))
-
-        setTimeout(() => {
-          function tryScroll(attempts) {
-            const el = document.getElementById('activity-' + match.id)
-            if (el) {
-              el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-              el.style.outline = '2px solid var(--acc)'
-              setTimeout(() => { el.style.outline = '' }, 3000)
-            } else if (attempts < 10) {
-              setTimeout(() => tryScroll(attempts + 1), 200)
-            }
-          }
-          tryScroll(0)
-        }, 300)
       }
     }
 
@@ -358,7 +367,7 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
             const commentList = comments['data:' + key] || []
 
             return (
-              <div key={a.id + (a.feed_type || '')} id={`activity-${a.id}`} className={`activity-item${a.id === highlightId ? ' highlighted' : ''}${a.feed_type === 'challenge' ? ' challenge-item' : ''}`}>
+              <div key={a.id + (a.feed_type || '')} id={`activity-${a.id}`} className={`activity-item${String(a.id) === String(highlightId) ? ' highlighted' : ''}${a.feed_type === 'challenge' ? ' challenge-item' : ''}`}>
                 {a.feed_type !== 'challenge' ? (
                 <div className="activity-avatar" onClick={() => setViewingProfile(a.user_id)}>
                   {a.profiles?.avatar_url ? (

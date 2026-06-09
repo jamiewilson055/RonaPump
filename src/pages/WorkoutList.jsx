@@ -15,6 +15,9 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
   })
   const [sourceFilter, setSourceFilter] = useState('all') // all, official, community, mine
   const [showNewModal, setShowNewModal] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState('')
+  const [aiActive, setAiActive] = useState(null) // the natural-language query that produced the current filters
 
   const allEquipment = useMemo(() => [...new Set(workouts.flatMap(w => w.equipment || []))].sort(), [workouts])
   const allMovements = useMemo(() => [...new Set(workouts.flatMap(w => w.movement_categories || []))].sort(), [workouts])
@@ -113,7 +116,50 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
     setFilters({ eq: [], eqEx: [], mv: [], mvEx: [], cat: [], wt: [], bp: [], durMin: null, durMax: null, includeNoDur: true })
     setQuery('')
     setSourceFilter('all')
+    setAiActive(null)
+    setAiError('')
     setPage(1)
+  }
+
+  async function aiSearch() {
+    const q = query.trim()
+    if (!q || aiLoading) return
+    setAiLoading(true)
+    setAiError('')
+    try {
+      const res = await fetch('/api/search-workouts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: q,
+          vocab: {
+            equipment: allEquipment,
+            movements: allMovements,
+            categories: allCategories,
+            workoutTypes: allWorkoutTypes,
+            bodyParts: allBodyParts,
+          },
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) throw new Error(data.error || 'Search failed')
+      const f = data.filters || {}
+      const hasDur = f.durMin != null || f.durMax != null
+      setFilters({
+        eq: f.eq || [], eqEx: f.eqEx || [], mv: f.mv || [], mvEx: f.mvEx || [],
+        cat: f.cat || [], wt: f.wt || [], bp: f.bp || [],
+        durMin: f.durMin ?? null, durMax: f.durMax ?? null,
+        // when a duration was requested, exclude workouts with no duration data
+        includeNoDur: !hasDur,
+      })
+      setQuery(f.keywords || '')
+      setSourceFilter('all')
+      setAiActive(q)
+      setPage(1)
+    } catch (e) {
+      setAiError(e.message || 'Search failed')
+    }
+    setAiLoading(false)
   }
 
   function randomWorkout() {
@@ -163,13 +209,29 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
     <>
       <div className="srow">
         <div className="sbox">
-          <input type="text" placeholder="Search by name, movement, equipment, keyword..." value={query}
-            onChange={e => { setQuery(e.target.value); setPage(1) }} />
+          <input type="text" placeholder="Search keywords — or describe a workout and tap ✨" value={query}
+            onChange={e => { setQuery(e.target.value); setPage(1) }}
+            onKeyDown={e => { if (e.key === 'Enter') aiSearch() }} />
           {query && <button className="sbox-clear" onClick={() => { setQuery(''); setPage(1) }}>✕</button>}
         </div>
+        <button className="rbtn" onClick={aiSearch} disabled={aiLoading} title="Search with AI — describe what you want">{aiLoading ? '⏳' : '✨'}</button>
         <button className="rbtn" onClick={randomWorkout} title="Random workout">🎲</button>
         {session && <button className="nbtn" onClick={() => setShowNewModal(true)}>+ New Workout</button>}
       </div>
+
+      {(aiActive || aiError) && (
+        <div style={{
+          margin: '4px 0 8px', padding: '8px 12px', borderRadius: 8, fontSize: 13,
+          border: `1px solid ${aiError ? 'var(--err, #c0392b)' : 'var(--acc, #888)'}`,
+          background: 'var(--bg2, rgba(128,128,128,0.08))', display: 'flex',
+          alignItems: 'center', gap: 8, flexWrap: 'wrap'
+        }}>
+          {aiError
+            ? <span style={{ color: 'var(--err, #c0392b)' }}>AI search failed: {aiError}</span>
+            : <span>✨ AI results for <strong>"{aiActive}"</strong></span>}
+          <span onClick={clearFilters} style={{ cursor: 'pointer', textDecoration: 'underline', opacity: 0.8 }}>clear</span>
+        </div>
+      )}
 
       {showNewModal && <NewWorkoutModal onClose={() => setShowNewModal(false)} onSaved={() => { setShowNewModal(false); onWorkoutsChanged() }} session={session} isAdmin={isAdmin} />}
 
