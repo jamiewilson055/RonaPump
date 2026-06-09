@@ -85,6 +85,7 @@ function App() {
   }
 
   const [showUpdatePassword, setShowUpdatePassword] = useState(false)
+  const [unsubNotice, setUnsubNotice] = useState(null)
 
   // Auth
   useEffect(() => {
@@ -102,6 +103,23 @@ function App() {
     })
     return () => subscription.unsubscribe()
   }, [])
+
+  // Unsubscribe confirmation from the email "Unsubscribe" link redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const u = params.get('unsubscribed')
+    if (u === 'daily' || u === 'weekly' || u === 'all') {
+      setUnsubNotice(u)
+      const url = new URL(window.location.href)
+      url.searchParams.delete('unsubscribed')
+      window.history.replaceState({}, '', url.pathname + url.search)
+    }
+  }, [])
+
+  // If they arrived from an unsubscribe link and are signed in, open their profile to manage preferences
+  useEffect(() => {
+    if (unsubNotice && session) setShowProfile(true)
+  }, [unsubNotice, session])
 
   async function loadProfile(userId) {
     const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
@@ -288,10 +306,20 @@ function App() {
     setShowProfile(false)
   }
 
+  const unsubBanner = unsubNotice ? (
+    <div style={{ background: 'var(--s1, #101015)', border: '1px solid var(--brd, #1e1e28)', borderRadius: '10px', margin: '12px 16px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+      <span style={{ fontSize: '14px', color: 'var(--tx, #ededf0)', lineHeight: 1.5 }}>
+        You've unsubscribed from the {unsubNotice === 'daily' ? 'Workout of the Day' : unsubNotice === 'weekly' ? 'weekly digest' : 'RonaPump'} email{unsubNotice === 'all' ? 's' : ''}.{session ? ' Manage your email preferences below.' : ' Sign in to manage your email preferences.'}
+      </span>
+      <button className="ab" onClick={() => setUnsubNotice(null)} style={{ padding: '4px 12px', fontSize: '12px' }}>Dismiss</button>
+    </div>
+  ) : null
+
   if (showProfile && session) {
     return (
       <div className="app">
         <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onNotifNavigate={handleNotifNavigate} />
+        {unsubBanner}
         <Profile
           session={session}
           profile={profile}
@@ -325,6 +353,7 @@ function App() {
   return (
     <div className="app">
       <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onNotifNavigate={handleNotifNavigate} />
+      {unsubBanner}
       {!session && <Welcome onSignIn={() => setShowAuth(true)} />}
 
       {/* Continue where you left off banner */}

@@ -35,6 +35,7 @@ export default function Profile({ session, profile, onClose, onProfileUpdated })
     age: '',
     hometown: '',
     bio: '',
+    daily_wod: true,
     weekly_digest: true,
     my_equipment: [],
     instagram_handle: '',
@@ -58,6 +59,7 @@ export default function Profile({ session, profile, onClose, onProfileUpdated })
         age: profile.age || '',
         hometown: profile.hometown || '',
         bio: profile.bio || '',
+        daily_wod: profile.daily_wod !== false,
         weekly_digest: profile.weekly_digest !== false,
         my_equipment: profile.my_equipment || [],
         instagram_handle: profile.instagram_handle || '',
@@ -148,6 +150,7 @@ export default function Profile({ session, profile, onClose, onProfileUpdated })
         age: form.age ? parseInt(form.age) : null,
         hometown: form.hometown || null,
         bio: form.bio || null,
+        daily_wod: form.daily_wod,
         weekly_digest: form.weekly_digest,
         my_equipment: form.my_equipment.length ? form.my_equipment : [],
         instagram_handle: igRaw || null,
@@ -335,6 +338,13 @@ export default function Profile({ session, profile, onClose, onProfileUpdated })
 
             <div className="prof-digest-toggle">
               <label>
+                <input type="checkbox" checked={form.daily_wod} onChange={e => setForm({ ...form, daily_wod: e.target.checked })} />
+                <span>Receive Workout of the Day email</span>
+              </label>
+            </div>
+
+            <div className="prof-digest-toggle">
+              <label>
                 <input type="checkbox" checked={form.weekly_digest} onChange={e => setForm({ ...form, weekly_digest: e.target.checked })} />
                 <span>Receive weekly digest email</span>
               </label>
@@ -379,9 +389,7 @@ export default function Profile({ session, profile, onClose, onProfileUpdated })
             </div>
             <div className="prof-row">
               <span className="prof-label">Daily WOD Email</span>
-              <button className={`ab${wodSubscribed ? ' p' : ''}`} onClick={toggleWodSub} style={{ padding: '4px 12px', fontSize: '11px' }}>
-                {wodSubscribed ? '✅ Subscribed' : 'Subscribe'}
-              </button>
+              <span className="prof-value">{profile?.daily_wod !== false ? '✅ Subscribed' : '❌ Not subscribed'}</span>
             </div>
 
             <div className="prof-actions">
