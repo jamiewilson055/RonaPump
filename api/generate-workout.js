@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   // GET = health check
   if (req.method === 'GET') {
     const hasKey = !!(process.env.ANTHROPIC_API_KEY || '').trim()
-    return res.status(200).json({ status: 'ok', hasKey })
+    return res.status(200).json({ status: 'ok', hasKey, model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6' })
   }
 
   if (req.method !== 'POST') {
@@ -72,7 +72,7 @@ Respond ONLY with valid JSON in this exact format, no markdown, no backticks:
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
+          model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6',
           max_tokens: 2000,
           messages: [{ role: 'user', content: swapPrompt }],
         }),
@@ -125,7 +125,7 @@ Respond ONLY with valid JSON in this exact format, no markdown, no backticks:
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6',
         max_tokens: 1000,
         messages: [{
           role: 'user',
