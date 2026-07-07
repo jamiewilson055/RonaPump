@@ -175,7 +175,7 @@ Respond ONLY in valid JSON, no markdown, no backticks:
       const response = await fetch('/api/generate-workout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify({ prompt, raw: true })
       })
 
       const text = await response.text()

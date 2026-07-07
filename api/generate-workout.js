@@ -129,7 +129,7 @@ Respond ONLY with valid JSON in this exact format, no markdown, no backticks:
         max_tokens: 1000,
         messages: [{
           role: 'user',
-          content: `You are a fitness workout creator for RonaPump. Generate a workout based on: "${prompt}"
+          content: req.body?.raw ? prompt : `You are a fitness workout creator for RonaPump. Generate a workout based on: "${prompt}"
 
 Respond ONLY in valid JSON, no markdown, no backticks, no extra text:
 {"name":"Workout Name","description":"Line 1\\n• Movement 1\\n• Movement 2","score_type":"Time","estimated_duration_mins":20,"equipment":["Bodyweight"],"workout_types":["AMRAP"],"movement_categories":["Push-Up","Squat"],"body_parts":["Full Body"],"categories":[]}

@@ -887,6 +887,13 @@ input, select, textarea { font-family: inherit; }
 .doc-ctrl { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15); border-radius: 8px; padding: 12px 24px; font-size: 15px; font-weight: 600; color: #fff; cursor: pointer; font-family: 'JetBrains Mono', monospace; transition: all .12s; backdrop-filter: blur(4px); }
 .doc-ctrl:hover { background: rgba(255,255,255,.15); }
 .doc-ctrl.sec { color: rgba(255,255,255,.5); }
+/* Light mode: doc-ctrl is reused outside the deck (AI Coach, AI Generator) — dark text there; deck felt screen keeps white */
+[data-theme="light"] .doc-ctrl { background: rgba(0,0,0,.06); border-color: rgba(0,0,0,.15); color: #1a1a1a; }
+[data-theme="light"] .doc-ctrl:hover { background: rgba(0,0,0,.1); }
+[data-theme="light"] .doc-ctrl.sec { color: rgba(0,0,0,.5); }
+[data-theme="light"] .doc-play .doc-ctrl { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.15); color: #fff; }
+[data-theme="light"] .doc-play .doc-ctrl:hover { background: rgba(255,255,255,.15); }
+[data-theme="light"] .doc-play .doc-ctrl.sec { color: rgba(255,255,255,.5); }
 
 /* Pause overlay */
 .doc-pause-overlay { position: absolute; inset: 0; background: rgba(4,21,4,.94); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; z-index: 10; backdrop-filter: blur(6px); }
