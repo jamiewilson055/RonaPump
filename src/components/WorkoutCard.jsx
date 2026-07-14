@@ -83,28 +83,24 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const leaderboardPl = pl.filter(p => p.notes !== 'Quick logged')
   const totalLoggers = new Set(leaderboardPl.map(p => p.user_id)).size
 
-  // Sort performance logs: PR always on top, then by selected sort
+  // Sort performance logs: Rx ALWAYS above Scaled, then by score within each group
   const sortedPl = useMemo(() => {
     const sorted = [...leaderboardPl]
     if (logSort === 'score') {
-      if (w.score_type === 'Time') {
-        sorted.sort((a, b) => (a.score || '').localeCompare(b.score || ''))
-      } else {
-        sorted.sort((a, b) => (b.score || '').localeCompare(a.score || ''))
-      }
+      const cmpScore = w.score_type === 'Time'
+        ? (a, b) => (a.score || '').localeCompare(b.score || '')
+        : (a, b) => (b.score || '').localeCompare(a.score || '')
+      sorted.sort((a, b) => {
+        const aRx = a.is_rx !== false
+        const bRx = b.is_rx !== false
+        if (aRx !== bRx) return aRx ? -1 : 1
+        return cmpScore(a, b)
+      })
     } else {
       sorted.sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''))
     }
-    // Move PR to top
-    if (bs && sorted.length > 1) {
-      const prIdx = sorted.findIndex(e => e.score === bs)
-      if (prIdx > 0) {
-        const [pr] = sorted.splice(prIdx, 1)
-        sorted.unshift(pr)
-      }
-    }
     return sorted
-  }, [leaderboardPl, logSort, bs, w.score_type])
+  }, [leaderboardPl, logSort, w.score_type])
 
   const scoreLabel = w.score_type === 'Time' ? 'Time' : w.score_type === 'Rounds + Reps' ? 'Score' : w.score_type === 'Calories' ? 'Cals' : w.score_type === 'Reps' ? 'Reps' : w.score_type === 'Distance' ? 'Distance' : w.score_type === 'Load' ? 'Weight' : 'Result'
 

@@ -147,7 +147,14 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
   if (!wod) return null
 
   const isFav = favorites?.has(wod.id)
-  const pl = wod.performance_log || []
+  // Rx ALWAYS above Scaled, then by score within each group
+  const pl = [...(wod.performance_log || [])].sort((a, b) => {
+    const aRx = a.is_rx !== false
+    const bRx = b.is_rx !== false
+    if (aRx !== bRx) return aRx ? -1 : 1
+    if (wod.score_type === 'Time') return (a.score || '').localeCompare(b.score || '')
+    return (b.score || '').localeCompare(a.score || '')
+  })
   const scoreLabel = wod.score_type === 'Time' ? 'Time' : wod.score_type === 'Rounds + Reps' ? 'Score' : wod.score_type === 'Calories' ? 'Cals' : 'Result'
   const descPreview = previewDesc(wod.description)
 
@@ -205,7 +212,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
                     {pl.map(e => (
                       <tr key={e.id}>
                         <td>{e.completed_at || '—'}</td>
-                        <td>{e.score || '—'}</td>
+                        <td>{e.score || '—'} {e.is_rx === false && <span className="scaled-tag">Scaled</span>}{e.is_rx === true && e.score && <span className="rx-tag">Rx</span>}</td>
                         <td style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
                       </tr>
                     ))}

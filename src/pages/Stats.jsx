@@ -17,7 +17,7 @@ export default function Stats({ workouts, favorites }) {
     try {
       const { data } = await supabase
         .from('performance_log')
-        .select('score, completed_at, workout_id, user_id')
+        .select('score, completed_at, workout_id, user_id, is_rx')
         .not('score', 'is', null)
         .order('completed_at', { ascending: false })
         .limit(500)
@@ -40,7 +40,7 @@ export default function Stats({ workouts, favorites }) {
         const wk = wkMap[entry.workout_id]
         if (!wk || !wk.name || wk.score_type === 'None') return
         if (!byWorkout[wk.name]) byWorkout[wk.name] = { name: wk.name, scoreType: wk.score_type, entries: [] }
-        byWorkout[wk.name].entries.push({ user: prMap[entry.user_id] || 'Anonymous', score: entry.score, userId: entry.user_id })
+        byWorkout[wk.name].entries.push({ user: prMap[entry.user_id] || 'Anonymous', score: entry.score, userId: entry.user_id, isRx: entry.is_rx !== false })
       })
 
       const boards = Object.values(byWorkout)
@@ -48,13 +48,20 @@ export default function Stats({ workouts, favorites }) {
         .map(b => {
           const userBest = {}
           b.entries.forEach(e => {
-            if (!userBest[e.userId] || (b.scoreType === 'Time' ? e.score < userBest[e.userId].score : e.score > userBest[e.userId].score)) {
-              userBest[e.userId] = e
+            const cur = userBest[e.userId]
+            if (!cur) { userBest[e.userId] = e; return }
+            // A user's best entry is their best Rx; Scaled only counts if they have zero Rx logs
+            if (e.isRx !== cur.isRx) {
+              if (e.isRx) userBest[e.userId] = e
+              return
             }
+            if (b.scoreType === 'Time' ? e.score < cur.score : e.score > cur.score) userBest[e.userId] = e
           })
-          const ranked = Object.values(userBest).sort((a, c) =>
-            b.scoreType === 'Time' ? (a.score || '').localeCompare(c.score || '') : (c.score || '').localeCompare(a.score || '')
-          )
+          // Rx ALWAYS ranks above Scaled, then by score within each group
+          const ranked = Object.values(userBest).sort((a, c) => {
+            if (a.isRx !== c.isRx) return a.isRx ? -1 : 1
+            return b.scoreType === 'Time' ? (a.score || '').localeCompare(c.score || '') : (c.score || '').localeCompare(a.score || '')
+          })
           return { ...b, ranked }
         })
         .filter(b => b.ranked.length >= 1)
@@ -243,7 +250,7 @@ export default function Stats({ workouts, favorites }) {
                     {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
                   </span>
                   <span className="stat-key" style={{ flex: 1 }}>{entry.user}</span>
-                  <span className="stat-val" style={{ color: i === 0 ? 'var(--grn)' : 'var(--tx)' }}>{entry.score}</span>
+                  <span className="stat-val" style={{ color: i === 0 ? 'var(--grn)' : 'var(--tx)' }}>{entry.score}{entry.isRx === false && <span className="scaled-tag" style={{ marginLeft: '4px' }}>Scaled</span>}</span>
                 </div>
               ))}
             </div>
