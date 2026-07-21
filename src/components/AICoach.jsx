@@ -51,6 +51,7 @@ export default function AICoach({ session, onAuthRequired, onWorkoutsChanged }) 
   const [goal, setGoal] = useState('')
   const [goalSaved, setGoalSaved] = useState(false)
   const [mode, setMode] = useState('library') // 'library' | 'create'
+  const [excludeNames, setExcludeNames] = useState([])
 
   // Prefill training goal from profile
   useEffect(() => {
@@ -205,8 +206,9 @@ export default function AICoach({ session, onAuthRequired, onWorkoutsChanged }) 
 
       // 10. Candidate library workouts — score by fresh-muscle fit + equipment, skip recently done
       const doneRecently = new Set(logs.filter(l => daysAgo(l.completed_at) <= 30).map(l => l.workouts?.name).filter(Boolean))
+      const excludeSet = new Set(excludeNames.map(n => n.toLowerCase()))
       const scored = library
-        .filter(w => !doneRecently.has(w.name))
+        .filter(w => !doneRecently.has(w.name) && !excludeSet.has(w.name.toLowerCase()))
         .map(w => {
           let s = 0
           const muscles = new Set()
@@ -274,7 +276,10 @@ ${injuryNotes.join('\n') || 'None detected'}
 
 ATHLETE'S NOTE TO COACH TODAY:
 ${userContext.trim() || 'None'}
-
+${excludeNames.length ? `
+ALREADY RECOMMENDED THIS SESSION (the athlete passed on these — do NOT repeat them, and make this recommendation meaningfully DIFFERENT in style, movements, or duration):
+${excludeNames.join(', ')}
+` : ''}
 ${wantLibrary ? `CANDIDATE LIBRARY WORKOUTS (pre-filtered to fit their recovery + equipment):
 ${candidateLines.join('\n')}
 
@@ -340,6 +345,8 @@ Valid body_parts: Upper Body, Lower Body, Full Body`
       }
 
       setRecommendation(data)
+      const recName = (data.source === 'library' && data.library_pick) ? String(data.library_pick) : data.workout?.name
+      if (recName) setExcludeNames(prev => [...new Set([...prev, recName])].slice(-6))
     } catch (err) {
       setError('Error: ' + (err.message || 'Please try again'))
     }
@@ -566,6 +573,14 @@ Valid body_parts: Upper Body, Lower Body, Full Body`
                 ))}
               </div>
             )}
+
+            <div style={{ marginTop: '12px' }}>
+              <label className="ai-edit-label">📝 Adjust for the next recommendation (optional)</label>
+              <textarea className="doc-suit-input" value={userContext}
+                placeholder="e.g. simpler, shorter, only 20 minutes, no barbell…"
+                onChange={e => setUserContext(e.target.value)}
+                style={{ minHeight: '48px', marginBottom: '10px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5, resize: 'vertical', width: '100%' }} />
+            </div>
 
             <div className="coach-actions">
               {libraryWorkout ? (
