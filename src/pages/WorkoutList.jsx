@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { supabase } from '../lib/supabase'
 import Filters from '../components/Filters'
 import WorkoutCard from '../components/WorkoutCard'
 import NewWorkoutModal from '../components/NewWorkoutModal'
@@ -18,6 +19,12 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState('')
   const [aiActive, setAiActive] = useState(null) // the natural-language query that produced the current filters
+  const [qlOpen, setQlOpen] = useState(false)
+  const [qlText, setQlText] = useState('')
+  const [qlLoading, setQlLoading] = useState(false)
+  const [qlError, setQlError] = useState('')
+  const [qlParsed, setQlParsed] = useState(null)
+  const [qlSaved, setQlSaved] = useState(false)
 
   const allEquipment = useMemo(() => [...new Set(workouts.flatMap(w => w.equipment || []))].sort(), [workouts])
   const allMovements = useMemo(() => [...new Set(workouts.flatMap(w => w.movement_categories || []))].sort(), [workouts])
@@ -205,6 +212,82 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
       .slice(0, 3)
   }
 
+  async function quickLogParse() {
+    if (!session) { onAuthRequired(); return }
+    if (!qlText.trim()) return
+    setQlLoading(true); setQlError(''); setQlParsed(null); setQlSaved(false)
+    try {
+      const res = await fetch('/api/log-workout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: qlText, names: workouts.map(w => w.name) })
+      })
+      const data = await res.json()
+      if (data.error) { setQlError(data.error); setQlLoading(false); return }
+      let matchedWorkout = null
+      if (data.matched) {
+        const mn = String(data.matched).trim().toLowerCase()
+        matchedWorkout = workouts.find(w => w.name.trim().toLowerCase() === mn)
+          || workouts.find(w => w.name.trim().toLowerCase().includes(mn) || mn.includes(w.name.trim().toLowerCase()))
+      }
+      const d = new Date(); d.setDate(d.getDate() - (parseInt(data.days_ago) || 0))
+      if (!matchedWorkout && !data.new_workout) {
+        setQlError("Couldn't understand that — try including the workout name or activity")
+      } else {
+        setQlParsed({
+          matchedWorkout,
+          newWorkout: matchedWorkout ? null : data.new_workout,
+          score: data.score || '',
+          is_rx: data.is_rx !== false,
+          notes: data.notes || '',
+          date: d.toISOString().slice(0, 10),
+        })
+      }
+    } catch (err) { setQlError(err.message || 'Parse failed') }
+    setQlLoading(false)
+  }
+
+  async function quickLogConfirm() {
+    if (!session || !qlParsed) return
+    setQlLoading(true); setQlError('')
+    try {
+      let workoutId = qlParsed.matchedWorkout?.id
+      if (!workoutId && qlParsed.newWorkout) {
+        const nw = qlParsed.newWorkout
+        const { data: created, error: werr } = await supabase.from('workouts').insert({
+          name: nw.name || 'Quick Logged Activity',
+          description: nw.description || qlText,
+          score_type: nw.score_type || 'None',
+          estimated_duration_mins: nw.estimated_duration_mins || null,
+          equipment: nw.equipment || ['Bodyweight'],
+          workout_types: nw.workout_types || [],
+          movement_categories: nw.movement_categories || [],
+          body_parts: nw.body_parts || [],
+          categories: [],
+          visibility: 'private',
+          created_by: session.user.id,
+          source: 'quick-log',
+        }).select('id').single()
+        if (werr) throw werr
+        workoutId = created.id
+      }
+      if (!workoutId) throw new Error('No workout to log against')
+      const { error: lerr } = await supabase.from('performance_log').insert({
+        user_id: session.user.id,
+        workout_id: workoutId,
+        completed_at: qlParsed.date,
+        score: qlParsed.score || null,
+        notes: qlParsed.notes || null,
+        is_rx: qlParsed.is_rx,
+      })
+      if (lerr) throw lerr
+      setQlSaved(true); setQlParsed(null); setQlText(''); setQlOpen(false)
+      if (onWorkoutsChanged) onWorkoutsChanged()
+      setTimeout(() => setQlSaved(false), 3000)
+    } catch (err) { setQlError(err.message || 'Save failed') }
+    setQlLoading(false)
+  }
+
   return (
     <>
       <div className="srow">
@@ -217,6 +300,68 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
         <button className="rbtn" onClick={aiSearch} disabled={aiLoading} title="Search with AI — describe what you want">{aiLoading ? '⏳' : '✨'}</button>
         <button className="rbtn" onClick={randomWorkout} title="Random workout">🎲</button>
         {session && <button className="nbtn" onClick={() => setShowNewModal(true)}>+ New Workout</button>}
+      </div>
+
+      <div style={{ margin: '4px 0 8px' }}>
+        {!qlOpen && !qlSaved && (
+          <button className="doc-ctrl" style={{ width: '100%', textAlign: 'left' }}
+            onClick={() => { if (!session) { onAuthRequired(); return } setQlOpen(true) }}>
+            ⚡ Quick Log — type what you did, I'll log it
+          </button>
+        )}
+        {qlSaved && (
+          <div style={{ color: 'var(--grn)', fontWeight: 600, fontSize: 14, padding: '8px 4px' }}>✓ Logged!</div>
+        )}
+        {qlOpen && (
+          <div style={{ border: '1px solid var(--brd)', borderRadius: 10, padding: 12 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input className="doc-suit-input" style={{ flex: 1 }}
+                placeholder='e.g. "did Chad in 39:55 rx" or "ran 10k easy, 52:10"'
+                value={qlText} onChange={e => setQlText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') quickLogParse() }} />
+              <button className="doc-ctrl" onClick={quickLogParse} disabled={qlLoading}>{qlLoading ? '⏳' : 'Log'}</button>
+              <button className="doc-ctrl" onClick={() => { setQlOpen(false); setQlParsed(null); setQlError(''); setQlText('') }}>✕</button>
+            </div>
+
+            {qlError && (
+              <div style={{ color: 'var(--err, #c0392b)', fontSize: 13, marginTop: 8 }}>{qlError}</div>
+            )}
+
+            {qlParsed && (
+              <div style={{ marginTop: 12, borderTop: '1px solid var(--brd)', paddingTop: 12 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 8 }}>
+                  {qlParsed.matchedWorkout ? qlParsed.matchedWorkout.name : (qlParsed.newWorkout?.name || 'Activity')}
+                  {!qlParsed.matchedWorkout && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--acc)', marginLeft: 8 }}>NEW · saved as private workout</span>}
+                </div>
+
+                <label className="ai-edit-label">Score</label>
+                <input className="doc-suit-input" value={qlParsed.score}
+                  onChange={e => setQlParsed({ ...qlParsed, score: e.target.value })}
+                  placeholder="e.g. 39:55" style={{ marginBottom: 8 }} />
+
+                <div className="cr" style={{ marginBottom: 8 }}>
+                  <button className={`ch${qlParsed.is_rx ? ' on' : ''}`} onClick={() => setQlParsed({ ...qlParsed, is_rx: true })}>Rx</button>
+                  <button className={`ch${!qlParsed.is_rx ? ' on' : ''}`} onClick={() => setQlParsed({ ...qlParsed, is_rx: false })}>Scaled</button>
+                </div>
+
+                <label className="ai-edit-label">Date</label>
+                <input type="date" className="doc-suit-input" value={qlParsed.date}
+                  onChange={e => setQlParsed({ ...qlParsed, date: e.target.value })}
+                  style={{ width: 170, marginBottom: 8 }} />
+
+                <label className="ai-edit-label">Notes</label>
+                <input className="doc-suit-input" value={qlParsed.notes}
+                  onChange={e => setQlParsed({ ...qlParsed, notes: e.target.value })}
+                  placeholder="optional" style={{ marginBottom: 10 }} />
+
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="doc-start-btn" style={{ flex: 1, fontSize: 14 }} onClick={quickLogConfirm} disabled={qlLoading}>✓ Confirm & Log</button>
+                  <button className="doc-ctrl" onClick={() => setQlParsed(null)}>Cancel</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {(aiActive || aiError) && (
