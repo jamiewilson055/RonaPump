@@ -15,6 +15,8 @@ const MOVEMENT_TO_MUSCLES = {
   'Jump': ['quads', 'calves', 'glutes'],
   'DB Snatch': ['shoulders', 'back', 'core', 'quads'],
   'Farmers Carry': ['core', 'back', 'shoulders', 'biceps'],
+  'KB Swing': ['glutes', 'hamstrings', 'core', 'shoulders'],
+  'Wall Ball': ['quads', 'glutes', 'shoulders', 'core'],
 }
 
 const BODYPART_TO_MUSCLES = {
@@ -25,59 +27,93 @@ const BODYPART_TO_MUSCLES = {
 
 const ALL_MUSCLES = ['shoulders', 'chest', 'biceps', 'triceps', 'core', 'back', 'quads', 'hamstrings', 'glutes', 'calves']
 
+const INJURY_RE = /(pain|hurt|injur|sore|tweak|strain|pulled|pinch|ache|tight)/i
+
 function daysAgo(dateStr) {
   if (!dateStr) return 999
   return Math.floor((new Date() - new Date(dateStr)) / (1000 * 60 * 60 * 24))
+}
+
+function toSlug(name) {
+  return (name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
 export default function AICoach({ session, onAuthRequired, onWorkoutsChanged }) {
   const [loading, setLoading] = useState(false)
   const [analysis, setAnalysis] = useState(null)
   const [recommendation, setRecommendation] = useState(null)
+  const [libraryWorkout, setLibraryWorkout] = useState(null)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState(null)
+  const [userContext, setUserContext] = useState('')
+  const [goal, setGoal] = useState('')
+  const [goalSaved, setGoalSaved] = useState(false)
+
+  // Prefill training goal from profile
+  useEffect(() => {
+    if (!session) return
+    supabase.from('profiles').select('training_goal').eq('id', session.user.id).single()
+      .then(({ data }) => { if (data?.training_goal) setGoal(data.training_goal) })
+  }, [session])
+
+  async function saveGoal() {
+    if (!session) { onAuthRequired(); return }
+    const { error: err } = await supabase.from('profiles').update({ training_goal: goal || null }).eq('id', session.user.id)
+    if (!err) { setGoalSaved(true); setTimeout(() => setGoalSaved(false), 2000) }
+  }
 
   async function analyzeAndRecommend() {
     if (!session) { onAuthRequired(); return }
     setLoading(true)
     setError('')
     setRecommendation(null)
+    setLibraryWorkout(null)
     setSaved(false)
 
     try {
-      // 1. Gather user data
+      // 1. Gather 90 days of data
       const userId = session.user.id
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+      const ninetyAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
 
-      const [logsRes, prsRes, profileRes] = await Promise.all([
+      const [logsRes, prsRes, profileRes, longevityRes, libraryRes] = await Promise.all([
         supabase.from('performance_log')
-          .select('completed_at, score, workouts(name, equipment, movement_categories, body_parts, workout_types, score_type)')
+          .select('completed_at, score, notes, is_rx, workouts(id, name, equipment, movement_categories, body_parts, workout_types, score_type)')
           .eq('user_id', userId)
-          .gte('completed_at', weekAgo)
+          .gte('completed_at', ninetyAgo)
           .order('completed_at', { ascending: false })
-          .limit(10),
+          .limit(120),
         supabase.from('personal_records')
-          .select('movement, weight, score, type')
+          .select('movement, weight, score, type, completed_at')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
-          .limit(10),
+          .limit(15),
         supabase.from('profiles')
-          .select('display_name, gorilla_rank, xp')
+          .select('display_name, gorilla_rank, xp, training_goal, age, gender, vital_age, longevity_index')
           .eq('id', userId)
           .single(),
+        supabase.from('longevity_scores')
+          .select('marker, value, unit, tested_at')
+          .eq('user_id', userId)
+          .order('tested_at', { ascending: false })
+          .limit(40),
+        supabase.from('workouts')
+          .select('id, name, movement_categories, body_parts, equipment, workout_types, estimated_duration_mins, score_type')
+          .in('visibility', ['official', 'community'])
+          .limit(900),
       ])
 
-      const recentLogs = logsRes.data || []
+      const logs = logsRes.data || []
       const prs = prsRes.data || []
       const profile = profileRes.data
+      const longevityRaw = longevityRes.data || []
+      const library = libraryRes.data || []
 
-      // 2. Compute muscle freshness
+      // 2. Muscle freshness (7-day recovery window over full history)
       const muscleLastTrained = {}
       ALL_MUSCLES.forEach(m => { muscleLastTrained[m] = 999 })
-
-      recentLogs.forEach(log => {
+      logs.forEach(log => {
         const w = log.workouts
         if (!w) return
         const hitMuscles = new Set()
@@ -94,40 +130,104 @@ export default function AICoach({ session, onAuthRequired, onWorkoutsChanged }) 
           if (d < muscleLastTrained[m]) muscleLastTrained[m] = d
         })
       })
+      const freshMuscles = ALL_MUSCLES.filter(m => muscleLastTrained[m] >= 3)
+      const recentMuscles = ALL_MUSCLES.filter(m => muscleLastTrained[m] < 2)
 
-      const freshMuscles = ALL_MUSCLES.filter(m => muscleLastTrained[m] >= 3).map(m => m)
-      const recentMuscles = ALL_MUSCLES.filter(m => muscleLastTrained[m] < 2).map(m => m)
+      // 3. Weekly training load over last 8 weeks (unique training days per week)
+      const weekDays = Array.from({ length: 8 }, () => new Set())
+      logs.forEach(l => {
+        const d = daysAgo(l.completed_at)
+        const w = Math.floor(d / 7)
+        if (w >= 0 && w < 8) weekDays[w].add(l.completed_at)
+      })
+      const weeklyLoad = weekDays.map((s, i) => `W-${i}: ${s.size}`).join(', ')
 
-      // 3. Most used equipment
+      // 4. Benchmark repeats — same workout logged 2+ times with scores
+      const byName = {}
+      logs.forEach(l => {
+        const n = l.workouts?.name
+        if (!n || !l.score) return
+        if (!byName[n]) byName[n] = []
+        byName[n].push(l)
+      })
+      const benchmarks = Object.entries(byName)
+        .filter(([, arr]) => arr.length >= 2)
+        .slice(0, 8)
+        .map(([n, arr]) => {
+          const sorted = [...arr].sort((a, b) => (a.completed_at || '').localeCompare(b.completed_at || ''))
+          const first = sorted[0], last = sorted[sorted.length - 1]
+          return `${n}: ${first.score} (${first.completed_at}) -> ${last.score} (${last.completed_at})`
+        })
+
+      // 5. Injury / limitation signals from notes (last 30 days)
+      const injuryNotes = logs
+        .filter(l => l.notes && INJURY_RE.test(l.notes) && daysAgo(l.completed_at) <= 30)
+        .slice(0, 5)
+        .map(l => `${l.completed_at}: ${l.notes.slice(0, 90)}`)
+
+      // 6. Equipment + type usage
       const eqCount = {}
-      recentLogs.forEach(l => {
-        ;(l.workouts?.equipment || []).forEach(e => { eqCount[e] = (eqCount[e] || 0) + 1 })
-      })
-      const topEquipment = Object.entries(eqCount).sort((a, b) => b[1] - a[1]).slice(0, 5).map(e => e[0])
-
-      // 4. Recent workout types
+      logs.forEach(l => { (l.workouts?.equipment || []).forEach(e => { eqCount[e] = (eqCount[e] || 0) + 1 }) })
+      const topEquipment = Object.entries(eqCount).sort((a, b) => b[1] - a[1]).slice(0, 6).map(e => e[0])
       const typeCount = {}
-      recentLogs.forEach(l => {
-        ;(l.workouts?.workout_types || []).forEach(t => { typeCount[t] = (typeCount[t] || 0) + 1 })
-      })
-      const recentTypes = Object.entries(typeCount).sort((a, b) => b[1] - a[1]).slice(0, 3).map(t => t[0])
+      logs.forEach(l => { (l.workouts?.workout_types || []).forEach(t => { typeCount[t] = (typeCount[t] || 0) + 1 }) })
+      const recentTypes = Object.entries(typeCount).sort((a, b) => b[1] - a[1]).slice(0, 4).map(t => t[0])
 
-      // 5. Compute streak
-      const dates = new Set(recentLogs.map(l => l.completed_at))
+      // 7. Streak
+      const dates = new Set(logs.map(l => l.completed_at))
       let streak = 0
       const today = new Date()
-      for (let i = 0; i < 30; i++) {
+      for (let i = 0; i < 90; i++) {
         const d = new Date(today); d.setDate(d.getDate() - i)
         const ds = d.toISOString().slice(0, 10)
         if (dates.has(ds)) streak++
         else if (i > 0) break
       }
 
-      const recentWorkoutNames = recentLogs.slice(0, 5).map(l => l.workouts?.name).filter(Boolean)
+      // 8. Latest longevity markers (dedupe by marker, newest first)
+      const seenMarkers = new Set()
+      const longevity = []
+      longevityRaw.forEach(r => {
+        if (seenMarkers.has(r.marker)) return
+        seenMarkers.add(r.marker)
+        longevity.push(`${r.marker}: ${r.value}${r.unit ? ' ' + r.unit : ''} (${r.tested_at})`)
+      })
 
-      // Store analysis for display
+      // 9. Recent sessions (last 15, one line each)
+      const recentSessions = logs.slice(0, 15).map(l => {
+        const bits = [l.completed_at, l.workouts?.name || '?']
+        if (l.score) bits.push(l.score)
+        if (l.is_rx) bits.push('Rx')
+        if (l.notes) bits.push('note: ' + l.notes.slice(0, 60))
+        return bits.join(' | ')
+      })
+
+      // 10. Candidate library workouts — score by fresh-muscle fit + equipment, skip recently done
+      const doneRecently = new Set(logs.filter(l => daysAgo(l.completed_at) <= 30).map(l => l.workouts?.name).filter(Boolean))
+      const scored = library
+        .filter(w => !doneRecently.has(w.name))
+        .map(w => {
+          let s = 0
+          const muscles = new Set()
+          ;(w.movement_categories || []).forEach(mc => (MOVEMENT_TO_MUSCLES[mc] || []).forEach(m => muscles.add(m)))
+          ;(w.body_parts || []).forEach(bp => (BODYPART_TO_MUSCLES[bp] || []).forEach(m => muscles.add(m)))
+          muscles.forEach(m => { if (freshMuscles.includes(m)) s += 2; if (recentMuscles.includes(m)) s -= 1 })
+          ;(w.equipment || []).forEach(e => { if (topEquipment.includes(e)) s += 1 })
+          return { w, s }
+        })
+        .sort((a, b) => b.s - a.s)
+        .slice(0, 25)
+        .map(({ w }) => w)
+
+      const candidateLines = scored.map((w, i) =>
+        `${i + 1}. ${w.name} | mv: ${(w.movement_categories || []).join('/') || 'none'} | ${(w.body_parts || []).join('/') || '?'} | ${(w.equipment || []).join('/') || '?'} | ${w.estimated_duration_mins ? w.estimated_duration_mins + 'min' : '?'} | ${w.score_type || '?'}`
+      )
+
+      const recentWorkoutNames = logs.slice(0, 5).map(l => l.workouts?.name).filter(Boolean)
+      const thisWeekCount = logs.filter(l => daysAgo(l.completed_at) < 7).length
+
       const analysisData = {
-        recentLogs: recentLogs.length,
+        recentLogs: thisWeekCount,
         freshMuscles,
         recentMuscles,
         topEquipment,
@@ -139,43 +239,72 @@ export default function AICoach({ session, onAuthRequired, onWorkoutsChanged }) 
       }
       setAnalysis(analysisData)
 
-      // 6. Build prompt for AI
-      const prompt = `You are an expert fitness coach for RonaPump. Analyze this athlete's data and recommend what they should do today.
+      // 11. Build the deep coaching prompt
+      const trainingGoal = (goal || profile?.training_goal || '').trim()
+      const prompt = `You are the RonaPump AI Coach — an elite CrossFit/HYROX/functional fitness coach. Analyze this athlete's full data and recommend exactly what they should do today. Reason like a real coach: reference their trends, benchmark progress, recovery state, goal, and any limitations.
 
-ATHLETE DATA:
-- Rank: ${analysisData.rank}
+ATHLETE PROFILE:
+- Rank: ${analysisData.rank} (${profile?.xp || 0} XP)${profile?.age ? `\n- Age: ${profile.age}` : ''}${profile?.gender ? `\n- Gender: ${profile.gender}` : ''}${trainingGoal ? `\n- Training goal: ${trainingGoal}` : ''}${profile?.vital_age ? `\n- Vital Age: ${profile.vital_age}` : ''}${profile?.longevity_index ? `\n- Longevity Index: ${profile.longevity_index}` : ''}
+
+TRAINING LOAD (unique training days per week, W-0 = this week):
+${weeklyLoad}
 - Current streak: ${streak} days
-- Workouts this week: ${recentLogs.length}
-- Recent workouts: ${recentWorkoutNames.join(', ') || 'None'}
-- Muscles that need work (3+ days rest): ${freshMuscles.join(', ') || 'All fresh'}
-- Muscles recently trained (last 2 days): ${recentMuscles.join(', ') || 'None'}
-- Favorite equipment: ${topEquipment.join(', ') || 'Bodyweight'}
-- Recent workout types: ${recentTypes.join(', ') || 'Mixed'}
-- Recent PRs: ${prs.slice(0, 3).map(p => `${p.movement}: ${p.score}${p.weight ? ' @ ' + p.weight : ''}`).join(', ') || 'None'}
+- Sessions in last 90 days: ${logs.length}
+
+MUSCLE RECOVERY:
+- Fresh (3+ days rest): ${freshMuscles.join(', ') || 'none — all recently trained'}
+- Recently trained (last 2 days): ${recentMuscles.join(', ') || 'none'}
+
+RECENT SESSIONS (newest first):
+${recentSessions.join('\n') || 'None logged'}
+
+BENCHMARK PROGRESS (repeat workouts, first -> latest):
+${benchmarks.join('\n') || 'No repeated benchmarks in window'}
+
+RECENT PRS:
+${prs.map(p => `${p.movement}: ${p.score || ''}${p.weight ? ' @ ' + p.weight : ''}${p.completed_at ? ' (' + p.completed_at + ')' : ''}`).join('\n') || 'None'}
+
+LONGEVITY MARKERS (latest tests):
+${longevity.join('\n') || 'None recorded'}
+
+POSSIBLE INJURY / LIMITATION SIGNALS FROM WORKOUT NOTES:
+${injuryNotes.join('\n') || 'None detected'}
+
+ATHLETE'S NOTE TO COACH TODAY:
+${userContext.trim() || 'None'}
+
+CANDIDATE LIBRARY WORKOUTS (pre-filtered to fit their recovery + equipment):
+${candidateLines.join('\n')}
+
+INSTRUCTIONS:
+1. Prefer recommending a CANDIDATE LIBRARY WORKOUT when one fits today's need well — the athlete gets leaderboards and history with library workouts. Copy its name VERBATIM into "library_pick" and set "source" to "library". Only generate a custom workout when no candidate fits the day's requirements (set "source" to "generated" and fill "workout").
+2. The athlete's note to coach is the highest-priority constraint. Injury signals must be respected — never program movements that load a flagged area.
+3. "reasoning" must be 4-6 sentences and cite SPECIFIC data: benchmark deltas, load trend across weeks, recovery state, goal relevance.
+4. If longevity markers or training load suggest something worth flagging (e.g. deload, VO2 work, grip weakness), mention it in reasoning or tips.
 
 Respond ONLY in valid JSON, no markdown, no backticks:
 {
-  "reasoning": "2-3 sentences explaining WHY you recommend this based on their muscle freshness, recent activity, and balance",
-  "focus": "e.g. Upper Body Push, Lower Body, Full Body Conditioning",
+  "reasoning": "4-6 sentences citing their specific data",
+  "focus": "e.g. Lower Body Power, Engine, Full Body Conditioning",
   "intensity": "Light/Moderate/High/Max Effort",
-  "workout": {
-    "name": "Workout Name",
-    "description": "Line 1\\n• Movement 1\\n• Movement 2",
-    "score_type": "Time",
-    "estimated_duration_mins": 20,
-    "equipment": ["Bodyweight"],
-    "workout_types": ["AMRAP"],
-    "movement_categories": ["Push-Up", "Squat"],
-    "body_parts": ["Upper Body"],
-    "categories": []
-  },
-  "tips": ["Quick tip 1", "Quick tip 2"]
-}`
+  "source": "library",
+  "library_pick": "Exact Candidate Name or null",
+  "workout": null,
+  "tips": ["tip 1", "tip 2"],
+  "cautions": []
+}
 
-      const response = await fetch('/api/generate-workout', {
+If source is "generated", "workout" must be:
+{"name":"...","description":"Line 1\\n• Movement 1\\n• Movement 2","score_type":"Time","estimated_duration_mins":20,"equipment":["Bodyweight"],"workout_types":["AMRAP"],"movement_categories":["Push-Up"],"body_parts":["Full Body"],"categories":[]}
+Valid equipment: Air Bike, Barbell, Bench, Bodyweight, Box, Dumbbell, Kettlebell, Medicine Ball, Pull-Up Bar, Rower, Sandbag, Ski Erg, Sled, Jump Rope, Weighted Vest
+Valid workout_types: AMRAP, EMOM, For Calories, For Distance, For Time, Interval, Ladder, Rounds, Strength
+Valid movement_categories: Bench Press, Burpee, DB Snatch, Deadlift, Farmers Carry, Jump, KB Swing, Lunge, Pull-Up, Push-Up, Run, Shoulder Press, Squat, Thruster, Wall Ball
+Valid body_parts: Upper Body, Lower Body, Full Body`
+
+      const response = await fetch('/api/coach', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, raw: true })
+        body: JSON.stringify({ prompt })
       })
 
       const text = await response.text()
@@ -187,6 +316,24 @@ Respond ONLY in valid JSON, no markdown, no backticks:
       }
 
       if (data.error) { setError(data.error); setLoading(false); return }
+
+      // Resolve library pick against real candidates (verbatim or case-insensitive)
+      if (data.source === 'library' && data.library_pick) {
+        const pickName = String(data.library_pick).trim().toLowerCase()
+        const match = scored.find(w => w.name.trim().toLowerCase() === pickName)
+        if (match) {
+          const { data: full } = await supabase.from('workouts')
+            .select('id, name, description, score_type, estimated_duration_mins, equipment, workout_types, movement_categories, body_parts')
+            .eq('id', match.id)
+            .single()
+          if (full) setLibraryWorkout(full)
+          else data.source = data.workout ? 'generated' : 'none'
+        } else {
+          // Hallucinated name — fall back to generated if present
+          data.source = data.workout ? 'generated' : 'none'
+        }
+      }
+
       setRecommendation(data)
     } catch (err) {
       setError('Error: ' + (err.message || 'Please try again'))
@@ -276,27 +423,50 @@ Respond ONLY in valid JSON, no markdown, no backticks:
     })
   }
 
+  function openLibraryWorkout() {
+    if (!libraryWorkout) return
+    window.location.href = '/workout/' + toSlug(libraryWorkout.name)
+  }
+
+  const shownWorkout = libraryWorkout || recommendation?.workout || null
+
   return (
     <div className="coach-section">
       <div className="coach-hero">
         <div className="coach-hero-icon">🧠</div>
         <h2 className="coach-hero-title">AI Coach</h2>
-        <p className="coach-hero-sub">I'll analyze your recent workouts, muscle recovery, PRs, and equipment to tell you exactly what to do today.</p>
+        <p className="coach-hero-sub">I'll analyze 90 days of your training — benchmark progress, muscle recovery, PRs, longevity markers, and your goal — then tell you exactly what to do today.</p>
       </div>
 
       {!recommendation && !loading && (
-        <button className="coach-ask-btn" onClick={analyzeAndRecommend}>
-          <span className="coach-ask-icon">🦍</span>
-          <span>What Should I Do Today?</span>
-        </button>
+        <div>
+          <label className="ai-edit-label">🎯 Training Goal (saved to your profile)</label>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+            <input className="doc-suit-input" value={goal} placeholder="e.g. HYROX Worlds — Men's Pro, June 2026"
+              onChange={e => setGoal(e.target.value)} style={{ flex: 1 }} />
+            <button className="doc-ctrl" onClick={saveGoal}>{goalSaved ? '✓' : 'Save'}</button>
+          </div>
+
+          <label className="ai-edit-label">📝 Anything the coach should know today? (optional)</label>
+          <textarea className="doc-suit-input" value={userContext}
+            placeholder="e.g. shoulder is sore, hotel gym only, 40 minutes available…"
+            onChange={e => setUserContext(e.target.value)}
+            style={{ minHeight: '60px', marginBottom: '12px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5, resize: 'vertical', width: '100%' }} />
+
+          <button className="coach-ask-btn" onClick={analyzeAndRecommend}>
+            <span className="coach-ask-icon">🦍</span>
+            <span>What Should I Do Today?</span>
+          </button>
+        </div>
       )}
 
       {loading && (
         <div className="coach-loading">
           <div className="coach-loading-steps">
-            <div className="coach-step active">📊 Analyzing your workout history...</div>
+            <div className="coach-step active">📊 Reading 90 days of training history...</div>
+            <div className="coach-step">📈 Tracking benchmark progress...</div>
             <div className="coach-step">🦴 Checking muscle recovery...</div>
-            <div className="coach-step">🏋️ Reviewing your equipment...</div>
+            <div className="coach-step">🧬 Reviewing longevity markers...</div>
             <div className="coach-step">🧠 Building your recommendation...</div>
           </div>
           <div className="ai-loading-spinner">🦍</div>
@@ -354,19 +524,26 @@ Respond ONLY in valid JSON, no markdown, no backticks:
 
             <div className="coach-reasoning">{recommendation.reasoning}</div>
 
-            {recommendation.workout && (
+            {recommendation.cautions && recommendation.cautions.length > 0 && (
+              <div style={{ borderLeft: '3px solid var(--acc)', padding: '8px 12px', margin: '10px 0', fontSize: '13.5px', color: 'var(--tx)', background: 'var(--s1)', borderRadius: '6px' }}>
+                {recommendation.cautions.map((c, i) => <div key={i}>⚠️ {c}</div>)}
+              </div>
+            )}
+
+            {shownWorkout && (
               <div className="coach-workout">
-                <div className="coach-workout-name">{recommendation.workout.name}</div>
+                {libraryWorkout && <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.4px', color: 'var(--acc)', marginBottom: '4px' }}>🦍 FROM THE RONAPUMP LIBRARY</div>}
+                <div className="coach-workout-name">{shownWorkout.name}</div>
                 <div className="coach-workout-meta">
-                  {recommendation.workout.estimated_duration_mins && <span className="wdr">{recommendation.workout.estimated_duration_mins}m</span>}
-                  {recommendation.workout.score_type && recommendation.workout.score_type !== 'None' && <span className="wst">{recommendation.workout.score_type}</span>}
-                  {recommendation.workout.workout_types?.map(t => <span key={t} className="tg tw">{t}</span>)}
+                  {shownWorkout.estimated_duration_mins && <span className="wdr">{shownWorkout.estimated_duration_mins}m</span>}
+                  {shownWorkout.score_type && shownWorkout.score_type !== 'None' && <span className="wst">{shownWorkout.score_type}</span>}
+                  {shownWorkout.workout_types?.map(t => <span key={t} className="tg tw">{t}</span>)}
                 </div>
                 <div className="coach-workout-tags">
-                  {recommendation.workout.equipment?.filter(e => e !== 'Bodyweight').map(e => <span key={e} className="tg te">{e}</span>)}
-                  {recommendation.workout.body_parts?.map(b => <span key={b} className="tg tb">{b}</span>)}
+                  {shownWorkout.equipment?.filter(e => e !== 'Bodyweight').map(e => <span key={e} className="tg te">{e}</span>)}
+                  {shownWorkout.body_parts?.map(b => <span key={b} className="tg tb">{b}</span>)}
                 </div>
-                <div className="coach-workout-desc">{formatDesc(recommendation.workout.description)}</div>
+                <div className="coach-workout-desc">{formatDesc(shownWorkout.description)}</div>
               </div>
             )}
 
@@ -380,7 +557,12 @@ Respond ONLY in valid JSON, no markdown, no backticks:
             )}
 
             <div className="coach-actions">
-              {!saved && !editing ? (
+              {libraryWorkout ? (
+                <>
+                  <button className="doc-start-btn" onClick={openLibraryWorkout} style={{ fontSize: '14px' }}>🚀 Open Workout</button>
+                  <button className="doc-ctrl sec" style={{ width: '100%' }} onClick={analyzeAndRecommend}>🔄 Get Another Recommendation</button>
+                </>
+              ) : !saved && !editing && recommendation.workout ? (
                 <>
                   <button className="doc-ctrl" style={{ width: '100%' }} onClick={startEdit}>✏️ Edit Before Saving</button>
                   <button className="doc-start-btn" onClick={saveWorkout} style={{ fontSize: '14px' }}>💾 Save Workout</button>
@@ -388,10 +570,12 @@ Respond ONLY in valid JSON, no markdown, no backticks:
                 </>
               ) : saved ? (
                 <div style={{ color: 'var(--grn)', fontWeight: 600, fontSize: '15px', textAlign: 'center', padding: '12px' }}>✓ Saved to My Workouts!</div>
+              ) : !recommendation.workout && !libraryWorkout ? (
+                <button className="doc-ctrl sec" style={{ width: '100%' }} onClick={analyzeAndRecommend}>🔄 Get Another Recommendation</button>
               ) : null}
             </div>
 
-            {/* Edit form */}
+            {/* Edit form (generated workouts only) */}
             {editing && editForm && (
               <div className="coach-edit" style={{ marginTop: '12px', borderTop: '1px solid var(--brd)', paddingTop: '12px' }}>
                 <label className="ai-edit-label">Name</label>
