@@ -50,6 +50,7 @@ export default function AICoach({ session, onAuthRequired, onWorkoutsChanged }) 
   const [userContext, setUserContext] = useState('')
   const [goal, setGoal] = useState('')
   const [goalSaved, setGoalSaved] = useState(false)
+  const [mode, setMode] = useState('library') // 'library' | 'create'
 
   // Prefill training goal from profile
   useEffect(() => {
@@ -241,6 +242,7 @@ export default function AICoach({ session, onAuthRequired, onWorkoutsChanged }) 
 
       // 11. Build the deep coaching prompt
       const trainingGoal = (goal || profile?.training_goal || '').trim()
+      const wantLibrary = mode === 'library'
       const prompt = `You are the RonaPump AI Coach — an elite CrossFit/HYROX/functional fitness coach. Analyze this athlete's full data and recommend exactly what they should do today. Reason like a real coach: reference their trends, benchmark progress, recovery state, goal, and any limitations.
 
 ATHLETE PROFILE:
@@ -273,21 +275,23 @@ ${injuryNotes.join('\n') || 'None detected'}
 ATHLETE'S NOTE TO COACH TODAY:
 ${userContext.trim() || 'None'}
 
-CANDIDATE LIBRARY WORKOUTS (pre-filtered to fit their recovery + equipment):
+${wantLibrary ? `CANDIDATE LIBRARY WORKOUTS (pre-filtered to fit their recovery + equipment):
 ${candidateLines.join('\n')}
 
+` : ''}IMPORTANT CONTEXT: The logged sessions are only a PARTIAL view of this athlete's training — they likely also train outside the app (runs, sport, other gym sessions). NEVER conclude they are undertrained, inactive, or losing fitness from an absence of logs. Treat load numbers as a lower bound and phrase any volume observation as "based on what's logged here".
+
 INSTRUCTIONS:
-1. Prefer recommending a CANDIDATE LIBRARY WORKOUT when one fits today's need well — the athlete gets leaderboards and history with library workouts. Copy its name VERBATIM into "library_pick" and set "source" to "library". Only generate a custom workout when no candidate fits the day's requirements (set "source" to "generated" and fill "workout").
+1. ${wantLibrary ? 'The athlete wants an EXISTING RonaPump workout today. You MUST choose one CANDIDATE LIBRARY WORKOUT — copy its name VERBATIM into "library_pick", set "source" to "library", and leave "workout" null.' : 'The athlete wants a NEW custom workout today. Set "source" to "generated", set "library_pick" to null, and fill "workout" completely.'}
 2. The athlete's note to coach is the highest-priority constraint. Injury signals must be respected — never program movements that load a flagged area.
-3. "reasoning" must be 4-6 sentences and cite SPECIFIC data: benchmark deltas, load trend across weeks, recovery state, goal relevance.
-4. If longevity markers or training load suggest something worth flagging (e.g. deload, VO2 work, grip weakness), mention it in reasoning or tips.
+3. "reasoning" must be 2-3 SHORT sentences citing 1-2 specific data points (a benchmark delta, recovery state, or goal relevance). Be direct — no filler.
+4. Maximum 2 tips, one line each. Only include "cautions" when genuinely warranted.
 
 Respond ONLY in valid JSON, no markdown, no backticks:
 {
-  "reasoning": "4-6 sentences citing their specific data",
+  "reasoning": "2-3 short sentences citing their specific data",
   "focus": "e.g. Lower Body Power, Engine, Full Body Conditioning",
   "intensity": "Light/Moderate/High/Max Effort",
-  "source": "library",
+  "source": "${wantLibrary ? 'library' : 'generated'}",
   "library_pick": "Exact Candidate Name or null",
   "workout": null,
   "tips": ["tip 1", "tip 2"],
@@ -320,7 +324,8 @@ Valid body_parts: Upper Body, Lower Body, Full Body`
       // Resolve library pick against real candidates (verbatim or case-insensitive)
       if (data.source === 'library' && data.library_pick) {
         const pickName = String(data.library_pick).trim().toLowerCase()
-        const match = scored.find(w => w.name.trim().toLowerCase() === pickName)
+        let match = scored.find(w => w.name.trim().toLowerCase() === pickName)
+        if (!match) match = scored.find(w => w.name.trim().toLowerCase().includes(pickName) || pickName.includes(w.name.trim().toLowerCase()))
         if (match) {
           const { data: full } = await supabase.from('workouts')
             .select('id, name, description, score_type, estimated_duration_mins, equipment, workout_types, movement_categories, body_parts')
@@ -452,6 +457,12 @@ Valid body_parts: Upper Body, Lower Body, Full Body`
             placeholder="e.g. shoulder is sore, hotel gym only, 40 minutes available…"
             onChange={e => setUserContext(e.target.value)}
             style={{ minHeight: '60px', marginBottom: '12px', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5, resize: 'vertical', width: '100%' }} />
+
+          <label className="ai-edit-label">Recommendation source</label>
+          <div className="cr" style={{ marginBottom: '12px' }}>
+            <button className={`ch${mode === 'library' ? ' on' : ''}`} onClick={() => setMode('library')}>📚 Existing Workouts</button>
+            <button className={`ch${mode === 'create' ? ' on' : ''}`} onClick={() => setMode('create')}>✨ Create New</button>
+          </div>
 
           <button className="coach-ask-btn" onClick={analyzeAndRecommend}>
             <span className="coach-ask-icon">🦍</span>
