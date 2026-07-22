@@ -98,12 +98,12 @@ input, select, textarea { font-family: inherit; }
 
 /* Quote Bar */
 .qwrap { position: relative; margin-bottom: 12px; }
-.qbar { position: relative; background: var(--s1); border: 1px solid var(--brd); border-left: 3px solid var(--acc); border-radius: 7px; padding: 10px 50px 12px 18px; color: var(--tx2); text-align: center; cursor: pointer; line-height: 1.5; min-height: 48px; transition: border-color .2s; }
+.qbar { position: relative; overflow: hidden; background: var(--acc-d); border: 1px solid var(--brd); border-left: 3px solid var(--acc); border-radius: 7px; padding: 11px 50px 13px 44px; color: var(--tx2); text-align: center; cursor: pointer; line-height: 1.55; min-height: 52px; transition: border-color .2s; }
 .qbar:hover { border-color: var(--acc); }
-.qbar-kicker { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--acc); margin-bottom: 3px; }
-.qbar-text { font-size: 15px; font-style: italic; color: var(--tx); }
-.qbar-mark { color: var(--acc); font-size: 19px; font-weight: 800; font-style: normal; margin-right: 2px; }
-.qbar-author { font-size: 12px; color: var(--tx3); margin-top: 3px; font-style: normal; }
+.qbar-kicker { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 800; letter-spacing: 2.5px; text-transform: uppercase; color: var(--acc); margin-bottom: 4px; }
+.qbar-text { font-size: 15.5px; font-style: italic; font-weight: 500; color: var(--tx); }
+.qbar-mark { position: absolute; left: 12px; top: 4px; color: var(--acc); font-size: 46px; font-weight: 800; font-style: normal; opacity: .3; line-height: 1; pointer-events: none; }
+.qbar-author { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--tx3); margin-top: 5px; font-style: normal; letter-spacing: .3px; }
 .qbar-edit { display: flex; gap: 6px; align-items: center; background: var(--s1); border: 1px solid var(--acc); border-radius: 7px; padding: 6px 10px; }
 .qbar-edit input { flex: 1; background: var(--bg); border: 1px solid var(--brd); border-radius: 5px; padding: 6px 10px; color: var(--tx); font-size: 12px; font-style: italic; outline: none; }
 .qbar-edit input:focus { border-color: var(--acc); }
