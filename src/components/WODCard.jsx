@@ -51,6 +51,9 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
   const [lastLogScore, setLastLogScore] = useState(null)
   const [showCollections, setShowCollections] = useState(false)
   const [showSimilar, setShowSimilar] = useState(false)
+  const [isDailyWod, setIsDailyWod] = useState(false)
+  const [dailyWodId, setDailyWodId] = useState(null)
+  const [dismissedDone, setDismissedDone] = useState(false)
   const [similarResults, setSimilarResults] = useState([])
 
   const pick = useCallback(() => {
@@ -59,7 +62,18 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
   }, [workouts])
 
   useEffect(() => {
-    if (workouts.length && !wod) pick()
+    if (!workouts.length || wod) return
+    let cancelled = false
+    const todayNY = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
+    supabase.from('daily_wod').select('workout_id').eq('wod_date', todayNY).maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return
+        const match = data?.workout_id ? workouts.find(w => w.id === data.workout_id) : null
+        if (match) { setWod(match); setIsDailyWod(true); setDailyWodId(match.id) }
+        else pick()
+      })
+      .catch(() => { if (!cancelled) pick() })
+    return () => { cancelled = true }
   }, [workouts, wod, pick])
 
   function handleShuffle(e) {
@@ -67,6 +81,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
     e.preventDefault()
     setSpinning(true)
     setExpanded(false)
+    setIsDailyWod(false)
     pick()
     setTimeout(() => setSpinning(false), 400)
   }
@@ -146,6 +161,18 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
 
   if (!wod) return null
 
+  const todayNY = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
+  const doneToday = isDailyWod && session && !lastLogScore && (wod.performance_log || []).some(l => l.user_id === session.user.id && l.completed_at === todayNY)
+  if (doneToday && !dismissedDone) {
+    const mine = (wod.performance_log || []).find(l => l.user_id === session.user.id && l.completed_at === todayNY)
+    return (
+      <div className="wod-done-banner" onClick={() => setDismissedDone(true)}>
+        <span>✅ WOD complete · <b>{wod.name}</b>{mine?.score ? ` · ${mine.score}` : ''}</span>
+        <span className="wod-done-expand">view ▾</span>
+      </div>
+    )
+  }
+
   const isFav = favorites?.has(wod.id)
   // Rx ALWAYS above Scaled, then by score within each group
   const pl = [...(wod.performance_log || [])].sort((a, b) => {
@@ -167,9 +194,15 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
         setExpanded(!expanded)
       }} style={{ cursor: 'pointer' }}>
         <div className="wod-top">
-          <div className="wod-label-inline">WOD</div>
+          <div className="wod-label-inline">{isDailyWod ? 'WOD' : 'SHUFFLED'}</div>
           <div className="wod-name">{wod.name || 'Unnamed Workout'}</div>
           {wod.estimated_duration_mins && <span className="wdr">{wod.estimated_duration_mins}m</span>}
+          {!isDailyWod && dailyWodId && (
+            <button className="wod-roll" title="Back to today's WOD"
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); const m = workouts.find(w => w.id === dailyWodId); if (m) { setWod(m); setIsDailyWod(true); setExpanded(false) } }}
+              onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); const m = workouts.find(w => w.id === dailyWodId); if (m) { setWod(m); setIsDailyWod(true); setExpanded(false) } }}
+            >★</button>
+          )}
           <button
             className={`wod-roll${spinning ? ' spin' : ''}`}
             onClick={handleShuffle}

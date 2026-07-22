@@ -2026,3 +2026,10 @@ input, select, textarea { font-family: inherit; }
 .ql-confirm { margin-top: 12px; border-top: 1px solid var(--brd); padding-top: 12px; }
 .ql-saved { color: var(--grn); font-weight: 600; font-size: 14px; padding: 8px 4px; }
 .ql-error { color: var(--acc); font-size: 13px; margin-top: 8px; }
+
+/* ── WOD done-today banner ── */
+.wod-done-banner { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--s1); border: 1px solid var(--grn); border-radius: 10px; padding: 10px 14px; margin-bottom: 10px; font-size: 13.5px; color: var(--tx); cursor: pointer; transition: background .12s; }
+.wod-done-banner:hover { background: var(--acc-d); }
+.wod-done-banner b { color: var(--grn); }
+.wod-done-expand { font-size: 12px; color: var(--tx3); white-space: nowrap; }
+.rbtn.on { background: var(--acc); border-color: var(--acc); color: #fff; }

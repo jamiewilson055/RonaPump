@@ -25,6 +25,7 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
   const [qlError, setQlError] = useState('')
   const [qlParsed, setQlParsed] = useState(null)
   const [qlSaved, setQlSaved] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
 
   const allEquipment = useMemo(() => [...new Set(workouts.flatMap(w => w.equipment || []))].sort(), [workouts])
   const allMovements = useMemo(() => [...new Set(workouts.flatMap(w => w.movement_categories || []))].sort(), [workouts])
@@ -118,6 +119,7 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
   const items = filtered.slice((page - 1) * PP, page * PP)
 
   const hasFilters = query || sourceFilter !== 'all' || filters.eq.length || filters.eqEx?.length || filters.mv.length || filters.mvEx?.length || filters.cat.length || filters.wt.length || filters.bp?.length || filters.durMin != null || filters.durMax != null
+  const activeFilterCount = filters.eq.length + (filters.eqEx?.length || 0) + filters.mv.length + (filters.mvEx?.length || 0) + filters.cat.length + filters.wt.length + (filters.bp?.length || 0) + (filters.durMin != null || filters.durMax != null ? 1 : 0)
 
   function clearFilters() {
     setFilters({ eq: [], eqEx: [], mv: [], mvEx: [], cat: [], wt: [], bp: [], durMin: null, durMax: null, includeNoDur: true })
@@ -169,16 +171,6 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
     setAiLoading(false)
   }
 
-  function randomWorkout() {
-    if (!filtered.length) return
-    const pick = filtered[Math.floor(Math.random() * filtered.length)]
-    const idx = filtered.indexOf(pick)
-    setPage(Math.floor(idx / PP) + 1)
-    setTimeout(() => {
-      const el = document.getElementById('wc-' + pick.id)
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }, 100)
-  }
 
   // Find similar workouts to a given workout
   function getSimilar(workout) {
@@ -297,18 +289,12 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
             onKeyDown={e => { if (e.key === 'Enter') aiSearch() }} />
           {query && <button className="sbox-clear" onClick={() => { setQuery(''); setPage(1) }}>✕</button>}
         </div>
-        <button className="rbtn" onClick={aiSearch} disabled={aiLoading} title="Search with AI — describe what you want">{aiLoading ? '⏳' : '✨'}</button>
-        <button className="rbtn" onClick={randomWorkout} title="Random workout">🎲</button>
+        <button className="rbtn" onClick={aiSearch} disabled={aiLoading} title="Search with AI — describe what you want">{aiLoading ? '⏳' : '✨ AI'}</button>
+        <button className={`rbtn${qlOpen ? ' on' : ''}`} onClick={() => { if (!session) { onAuthRequired(); return } setQlOpen(!qlOpen); setQlError('') }} title="Quick Log — type what you did">⚡ Log</button>
         {session && <button className="nbtn" onClick={() => setShowNewModal(true)}>+ New Workout</button>}
       </div>
 
       <div style={{ margin: '4px 0 8px' }}>
-        {!qlOpen && !qlSaved && (
-          <button className="ql-bar"
-            onClick={() => { if (!session) { onAuthRequired(); return } setQlOpen(true) }}>
-            ⚡ Quick Log — type what you did, I'll log it
-          </button>
-        )}
         {qlSaved && (
           <div className="ql-saved">✓ Logged!</div>
         )}
@@ -380,15 +366,6 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
 
       {showNewModal && <NewWorkoutModal onClose={() => setShowNewModal(false)} onSaved={() => { setShowNewModal(false); onWorkoutsChanged() }} session={session} isAdmin={isAdmin} />}
 
-      <Filters
-        filters={filters}
-        setFilters={(f) => { setFilters(typeof f === 'function' ? f(filters) : f); setPage(1) }}
-        allEquipment={allEquipment}
-        allMovements={allMovements}
-        allCategories={allCategories}
-        allWorkoutTypes={allWorkoutTypes}
-        allBodyParts={allBodyParts}
-      />
 
       <div className="source-filter">
         <button className={`sf-btn${sourceFilter === 'all' ? ' on' : ''}`} onClick={() => { setSourceFilter('all'); setPage(1) }}>All</button>
@@ -419,6 +396,7 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
       </div>
 
       <div className="rbar">
+        <button className={`rbtn${showFilters ? ' on' : ''}`} onClick={() => setShowFilters(!showFilters)}>⚙️ Filters{activeFilterCount > 0 ? ` · ${activeFilterCount}` : ''}</button>
         <span className="rcnt">
           {filtered.length} workout{filtered.length !== 1 ? 's' : ''}
           {hasFilters && <span className="clr" onClick={clearFilters}>clear filters</span>}
@@ -432,6 +410,18 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
           <option value="dur_l">Duration ↓</option>
         </select>
       </div>
+
+      {showFilters && (
+        <Filters
+        filters={filters}
+        setFilters={(f) => { setFilters(typeof f === 'function' ? f(filters) : f); setPage(1) }}
+        allEquipment={allEquipment}
+        allMovements={allMovements}
+        allCategories={allCategories}
+        allWorkoutTypes={allWorkoutTypes}
+        allBodyParts={allBodyParts}
+      />
+      )}
 
       <div className="wl">
         {workouts.length === 0 && !query ? (
