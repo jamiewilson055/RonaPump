@@ -333,22 +333,12 @@ function App() {
   const isMainTab = ['all', 'done', 'queue', 'favs'].includes(tab)
   const isFeatureTab = ['deck', 'ai', 'ai-coach', 'timer', 'longevity', 'h2h', 'prs', 'activity', 'stats', 'collections', 'train', 'track', 'social'].includes(tab)
 
-  const SECTION_META = {
-    train:       { label: 'Train',          back: 'all',    backLabel: 'Workouts' },
-    track:       { label: 'Track',          back: 'all',    backLabel: 'Workouts' },
-    social:      { label: 'Social',         back: 'all',    backLabel: 'Workouts' },
-    ai:          { label: 'AI Generator',   back: 'train',  backLabel: 'Train' },
-    'ai-coach':  { label: 'AI Coach',       back: 'train',  backLabel: 'Train' },
-    deck:        { label: 'Deck of Cards',  back: 'train',  backLabel: 'Train' },
-    timer:       { label: 'Timer',          back: 'train',  backLabel: 'Train' },
-    longevity:   { label: 'Longevity',      back: 'track',  backLabel: 'Track' },
-    prs:         { label: 'Strength',       back: 'track',  backLabel: 'Track' },
-    stats:       { label: 'Stats',          back: 'track',  backLabel: 'Track' },
-    collections: { label: 'Collections',    back: 'track',  backLabel: 'Track' },
-    activity:    { label: 'Activity Feed',  back: 'social', backLabel: 'Social' },
-    h2h:         { label: 'H2H Challenges', back: 'social', backLabel: 'Social' },
-  }
-  const sectionMeta = SECTION_META[tab]
+  // Old hub keys (from stale links or state) land on their section's flagship
+  useEffect(() => {
+    if (tab === 'train') setTab('ai-coach')
+    else if (tab === 'track') setTab('stats')
+    else if (tab === 'social') setTab('activity')
+  }, [tab])
 
   return (
     <div className="app">
@@ -378,34 +368,7 @@ function App() {
         </div>
       )}
 
-      {/* Hero Feature Cards — desktop only, on main tabs */}
-      {isMainTab && (
-        <div className="hero-features desktop-only">
-          <button className="hero-card hero-ai" onClick={() => setTab('train')}>
-            <span className="hero-icon">⚡</span>
-            <div>
-              <div className="hero-title">Train</div>
-              <div className="hero-sub">AI generator, deck of cards, timer</div>
-            </div>
-          </button>
-          <button className="hero-card hero-deck" onClick={() => setTab('track')}>
-            <span className="hero-icon">📊</span>
-            <div>
-              <div className="hero-title">Track</div>
-              <div className="hero-sub">Longevity, strength, stats, collections</div>
-            </div>
-          </button>
-          <button className="hero-card hero-h2h" onClick={() => setTab('social')}>
-            <span className="hero-icon">👥</span>
-            <div>
-              <div className="hero-title">Social</div>
-              <div className="hero-sub">Activity feed, H2H challenges</div>
-            </div>
-          </button>
-        </div>
-      )}
-
-      <div className={['deck','ai','ai-coach','prs','h2h','timer','longevity','train','track','social'].includes(tab) ? 'mobile-hide' : ''}>
+<div className={['deck','ai','ai-coach','prs','h2h','timer','longevity','train','track','social'].includes(tab) ? 'mobile-hide' : ''}>
         <QuoteBar isAdmin={profile?.is_admin || false} />
       </div>
 
@@ -515,83 +478,29 @@ function App() {
       ) : (
         <>
           {/* Section Back Bar */}
-          {sectionMeta && (
-            <div className="section-back-bar">
-              <button className="section-back-btn" onClick={() => setTab(sectionMeta.back)}>
-                ← {sectionMeta.backLabel}
-              </button>
-              <span className="section-back-title">{sectionMeta.label}</span>
+          {['ai-coach', 'ai', 'deck', 'timer'].includes(tab) && (
+            <div className="tile-switch">
+              <button className={`tile-btn${tab === 'ai-coach' ? ' on' : ''}`} onClick={() => setTab('ai-coach')}><span className="tile-icon">🧠</span>Coach</button>
+              <button className={`tile-btn${tab === 'ai' ? ' on' : ''}`} onClick={() => setTab('ai')}><span className="tile-icon">🤖</span>Generator</button>
+              <button className={`tile-btn${tab === 'deck' ? ' on' : ''}`} onClick={() => setTab('deck')}><span className="tile-icon">🃏</span>Deck</button>
+              <button className={`tile-btn${tab === 'timer' ? ' on' : ''}`} onClick={() => setTab('timer')}><span className="tile-icon">⏱</span>Timer</button>
             </div>
           )}
-          {tab === 'train' ? (
-            <div className="group-landing">
-              <h3 className="group-title">⚡ Train</h3>
-              <div className="group-grid">
-                <button className="group-card" onClick={() => setTab('ai')}>
-                  <span className="group-card-icon">🤖</span>
-                  <div className="group-card-name">AI Generator</div>
-                  <div className="group-card-desc">Describe what you want — we build it</div>
-                </button>
-                <button className="group-card" onClick={() => setTab('ai-coach')}>
-                  <span className="group-card-icon">🧠</span>
-                  <div className="group-card-name">AI Coach</div>
-                  <div className="group-card-desc">Daily smart picks based on your history</div>
-                </button>
-                <button className="group-card" onClick={() => setTab('deck')}>
-                  <span className="group-card-icon">🃏</span>
-                  <div className="group-card-name">Deck of Cards</div>
-                  <div className="group-card-desc">Card-driven random workouts</div>
-                </button>
-                <button className="group-card" onClick={() => setTab('timer')}>
-                  <span className="group-card-icon">⏱</span>
-                  <div className="group-card-name">Timer</div>
-                  <div className="group-card-desc">AMRAP, EMOM, Tabata & more</div>
-                </button>
-              </div>
+          {['stats', 'longevity', 'prs', 'collections'].includes(tab) && (
+            <div className="tile-switch">
+              <button className={`tile-btn${tab === 'stats' ? ' on' : ''}`} onClick={() => setTab('stats')}><span className="tile-icon">📊</span>Stats</button>
+              <button className={`tile-btn${tab === 'longevity' ? ' on' : ''}`} onClick={() => setTab('longevity')}><span className="tile-icon">🧬</span>Longevity</button>
+              <button className={`tile-btn${tab === 'prs' ? ' on' : ''}`} onClick={() => setTab('prs')}><span className="tile-icon">💪</span>Strength</button>
+              <button className={`tile-btn${tab === 'collections' ? ' on' : ''}`} onClick={() => setTab('collections')}><span className="tile-icon">📁</span>Collections</button>
             </div>
-          ) : tab === 'track' ? (
-            <div className="group-landing">
-              <h3 className="group-title">📊 Track</h3>
-              <div className="group-grid">
-                <button className="group-card" onClick={() => setTab('longevity')}>
-                  <span className="group-card-icon">🧬</span>
-                  <div className="group-card-name">Longevity</div>
-                  <div className="group-card-desc">Track your Vital Age & longevity markers</div>
-                </button>
-                <button className="group-card" onClick={() => setTab('prs')}>
-                  <span className="group-card-icon">💪</span>
-                  <div className="group-card-name">Strength</div>
-                  <div className="group-card-desc">PRs, 1RM calculator & records</div>
-                </button>
-                <button className="group-card" onClick={() => setTab('stats')}>
-                  <span className="group-card-icon">📊</span>
-                  <div className="group-card-name">Stats</div>
-                  <div className="group-card-desc">Heatmap, streaks, leaderboard{streak > 0 ? ` · 🔥${streak}` : ''}</div>
-                </button>
-                <button className="group-card" onClick={() => setTab('collections')}>
-                  <span className="group-card-icon">📁</span>
-                  <div className="group-card-name">Collections</div>
-                  <div className="group-card-desc">Your saved workout playlists</div>
-                </button>
-              </div>
+          )}
+          {['activity', 'h2h'].includes(tab) && (
+            <div className="tile-switch cols-2">
+              <button className={`tile-btn${tab === 'activity' ? ' on' : ''}`} onClick={() => { setActivityHighlight(null); setTab('activity') }}><span className="tile-icon">👥</span>Activity</button>
+              <button className={`tile-btn${tab === 'h2h' ? ' on' : ''}`} onClick={() => setTab('h2h')}><span className="tile-icon">⚔️</span>H2H</button>
             </div>
-          ) : tab === 'social' ? (
-            <div className="group-landing">
-              <h3 className="group-title">👥 Social</h3>
-              <div className="group-grid">
-                <button className="group-card" onClick={() => { setActivityHighlight(null); setTab('activity') }}>
-                  <span className="group-card-icon">👥</span>
-                  <div className="group-card-name">Activity Feed</div>
-                  <div className="group-card-desc">See what others are doing & find athletes</div>
-                </button>
-                <button className="group-card" onClick={() => setTab('h2h')}>
-                  <span className="group-card-icon">⚔️</span>
-                  <div className="group-card-name">H2H Challenges</div>
-                  <div className="group-card-desc">Challenge friends head-to-head</div>
-                </button>
-              </div>
-            </div>
-          ) : tab === 'deck' ? (
+          )}
+          {tab === 'deck' ? (
             <DeckOfCards session={session} onAuthRequired={() => setShowAuth(true)} onWorkoutsChanged={loadWorkouts} isAdmin={profile?.is_admin || false} />
           ) : tab === 'ai' ? (
             <AIGenerator session={session} profile={profile} onAuthRequired={() => setShowAuth(true)} isAdmin={profile?.is_admin || false} onWorkoutsChanged={loadWorkouts} />
