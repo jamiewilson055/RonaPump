@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
+import StoryCard from './StoryCard'
 
 // Research-based weights — higher = stronger mortality evidence
 const WEIGHTS = { vo2max: 1.5, grip: 1.4, deadhang: 1.3, sitrise: 1.2, balance: 1.2, pushup: 1.1, farmerscarry: 1.0, squat60: 1.0, bike60: 0.9, broadjump: 0.9 }
@@ -165,6 +166,7 @@ export default function Longevity({ session, onAuthRequired }) {
   const [editingScoreId, setEditingScoreId] = useState(null)
   const [editVal, setEditVal] = useState('')
   const [showAnalytics, setShowAnalytics] = useState(false)
+  const [showStory, setShowStory] = useState(false)
 
   useEffect(() => { if (session) { loadScores(); loadProfile() } }, [session])
 
@@ -439,6 +441,22 @@ export default function Longevity({ session, onAuthRequired }) {
             <div className="lon-vital-sub">Complete your first test to see your Vital Age</div>
           )}
           <div className="lon-vital-tested">{testedCount}/{MARKERS.length} markers tested</div>
+          {testedCount > 0 && session && (
+            <button className="doc-ctrl" style={{ margin: '6px 0' }} onClick={() => setShowStory(true)}>📸 Share My Vital Age</button>
+          )}
+          {showStory && (
+            <StoryCard
+              session={session}
+              vital={{
+                vitalAge,
+                actualAge: parseInt(age) || 30,
+                ageDiff,
+                longevityIndex,
+                markers: analytics.strongest.map(m => ({ name: m.name, value: m.value, unit: m.unit, levelLabel: m.levelLabel })),
+              }}
+              onClose={() => setShowStory(false)}
+            />
+          )}
           <div className="lon-vital-row">
             <button className="lon-test-day-btn" onClick={() => { setTestMode(true); setTestStep(0); setInputValue(''); setInputNotes('') }}>🧪 Test Day</button>
             <div className="lon-age-inputs">

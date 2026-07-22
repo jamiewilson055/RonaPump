@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
-export default function StoryCard({ workout, score, session, onClose }) {
+export default function StoryCard({ workout, score, session, onClose, vital }) {
   const canvasRef = useRef(null)
   const imgRef = useRef(null)
   const [profile, setProfile] = useState(null)
@@ -24,7 +24,7 @@ export default function StoryCard({ workout, score, session, onClose }) {
   }, [])
 
   useEffect(() => { if (session) loadData() }, [session])
-  useEffect(() => { if (imgLoaded) drawCard() }, [profile, streak, totalWorkouts, style, workout, score, imgLoaded])
+  useEffect(() => { if (imgLoaded) drawCard() }, [profile, streak, totalWorkouts, style, workout, score, imgLoaded, vital])
 
   async function loadData() {
     const { data: p } = await supabase.from('profiles').select('display_name, gorilla_rank, xp').eq('id', session.user.id).single()
@@ -67,11 +67,17 @@ export default function StoryCard({ workout, score, session, onClose }) {
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     const W = 1080
-    // Pre-measure name to estimate height
-    ctx.font = '700 ' + (score ? 80 : 96) + 'px sans-serif'
-    const preNameLines = wrapText(ctx, "' " + (workout?.name || 'Workout') + " '", W - 120)
-    const nameExtra = (preNameLines.length - 1) * ((score ? 80 : 96) * 1.15)
-    const H = score ? Math.round(1150 + nameExtra) : Math.round(900 + nameExtra)
+    let H
+    if (vital) {
+      // Fixed vital layout: content ends at 1138 baseline with 3 markers; 52px per marker row
+      H = 1058 + Math.min(vital.markers?.length || 0, 3) * 52
+    } else {
+      // Pre-measure name to estimate height
+      ctx.font = '700 ' + (score ? 80 : 96) + 'px sans-serif'
+      const preNameLines = wrapText(ctx, "' " + (workout?.name || 'Workout') + " '", W - 120)
+      const nameExtra = (preNameLines.length - 1) * ((score ? 80 : 96) * 1.15)
+      H = score ? Math.round(1150 + nameExtra) : Math.round(900 + nameExtra)
+    }
     canvas.width = W; canvas.height = H
 
     const s = STYLES[style]
@@ -119,6 +125,66 @@ export default function StoryCard({ workout, score, session, onClose }) {
     let y = hdrY + imgSz + 22
     ctx.fillStyle = accent
     ctx.fillRect(px, y, cw, 4)
+
+    if (vital) {
+      // ── MY VITAL AGE ── (y 230)
+      y += 52
+      ctx.font = '700 34px monospace'
+      ctx.textAlign = 'center'
+      ctx.fillStyle = accent
+      ctx.letterSpacing = '4px'
+      ctx.fillText('MY VITAL AGE', cx, y)
+      ctx.letterSpacing = '0px'
+
+      // ── GIANT NUMBER ── (baseline 480)
+      y += 250
+      ctx.font = '700 240px monospace'
+      ctx.fillStyle = accent
+      ctx.fillText(String(vital.vitalAge), cx, y)
+
+      // ── AGE DIFF ── (baseline 550)
+      y += 70
+      const diff = vital.ageDiff
+      const diffColor = diff < 0 ? dur : diff === 0 ? clr : accent
+      const diffStr = diff < 0 ? Math.abs(diff) + ' YEARS YOUNGER' : diff === 0 ? 'RIGHT ON TRACK' : diff + ' YEARS OLDER'
+      ctx.font = '800 44px sans-serif'
+      ctx.fillStyle = diffColor
+      ctx.fillText(diffStr, cx, y)
+
+      // ── ACTUAL AGE + INDEX ── (baseline 604)
+      y += 54
+      ctx.font = '500 32px monospace'
+      ctx.fillStyle = hexA(clr, 0.45)
+      ctx.fillText('ACTUAL AGE ' + vital.actualAge + '  \u00B7  LONGEVITY INDEX ' + vital.longevityIndex + '/100', cx, y)
+
+      // ── DIVIDER ── (648)
+      y += 44
+      ctx.fillStyle = hexA(clr, 0.08)
+      ctx.fillRect(px, y, cw, 1)
+
+      // ── TOP MARKERS ── (heading 704, rows 756/808/860)
+      const vm = (vital.markers || []).slice(0, 3)
+      if (vm.length) {
+        y += 56
+        ctx.font = '500 30px monospace'
+        ctx.fillStyle = hexA(clr, 0.4)
+        ctx.letterSpacing = '4px'
+        ctx.fillText('TOP MARKERS', cx, y)
+        ctx.letterSpacing = '0px'
+        for (const m of vm) {
+          y += 52
+          ctx.font = '600 34px sans-serif'
+          ctx.fillStyle = clr
+          ctx.textAlign = 'left'
+          ctx.fillText(m.name, px, y)
+          ctx.font = '700 34px sans-serif'
+          ctx.fillStyle = accent
+          ctx.textAlign = 'right'
+          ctx.fillText(m.value + (m.unit ? ' ' + m.unit : '') + '  \u00B7  ' + String(m.levelLabel || '').toUpperCase(), W - px, y)
+        }
+        ctx.textAlign = 'center'
+      }
+    } else {
 
     // ── WORKOUT COMPLETE ── (y ~ 196)
     y += 52
@@ -203,6 +269,7 @@ export default function StoryCard({ workout, score, session, onClose }) {
         y += 28
       }
     }
+    }
 
     // ── PERSONAL INFO ──
     y += 40
@@ -246,7 +313,7 @@ export default function StoryCard({ workout, score, session, onClose }) {
     drawCard()
     const canvas = canvasRef.current
     const link = document.createElement('a')
-    link.download = `ronapump-${(workout?.name || 'workout').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-story.png`
+    link.download = vital ? 'ronapump-vital-age-story.png' : `ronapump-${(workout?.name || 'workout').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-story.png`
     link.href = canvas.toDataURL('image/png')
     link.click()
     setDownloaded(true); setTimeout(() => setDownloaded(false), 2000)
@@ -265,8 +332,8 @@ export default function StoryCard({ workout, score, session, onClose }) {
   return (
     <div className="mo" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="mc" style={{ maxWidth: '480px' }}>
-        <h2 style={{ marginBottom: '4px' }}>📸 Story Card</h2>
-        <p style={{ fontSize: '12px', color: 'var(--tx3)', marginBottom: '10px' }}>Share your workout completion on Instagram.</p>
+        <h2 style={{ marginBottom: '4px' }}>{vital ? '🧬 Vital Age Card' : '📸 Story Card'}</h2>
+        <p style={{ fontSize: '12px', color: 'var(--tx3)', marginBottom: '10px' }}>{vital ? 'Share your Vital Age on Instagram.' : 'Share your workout completion on Instagram.'}</p>
         <div className="story-styles">
           {STYLES.map((st, i) => (
             <button key={i} className={`story-style-btn${style === i ? ' on' : ''}`}
