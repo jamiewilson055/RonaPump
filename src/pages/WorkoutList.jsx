@@ -304,31 +304,31 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
 
       <div style={{ margin: '4px 0 8px' }}>
         {!qlOpen && !qlSaved && (
-          <button className="doc-ctrl" style={{ width: '100%', textAlign: 'left' }}
+          <button className="ql-bar"
             onClick={() => { if (!session) { onAuthRequired(); return } setQlOpen(true) }}>
             ⚡ Quick Log — type what you did, I'll log it
           </button>
         )}
         {qlSaved && (
-          <div style={{ color: 'var(--grn)', fontWeight: 600, fontSize: 14, padding: '8px 4px' }}>✓ Logged!</div>
+          <div className="ql-saved">✓ Logged!</div>
         )}
         {qlOpen && (
-          <div style={{ border: '1px solid var(--brd)', borderRadius: 10, padding: 12 }}>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input className="doc-suit-input" style={{ flex: 1 }}
+          <div className="ql-panel">
+            <div className="ql-row">
+              <input className="ql-input"
                 placeholder='e.g. "did Chad in 39:55 rx" or "ran 10k easy, 52:10"'
                 value={qlText} onChange={e => setQlText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') quickLogParse() }} />
-              <button className="doc-ctrl" onClick={quickLogParse} disabled={qlLoading}>{qlLoading ? '⏳' : 'Log'}</button>
-              <button className="doc-ctrl" onClick={() => { setQlOpen(false); setQlParsed(null); setQlError(''); setQlText('') }}>✕</button>
+              <button className="rbtn" onClick={quickLogParse} disabled={qlLoading}>{qlLoading ? '⏳' : '⚡'}</button>
+              <button className="rbtn" onClick={() => { setQlOpen(false); setQlParsed(null); setQlError(''); setQlText('') }}>✕</button>
             </div>
 
             {qlError && (
-              <div style={{ color: 'var(--err, #c0392b)', fontSize: 13, marginTop: 8 }}>{qlError}</div>
+              <div className="ql-error">{qlError}</div>
             )}
 
             {qlParsed && (
-              <div style={{ marginTop: 12, borderTop: '1px solid var(--brd)', paddingTop: 12 }}>
+              <div className="ql-confirm">
                 <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 8 }}>
                   {qlParsed.matchedWorkout ? qlParsed.matchedWorkout.name : (qlParsed.newWorkout?.name || 'Activity')}
                   {!qlParsed.matchedWorkout && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--acc)', marginLeft: 8 }}>NEW · saved as private workout</span>}

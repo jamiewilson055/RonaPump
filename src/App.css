@@ -1806,10 +1806,10 @@ input, select, textarea { font-family: inherit; }
 /* Desktop sidebar nav grid */
 @media (min-width: 641px) {
   .sidebar-nav { padding: 10px; }
-  .sidebar-nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-  .sidebar-nav-btn { background: var(--bg); border: 1px solid var(--brd); border-radius: 6px; padding: 8px 6px; font-size: 11px; font-weight: 600; color: var(--tx2); cursor: pointer; transition: all .1s; text-align: left; font-family: 'JetBrains Mono', monospace; }
-  .sidebar-nav-btn:hover { border-color: var(--acc); color: var(--acc); }
-  .sidebar-nav-btn.on { background: var(--acc-d); border-color: var(--acc); color: var(--acc); }
+  .sidebar-nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .sidebar-nav-btn { background: var(--s1); border: 1px solid var(--brd); border-radius: 8px; padding: 11px 10px; font-size: 13px; font-weight: 700; color: var(--tx2); cursor: pointer; transition: all .12s; text-align: left; font-family: 'JetBrains Mono', monospace; }
+  .sidebar-nav-btn:hover { border-color: var(--acc); color: var(--tx); background: var(--acc-d); }
+  .sidebar-nav-btn.on { background: var(--acc); border-color: var(--acc); color: #fff; }
 }
 
 /* Vital Age box redesign */
@@ -2015,3 +2015,14 @@ input, select, textarea { font-family: inherit; }
 .tile-btn.on { background: var(--acc); border-color: var(--acc); color: #fff; }
 .tile-icon { font-size: 22px; line-height: 1; }
 @media (min-width: 900px) { .tile-btn { flex-direction: row; gap: 8px; font-size: 13px; padding: 12px 8px; } }
+
+/* ── Quick Log (matches search box language) ── */
+.ql-bar { width: 100%; background: var(--s1); border: 1px solid var(--brd); border-radius: 7px; padding: 10px 12px; color: var(--tx2); font-size: 13px; font-weight: 600; text-align: left; cursor: pointer; transition: all .12s; }
+.ql-bar:hover { border-color: var(--acc); color: var(--tx); background: var(--acc-d); }
+.ql-panel { background: var(--s1); border: 1px solid var(--brd); border-radius: 10px; padding: 12px; }
+.ql-row { display: flex; gap: 8px; }
+.ql-input { flex: 1; background: var(--bg); border: 1px solid var(--brd); border-radius: 7px; padding: 10px 12px; color: var(--tx); font-size: 13px; outline: none; min-width: 0; }
+.ql-input:focus { border-color: var(--acc); }
+.ql-confirm { margin-top: 12px; border-top: 1px solid var(--brd); padding-top: 12px; }
+.ql-saved { color: var(--grn); font-weight: 600; font-size: 14px; padding: 8px 4px; }
+.ql-error { color: var(--acc); font-size: 13px; margin-top: 8px; }
