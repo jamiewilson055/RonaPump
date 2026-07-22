@@ -280,6 +280,14 @@ function App() {
     setFavorites(newFavs)
   }
 
+  // Old hub keys (from stale links or state) land on their section's flagship.
+  // Must stay above every conditional return (Rules of Hooks).
+  useEffect(() => {
+    if (tab === 'train') setTab('ai')
+    else if (tab === 'track') setTab('longevity')
+    else if (tab === 'social') setTab('activity')
+  }, [tab])
+
   function handleProfileClick() {
     if (session) {
       setShowProfile(true)
@@ -333,12 +341,7 @@ function App() {
   const isMainTab = ['all', 'done', 'queue', 'favs'].includes(tab)
   const isFeatureTab = ['deck', 'ai', 'ai-coach', 'timer', 'longevity', 'h2h', 'prs', 'activity', 'stats', 'collections', 'train', 'track', 'social'].includes(tab)
 
-  // Old hub keys (from stale links or state) land on their section's flagship
-  useEffect(() => {
-    if (tab === 'train') setTab('ai-coach')
-    else if (tab === 'track') setTab('stats')
-    else if (tab === 'social') setTab('activity')
-  }, [tab])
+
 
   return (
     <div className="app">
@@ -480,16 +483,16 @@ function App() {
           {/* Section Back Bar */}
           {['ai-coach', 'ai', 'deck', 'timer'].includes(tab) && (
             <div className="tile-switch">
-              <button className={`tile-btn${tab === 'ai-coach' ? ' on' : ''}`} onClick={() => setTab('ai-coach')}><span className="tile-icon">🧠</span>Coach</button>
               <button className={`tile-btn${tab === 'ai' ? ' on' : ''}`} onClick={() => setTab('ai')}><span className="tile-icon">🤖</span>Generator</button>
+              <button className={`tile-btn${tab === 'ai-coach' ? ' on' : ''}`} onClick={() => setTab('ai-coach')}><span className="tile-icon">🧠</span>Coach</button>
               <button className={`tile-btn${tab === 'deck' ? ' on' : ''}`} onClick={() => setTab('deck')}><span className="tile-icon">🃏</span>Deck</button>
               <button className={`tile-btn${tab === 'timer' ? ' on' : ''}`} onClick={() => setTab('timer')}><span className="tile-icon">⏱</span>Timer</button>
             </div>
           )}
           {['stats', 'longevity', 'prs', 'collections'].includes(tab) && (
             <div className="tile-switch">
-              <button className={`tile-btn${tab === 'stats' ? ' on' : ''}`} onClick={() => setTab('stats')}><span className="tile-icon">📊</span>Stats</button>
               <button className={`tile-btn${tab === 'longevity' ? ' on' : ''}`} onClick={() => setTab('longevity')}><span className="tile-icon">🧬</span>Longevity</button>
+              <button className={`tile-btn${tab === 'stats' ? ' on' : ''}`} onClick={() => setTab('stats')}><span className="tile-icon">📊</span>Stats</button>
               <button className={`tile-btn${tab === 'prs' ? ' on' : ''}`} onClick={() => setTab('prs')}><span className="tile-icon">💪</span>Strength</button>
               <button className={`tile-btn${tab === 'collections' ? ' on' : ''}`} onClick={() => setTab('collections')}><span className="tile-icon">📁</span>Collections</button>
             </div>

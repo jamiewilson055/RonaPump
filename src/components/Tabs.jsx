@@ -27,10 +27,10 @@ export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount, 
         <button className={`bnav${isWorkoutsTab ? ' on' : ''}`} onClick={() => setTab('all')}>
           <span>🏋</span><span>Workouts</span>
         </button>
-        <button className={`bnav${isTrainTab ? ' on' : ''}`} onClick={() => setTab('ai-coach')}>
+        <button className={`bnav${isTrainTab ? ' on' : ''}`} onClick={() => setTab('ai')}>
           <span>⚡</span><span>Train</span>
         </button>
-        <button className={`bnav${isTrackTab ? ' on' : ''}`} onClick={() => setTab('stats')}>
+        <button className={`bnav${isTrackTab ? ' on' : ''}`} onClick={() => setTab('longevity')}>
           <span>📊</span><span>Track</span>
         </button>
         <button className={`bnav${isSocialTab ? ' on' : ''}`} onClick={() => setTab('activity')}>
