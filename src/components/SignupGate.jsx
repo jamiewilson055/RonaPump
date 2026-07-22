@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 
-const GATE_THRESHOLD = 8
+const GATE_THRESHOLD = 5
 const STORAGE_KEY = 'rp_views'
 
 export default function SignupGate({ onSignIn }) {

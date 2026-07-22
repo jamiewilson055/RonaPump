@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { formatDesc, bestScore } from '../lib/workoutFormat'
@@ -6,6 +6,8 @@ import WorkoutTimer from '../components/WorkoutTimer'
 import WorkoutEditModal from '../components/WorkoutEditModal'
 import ShareImage from '../components/ShareImage'
 import StoryCard from '../components/StoryCard'
+import Auth from '../components/Auth'
+import SignupGate, { trackWorkoutView } from '../components/SignupGate'
 import '../App.css'
 
 
@@ -61,6 +63,8 @@ export default function WorkoutPage() {
   const [showStoryCard, setShowStoryCard] = useState(false)
   const [copied, setCopied] = useState(false)
   const [session, setSession] = useState(null)
+  const [sessionReady, setSessionReady] = useState(false)
+  const [showAuth, setShowAuth] = useState(false)
   const [profile, setProfile] = useState(null)
   const [addingLog, setAddingLog] = useState(false)
   const [logScore, setLogScore] = useState('')
@@ -83,6 +87,7 @@ export default function WorkoutPage() {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s)
       if (s) loadProfile(s.user.id)
+      setSessionReady(true)
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
       setSession(s)
@@ -99,6 +104,13 @@ export default function WorkoutPage() {
   }
 
   useEffect(() => { loadWorkout() }, [slug])
+  const countedRef = useRef(null)
+  useEffect(() => {
+    if (sessionReady && !session && workout && countedRef.current !== workout.id) {
+      countedRef.current = workout.id
+      trackWorkoutView()
+    }
+  }, [sessionReady, session, workout])
   useEffect(() => { if (session && workout) checkFavorite() }, [session, workout])
 
   async function loadWorkout() {
@@ -457,6 +469,8 @@ export default function WorkoutPage() {
           onSaved={() => { setEditMode(null); loadWorkout && loadWorkout() }}
         />
       )}
+          {sessionReady && !session && <SignupGate onSignIn={() => setShowAuth(true)} />}
+      {showAuth && <Auth onClose={() => setShowAuth(false)} />}
     </div>
   )
 }
