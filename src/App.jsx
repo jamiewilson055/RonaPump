@@ -368,12 +368,12 @@ function App() {
         </div>
       )}
 
-<div className={['deck','ai','ai-coach','prs','h2h','timer','longevity','train','track','social'].includes(tab) ? 'mobile-hide' : ''}>
+<div className={!['all', 'done', 'queue', 'favs'].includes(tab) ? 'mobile-hide' : ''}>
         <QuoteBar isAdmin={profile?.is_admin || false} />
       </div>
 
       {/* Bigger secondary tabs — desktop only */}
-      <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} collectionsCount={collections.length} hideMainOnMobile={['deck','ai','ai-coach','prs','h2h','timer','longevity','train','track','social'].includes(tab)} />
+      <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} collectionsCount={collections.length} hideMainOnMobile={!['all', 'done', 'queue', 'favs'].includes(tab)} />
 
       {/* Two-column layout on desktop for main workout tabs */}
       {isMainTab ? (
