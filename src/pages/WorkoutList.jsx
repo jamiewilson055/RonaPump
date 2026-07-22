@@ -290,8 +290,12 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
           {query && <button className="sbox-clear" onClick={() => { setQuery(''); setPage(1) }}>✕</button>}
         </div>
         <button className="rbtn" onClick={aiSearch} disabled={aiLoading} title="Search with AI — describe what you want">{aiLoading ? '⏳' : '✨ AI'}</button>
-        <button className={`rbtn${qlOpen ? ' on' : ''}`} onClick={() => { if (!session) { onAuthRequired(); return } setQlOpen(!qlOpen); setQlError('') }} title="Quick Log — type what you did">⚡ Log</button>
-        {session && <button className="nbtn" onClick={() => setShowNewModal(true)}>+ New Workout</button>}
+      </div>
+
+      <div className="action-row">
+        <button className={`action-btn${qlOpen ? ' on' : ''}`} onClick={() => { if (!session) { onAuthRequired(); return } setQlOpen(!qlOpen); setShowFilters(false); setQlError('') }}>⚡ Quick Log</button>
+        <button className={`action-btn${showFilters ? ' on' : ''}`} onClick={() => { setShowFilters(!showFilters); setQlOpen(false) }}>⚙️ Filters{activeFilterCount > 0 ? ` · ${activeFilterCount}` : ''}</button>
+        <button className="action-btn" onClick={() => { if (!session) { onAuthRequired(); return } setShowNewModal(true) }}>➕ New Workout</button>
       </div>
 
       <div style={{ margin: '4px 0 8px' }}>
@@ -350,6 +354,18 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
         )}
       </div>
 
+      {showFilters && (
+        <Filters
+          filters={filters}
+          setFilters={(f) => { setFilters(typeof f === 'function' ? f(filters) : f); setPage(1) }}
+          allEquipment={allEquipment}
+          allMovements={allMovements}
+          allCategories={allCategories}
+          allWorkoutTypes={allWorkoutTypes}
+          allBodyParts={allBodyParts}
+        />
+      )}
+
       {(aiActive || aiError) && (
         <div style={{
           margin: '4px 0 8px', padding: '8px 12px', borderRadius: 8, fontSize: 13,
@@ -396,7 +412,6 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
       </div>
 
       <div className="rbar">
-        <button className={`rbtn${showFilters ? ' on' : ''}`} onClick={() => setShowFilters(!showFilters)}>⚙️ Filters{activeFilterCount > 0 ? ` · ${activeFilterCount}` : ''}</button>
         <span className="rcnt">
           {filtered.length} workout{filtered.length !== 1 ? 's' : ''}
           {hasFilters && <span className="clr" onClick={clearFilters}>clear filters</span>}
@@ -411,17 +426,6 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
         </select>
       </div>
 
-      {showFilters && (
-        <Filters
-        filters={filters}
-        setFilters={(f) => { setFilters(typeof f === 'function' ? f(filters) : f); setPage(1) }}
-        allEquipment={allEquipment}
-        allMovements={allMovements}
-        allCategories={allCategories}
-        allWorkoutTypes={allWorkoutTypes}
-        allBodyParts={allBodyParts}
-      />
-      )}
 
       <div className="wl">
         {workouts.length === 0 && !query ? (
