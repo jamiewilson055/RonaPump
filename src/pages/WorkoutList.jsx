@@ -119,7 +119,7 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
   const items = filtered.slice((page - 1) * PP, page * PP)
 
   const hasFilters = query || sourceFilter !== 'all' || filters.eq.length || filters.eqEx?.length || filters.mv.length || filters.mvEx?.length || filters.cat.length || filters.wt.length || filters.bp?.length || filters.durMin != null || filters.durMax != null
-  const activeFilterCount = filters.eq.length + (filters.eqEx?.length || 0) + filters.mv.length + (filters.mvEx?.length || 0) + filters.cat.length + filters.wt.length + (filters.bp?.length || 0) + (filters.durMin != null || filters.durMax != null ? 1 : 0)
+  const activeFilterCount = (sourceFilter !== 'all' ? 1 : 0) + filters.eq.length + (filters.eqEx?.length || 0) + filters.mv.length + (filters.mvEx?.length || 0) + filters.cat.length + filters.wt.length + (filters.bp?.length || 0) + (filters.durMin != null || filters.durMax != null ? 1 : 0)
 
   function clearFilters() {
     setFilters({ eq: [], eqEx: [], mv: [], mvEx: [], cat: [], wt: [], bp: [], durMin: null, durMax: null, includeNoDur: true })
@@ -293,9 +293,9 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
       </div>
 
       <div className="action-row">
-        <button className={`action-btn${qlOpen ? ' on' : ''}`} onClick={() => { if (!session) { onAuthRequired(); return } setQlOpen(!qlOpen); setShowFilters(false); setQlError('') }}>⚡ Quick Log</button>
         <button className={`action-btn${showFilters ? ' on' : ''}`} onClick={() => { setShowFilters(!showFilters); setQlOpen(false) }}>⚙️ Filters{activeFilterCount > 0 ? ` · ${activeFilterCount}` : ''}</button>
         <button className="action-btn" onClick={() => { if (!session) { onAuthRequired(); return } setShowNewModal(true) }}>➕ New Workout</button>
+        <button className={`action-btn${qlOpen ? ' on' : ''}`} onClick={() => { if (!session) { onAuthRequired(); return } setQlOpen(!qlOpen); setShowFilters(false); setQlError('') }}>⚡ Quick Log</button>
       </div>
 
       <div style={{ margin: '4px 0 8px' }}>
@@ -355,35 +355,8 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
       </div>
 
       {showFilters && (
-        <Filters
-          filters={filters}
-          setFilters={(f) => { setFilters(typeof f === 'function' ? f(filters) : f); setPage(1) }}
-          allEquipment={allEquipment}
-          allMovements={allMovements}
-          allCategories={allCategories}
-          allWorkoutTypes={allWorkoutTypes}
-          allBodyParts={allBodyParts}
-        />
-      )}
-
-      {(aiActive || aiError) && (
-        <div style={{
-          margin: '4px 0 8px', padding: '8px 12px', borderRadius: 8, fontSize: 13,
-          border: `1px solid ${aiError ? 'var(--err, #c0392b)' : 'var(--acc, #888)'}`,
-          background: 'var(--bg2, rgba(128,128,128,0.08))', display: 'flex',
-          alignItems: 'center', gap: 8, flexWrap: 'wrap'
-        }}>
-          {aiError
-            ? <span style={{ color: 'var(--err, #c0392b)' }}>AI search failed: {aiError}</span>
-            : <span>✨ AI results for <strong>"{aiActive}"</strong></span>}
-          <span onClick={clearFilters} style={{ cursor: 'pointer', textDecoration: 'underline', opacity: 0.8 }}>clear</span>
-        </div>
-      )}
-
-      {showNewModal && <NewWorkoutModal onClose={() => setShowNewModal(false)} onSaved={() => { setShowNewModal(false); onWorkoutsChanged() }} session={session} isAdmin={isAdmin} />}
-
-
-      <div className="source-filter">
+        <>
+        <div className="source-filter">
         <button className={`sf-btn${sourceFilter === 'all' ? ' on' : ''}`} onClick={() => { setSourceFilter('all'); setPage(1) }}>All</button>
         <button className={`sf-btn sf-official${sourceFilter === 'official' ? ' on' : ''}`} onClick={() => { setSourceFilter('official'); setPage(1) }}>🦍 Official</button>
         <button className={`sf-btn sf-community${sourceFilter === 'community' ? ' on' : ''}`} onClick={() => { setSourceFilter('community'); setPage(1) }}>👤 Community</button>
@@ -410,6 +383,35 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
           }}>🏠 My Gym</button>
         )}
       </div>
+        <Filters
+          filters={filters}
+          setFilters={(f) => { setFilters(typeof f === 'function' ? f(filters) : f); setPage(1) }}
+          allEquipment={allEquipment}
+          allMovements={allMovements}
+          allCategories={allCategories}
+          allWorkoutTypes={allWorkoutTypes}
+          allBodyParts={allBodyParts}
+        />
+        </>
+      )}
+
+      {(aiActive || aiError) && (
+        <div style={{
+          margin: '4px 0 8px', padding: '8px 12px', borderRadius: 8, fontSize: 13,
+          border: `1px solid ${aiError ? 'var(--err, #c0392b)' : 'var(--acc, #888)'}`,
+          background: 'var(--bg2, rgba(128,128,128,0.08))', display: 'flex',
+          alignItems: 'center', gap: 8, flexWrap: 'wrap'
+        }}>
+          {aiError
+            ? <span style={{ color: 'var(--err, #c0392b)' }}>AI search failed: {aiError}</span>
+            : <span>✨ AI results for <strong>"{aiActive}"</strong></span>}
+          <span onClick={clearFilters} style={{ cursor: 'pointer', textDecoration: 'underline', opacity: 0.8 }}>clear</span>
+        </div>
+      )}
+
+      {showNewModal && <NewWorkoutModal onClose={() => setShowNewModal(false)} onSaved={() => { setShowNewModal(false); onWorkoutsChanged() }} session={session} isAdmin={isAdmin} />}
+
+
 
       <div className="rbar">
         <span className="rcnt">
