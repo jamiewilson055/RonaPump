@@ -371,12 +371,12 @@ function App() {
         </div>
       )}
 
-<div className={!['all', 'done', 'queue', 'favs'].includes(tab) ? 'mobile-hide' : ''}>
+<div className={!['all', 'done', 'queue', 'favs', 'collections'].includes(tab) ? 'mobile-hide' : ''}>
         <QuoteBar isAdmin={profile?.is_admin || false} />
       </div>
 
       {/* Bigger secondary tabs — desktop only */}
-      <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} collectionsCount={collections.length} hideMainOnMobile={!['all', 'done', 'queue', 'favs'].includes(tab)} />
+      <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} collectionsCount={collections.length} hideMainOnMobile={!['all', 'done', 'queue', 'favs', 'collections'].includes(tab)} />
 
       {/* Two-column layout on desktop for main workout tabs */}
       {isMainTab ? (
@@ -417,7 +417,6 @@ function App() {
                 <button className={`sidebar-nav-btn${tab === 'longevity' ? ' on' : ''}`} onClick={() => setTab('longevity')}>🧬 Longevity</button>
                 <button className={`sidebar-nav-btn${tab === 'prs' ? ' on' : ''}`} onClick={() => setTab('prs')}>💪 Strength</button>
                 <button className={`sidebar-nav-btn${tab === 'stats' ? ' on' : ''}`} onClick={() => setTab('stats')}>📊 Stats</button>
-                <button className={`sidebar-nav-btn${tab === 'collections' ? ' on' : ''}`} onClick={() => setTab('collections')}>📁 Collections</button>
               </div>
               <div className="sidebar-nav-label" style={{ marginTop: '8px' }}>👥 Social</div>
               <div className="sidebar-nav-grid">
@@ -489,12 +488,11 @@ function App() {
               <button className={`tile-btn${tab === 'timer' ? ' on' : ''}`} onClick={() => setTab('timer')}><span className="tile-icon">⏱</span>Timer</button>
             </div>
           )}
-          {['stats', 'longevity', 'prs', 'collections'].includes(tab) && (
+          {['longevity', 'stats', 'prs'].includes(tab) && (
             <div className="tile-switch">
               <button className={`tile-btn${tab === 'longevity' ? ' on' : ''}`} onClick={() => setTab('longevity')}><span className="tile-icon">🧬</span>Longevity</button>
               <button className={`tile-btn${tab === 'stats' ? ' on' : ''}`} onClick={() => setTab('stats')}><span className="tile-icon">📊</span>Stats</button>
               <button className={`tile-btn${tab === 'prs' ? ' on' : ''}`} onClick={() => setTab('prs')}><span className="tile-icon">💪</span>Strength</button>
-              <button className={`tile-btn${tab === 'collections' ? ' on' : ''}`} onClick={() => setTab('collections')}><span className="tile-icon">📁</span>Collections</button>
             </div>
           )}
           {['activity', 'h2h'].includes(tab) && (

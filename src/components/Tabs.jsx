@@ -4,11 +4,12 @@ export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount, 
     { key: 'done', label: 'Completed', short: 'Done', count: counts.done },
     { key: 'queue', label: 'Queue', short: 'Queue', count: counts.queue },
     { key: 'favs', label: 'Favorites', short: 'Favs', count: counts.favs },
+    { key: 'collections', label: 'Collections', short: 'Colls', count: collectionsCount },
   ]
 
-  const isWorkoutsTab = ['all', 'done', 'queue', 'favs'].includes(tab)
+  const isWorkoutsTab = ['all', 'done', 'queue', 'favs', 'collections'].includes(tab)
   const isTrainTab = ['train', 'ai', 'deck', 'timer'].includes(tab)
-  const isTrackTab = ['track', 'longevity', 'prs', 'stats', 'collections'].includes(tab)
+  const isTrackTab = ['track', 'longevity', 'prs', 'stats'].includes(tab)
   const isSocialTab = ['social', 'activity', 'h2h'].includes(tab)
 
   return (
