@@ -17,13 +17,21 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
   const [comments, setComments] = useState({}) // { id: [comments] }
   const [expandedComments, setExpandedComments] = useState(null)
   const [commentText, setCommentText] = useState('')
+  const [feedScope, setFeedScope] = useState(() => { try { return localStorage.getItem('rp_feed_scope') || 'all' } catch { return 'all' } })
+  const [mentionQuery, setMentionQuery] = useState(null)
 
   useEffect(() => {
     if (session) {
       loadFollowing()
       loadActivity()
+      loadAllUsers()
     }
   }, [session])
+
+  useEffect(() => {
+    if (session) loadActivity()
+    try { localStorage.setItem('rp_feed_scope', feedScope) } catch {}
+  }, [feedScope])
 
   // Re-load and highlight when navigated from notification
   useEffect(() => {
@@ -65,21 +73,25 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
     const followIds = followData?.map(f => f.following_id) || []
     const feedUserIds = [...followIds, session.user.id]
 
-    const { data: logs } = await supabase
+    const scopeAll = feedScope === 'all'
+
+    let logsQ = supabase
       .from('performance_log')
       .select('*, workouts(id, name, score_type), profiles(display_name, avatar_url)')
-      .in('user_id', feedUserIds)
       .or('notes.is.null,notes.neq.Quick logged')
       .order('created_at', { ascending: false })
       .limit(40)
+    if (!scopeAll) logsQ = logsQ.in('user_id', feedUserIds)
+    const { data: logs } = await logsQ
 
-    const { data: prLogs } = await supabase
+    let prQ = supabase
       .from('personal_records')
       .select('*, profiles(display_name, avatar_url)')
-      .in('user_id', feedUserIds)
       .neq('type', 'deck-scheme')
       .order('created_at', { ascending: false })
       .limit(20)
+    if (!scopeAll) prQ = prQ.in('user_id', feedUserIds)
+    const { data: prLogs } = await prQ
 
     // Load challenges involving feed users
     const { data: challenges } = await supabase
@@ -205,6 +217,16 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
     }
   }
 
+  function renderMentions(body) {
+    const names = allUsers.map(u => u.display_name).filter(Boolean)
+    if (!names.length) return body
+    const esc = names.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')
+    const re = new RegExp('(@(?:' + esc + '))', 'gi')
+    const parts = String(body).split(re)
+    if (parts.length === 1) return body
+    return parts.map((part, i) => re.test(part) ? <span key={i} className="mention">{part}</span> : part)
+  }
+
   async function loadCommentsForActivity(a) {
     const key = actKey(a)
     const isPr = a.feed_type === 'pr'
@@ -219,30 +241,47 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
     setComments(prev => ({ ...prev, ['data:' + key]: data || [] }))
   }
 
-  async function postComment(a) {
+  async function postComment(a, textOverride) {
     if (!session) { onAuthRequired(); return }
-    if (!commentText.trim()) return
+    const body = (textOverride ?? commentText).trim()
+    if (!body) return
 
     const isPr = a.feed_type === 'pr'
-    const insert = { user_id: session.user.id, body: commentText.trim() }
+    const insert = { user_id: session.user.id, body }
     if (isPr) insert.personal_record_id = a.id
     else insert.performance_log_id = a.id
 
     await supabase.from('activity_comments').insert(insert)
 
-    // Notify
+    const name = session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || 'Someone'
+
+    // Notify the activity owner
     if (a.user_id !== session.user.id) {
-      const name = session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || 'Someone'
       await supabase.from('notifications').insert({
         user_id: a.user_id,
         type: 'comment',
         title: `${name} commented on your activity`,
-        body: commentText.trim().slice(0, 100),
+        body: body.slice(0, 100),
         link: `activity:${a.id}:${a.feed_type}`,
       })
     }
 
-    setCommentText('')
+    // Notify @mentioned members (skip self and the owner, who was already notified)
+    const lowerBody = body.toLowerCase()
+    const mentioned = allUsers.filter(u => u.display_name && lowerBody.includes('@' + u.display_name.toLowerCase()))
+    for (const u of mentioned) {
+      if (u.id === session.user.id || u.id === a.user_id) continue
+      await supabase.from('notifications').insert({
+        user_id: u.id,
+        type: 'comment',
+        title: `📣 ${name} mentioned you in a comment`,
+        body: body.slice(0, 100),
+        link: `activity:${a.id}:${a.feed_type}`,
+      })
+    }
+
+    if (!textOverride) setCommentText('')
+    setMentionQuery(null)
     const key = actKey(a)
     setComments(prev => ({ ...prev, [key]: (prev[key] || 0) + 1 }))
     loadCommentsForActivity(a)
@@ -350,6 +389,11 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
         <Challenges session={session} onAuthRequired={onAuthRequired} workouts={workouts || []} />
       )}
 
+      <div className="feed-scope">
+        <button className={`fs-btn${feedScope === 'all' ? ' on' : ''}`} onClick={() => setFeedScope('all')}>🌍 All</button>
+        <button className={`fs-btn${feedScope === 'pack' ? ' on' : ''}`} onClick={() => setFeedScope('pack')}>🦍 My Pack{following.length ? ` · ${following.length}` : ''}</button>
+      </div>
+
       {loading ? (
         <div className="loading">Loading...</div>
       ) : activities.length === 0 ? (
@@ -450,17 +494,45 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
                       {commentList.map(c => (
                         <div key={c.id} className="act-comment">
                           <span className="act-comment-name">{c.profiles?.display_name || 'Someone'}</span>
-                          <span className="act-comment-body">{c.body}</span>
+                          <span className="act-comment-body">{renderMentions(c.body)}</span>
                           <span className="act-comment-time">{timeAgo(c.created_at)}</span>
                           {c.user_id === session.user.id && (
                             <span className="del-entry" onClick={() => deleteComment(c.id, a)} style={{ marginLeft: '4px' }}>✕</span>
                           )}
                         </div>
                       ))}
+                      {a.user_id !== session.user.id && (
+                        <div className="hype-row">
+                          {['🔥', '💪 Strong work', '🦍 Beast mode'].map(chip => (
+                            <button key={chip} className="hype-chip" onClick={() => postComment(a, chip)}>{chip}</button>
+                          ))}
+                        </div>
+                      )}
                       <div className="act-comment-form">
-                        <input className="doc-suit-input" value={commentText} onChange={e => setCommentText(e.target.value)}
-                          placeholder="Add a comment..." onKeyDown={e => { if (e.key === 'Enter') postComment(a) }}
-                          style={{ flex: 1, fontSize: '12px', padding: '6px 8px' }} />
+                        <div style={{ position: 'relative', flex: 1 }}>
+                          <input className="doc-suit-input" value={commentText}
+                            onChange={e => {
+                              const v = e.target.value
+                              setCommentText(v)
+                              const m = v.match(/@([\w ]{0,20})$/)
+                              setMentionQuery(m ? m[1] : null)
+                            }}
+                            placeholder="Add a comment... use @ to mention" onKeyDown={e => { if (e.key === 'Enter' && mentionQuery === null) postComment(a) }}
+                            style={{ width: '100%', fontSize: '12px', padding: '6px 8px' }} />
+                          {mentionQuery !== null && (
+                            <div className="mention-dd">
+                              {allUsers.filter(u => (u.display_name || '').toLowerCase().startsWith(mentionQuery.toLowerCase())).slice(0, 5).map(u => (
+                                <div key={u.id} className="mention-opt" onClick={() => {
+                                  setCommentText(prev => prev.replace(/@[\w ]{0,20}$/, '@' + u.display_name + ' '))
+                                  setMentionQuery(null)
+                                }}>@{u.display_name}</div>
+                              ))}
+                              {allUsers.filter(u => (u.display_name || '').toLowerCase().startsWith(mentionQuery.toLowerCase())).length === 0 && (
+                                <div className="mention-opt none">No members match</div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                         <button className="ab p" onClick={() => postComment(a)} style={{ padding: '6px 12px', fontSize: '11px' }}>Post</button>
                       </div>
                     </div>
