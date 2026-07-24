@@ -405,7 +405,6 @@ input, select, textarea { font-family: inherit; }
   .srow { flex-direction: column; }
   .wc-top { flex-wrap: wrap; gap: 6px; }
   .wtg { padding-left: 14px; }
-  .wc-preview { padding-left: 14px; }
   .plog-form { flex-direction: column; align-items: stretch; }
   .plog-form input, .plog-form textarea { font-size: 16px; padding: 12px 14px; min-width: unset; }
   .plog-form textarea { min-height: 60px; }
@@ -2070,3 +2069,5 @@ input, select, textarea { font-family: inherit; }
 
 /* ── Collapsed-card workout preview line ── */
 .wc-preview { font-size: 12px; color: var(--tx3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: -4px 0 7px; padding: 0 12px 0 40px; line-height: 1.4; }
+
+@media (max-width: 640px) { .wc-preview { padding-left: 14px; } }
