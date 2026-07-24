@@ -114,6 +114,7 @@ export default function AIGenerator({ session, profile, onAuthRequired, isAdmin,
     const { error: err } = await supabase.from('workouts').insert({
       name: result.name,
       description: result.description,
+      summary: result.summary || null,
       score_type: result.score_type || 'None',
       estimated_duration_mins: result.estimated_duration_mins || null,
       equipment: result.equipment?.length ? result.equipment : ['Bodyweight'],

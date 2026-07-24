@@ -132,14 +132,16 @@ Respond ONLY with valid JSON in this exact format, no markdown, no backticks:
           content: req.body?.raw ? prompt : `You are a fitness workout creator for RonaPump. Generate a workout based on: "${prompt}"
 
 Respond ONLY in valid JSON, no markdown, no backticks, no extra text:
-{"name":"Workout Name","description":"Line 1\\n• Movement 1\\n• Movement 2","score_type":"Time","estimated_duration_mins":20,"equipment":["Bodyweight"],"workout_types":["AMRAP"],"movement_categories":["Push-Up","Squat"],"body_parts":["Full Body"],"categories":[]}
+{"name":"Workout Name","description":"Line 1\\n• Movement 1\\n• Movement 2","summary":"Punchy one-line preview","score_type":"Time","estimated_duration_mins":20,"equipment":["Bodyweight"],"workout_types":["AMRAP"],"movement_categories":["Push-Up","Squat"],"body_parts":["Full Body"],"categories":[]}
 
 Valid equipment: Bodyweight, Dumbbell, Kettlebell, Barbell, Pull-Up Bar, Box, Bench, Rower, Bike (Assault/Echo), Ski Erg, Speed Rope, Medicine Ball, Sandbag, Sled, Weighted Vest
 Valid workout_types: AMRAP, EMOM, For Calories, For Distance, For Time, Interval, Ladder, Rounds, Strength
 Valid movement_categories: Bench Press, Burpee, DB Snatch, Deadlift, Farmers Carry, Jump, Lunge, Pull-Up, Push-Up, Run, Shoulder Press, Squat
 Valid body_parts: Upper Body, Lower Body, Full Body
 
-Make it creative and challenging.`
+Make it creative and challenging.
+
+summary: one punchy line (under 75 characters) capturing the structure + key movements, written in casual gym shorthand (w/, btw, DUs, alt. are all fine). No emoji. Example: "5 rounds: 20 heavy DB snatches, 20 burpees over DB. That is all."`
         }]
       })
     })
