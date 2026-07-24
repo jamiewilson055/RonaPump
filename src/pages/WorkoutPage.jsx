@@ -7,7 +7,7 @@ import WorkoutEditModal from '../components/WorkoutEditModal'
 import ShareImage from '../components/ShareImage'
 import StoryCard from '../components/StoryCard'
 import Auth from '../components/Auth'
-import SignupGate, { trackWorkoutView } from '../components/SignupGate'
+import { previewWorkout } from '../components/SignupGate'
 import '../App.css'
 
 
@@ -104,12 +104,14 @@ export default function WorkoutPage() {
   }
 
   useEffect(() => { loadWorkout() }, [slug])
+  const [gateLocked, setGateLocked] = useState(false)
   const countedRef = useRef(null)
   useEffect(() => {
     if (sessionReady && !session && workout && countedRef.current !== workout.id) {
       countedRef.current = workout.id
-      trackWorkoutView()
+      setGateLocked(!previewWorkout(workout.id))
     }
+    if (session) setGateLocked(false)
   }, [sessionReady, session, workout])
   useEffect(() => { if (session && workout) checkFavorite() }, [session, workout])
 
@@ -311,7 +313,17 @@ export default function WorkoutPage() {
           {w.body_parts?.map(b => <span key={b} className="tg tb">{b}</span>)}
         </div>
 
-        <div className="wp-desc">{formatDesc(w.description)}</div>
+        {gateLocked ? (
+          <div className="gate-lock-wrap">
+            <div className="gate-blur"><div className="wp-desc">{formatDesc(w.description)}</div></div>
+            <div className="gate-cta">
+              <div className="gate-cta-txt">🦍 You've used your free previews</div>
+              <button className="gate-cta-btn" onClick={() => setShowAuth(true)}>Sign Up Free to Unlock 800+ Workouts</button>
+            </div>
+          </div>
+        ) : (
+          <div className="wp-desc">{formatDesc(w.description)}</div>
+        )}
 
         <div className="wp-info">
           <span>Equipment: {w.equipment?.join(', ') || 'Bodyweight'}</span>
@@ -469,7 +481,6 @@ export default function WorkoutPage() {
           onSaved={() => { setEditMode(null); loadWorkout && loadWorkout() }}
         />
       )}
-          {sessionReady && !session && <SignupGate onSignIn={() => setShowAuth(true)} />}
       {showAuth && <Auth onClose={() => setShowAuth(false)} />}
     </div>
   )

@@ -5,7 +5,7 @@ import WorkoutTimer from './WorkoutTimer'
 import WorkoutEditModal from './WorkoutEditModal'
 import WorkoutComments from './WorkoutComments'
 import PublicProfile from '../pages/PublicProfile'
-import { trackWorkoutView } from './SignupGate'
+import { previewWorkout } from './SignupGate'
 import ShareImage from './ShareImage'
 import StoryCard from './StoryCard'
 
@@ -41,6 +41,7 @@ function SimilarCard({ workout: s }) {
 }
 
 export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session, isAdmin, onAuthRequired, onWorkoutsChanged, getSimilar, collections, onCollectionsChanged }) {
+  const [gateLocked, setGateLocked] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [addingLog, setAddingLog] = useState(false)
   const [logScore, setLogScore] = useState('')
@@ -179,7 +180,8 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
       if (sel && sel.toString().length > 0) return
       // Don't toggle if click was on an interactive element inside expanded area
       if (expanded && e.target.closest('.det')) return
-      if (!expanded && !session) trackWorkoutView()
+      if (!expanded && !session) setGateLocked(!previewWorkout(w.id))
+      if (!expanded && session) setGateLocked(false)
       setExpanded(!expanded)
     }} style={{ cursor: 'pointer' }}>
       <div className="wc-top">
@@ -211,6 +213,16 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
 
       {expanded && (
         <div className="det" onClick={e => e.stopPropagation()}>
+          {(!session && gateLocked) ? (
+            <div className="gate-lock-wrap">
+              <div className="gate-blur"><div className="dsc">{formatDesc(cleanDesc(w))}</div></div>
+              <div className="gate-cta">
+                <div className="gate-cta-txt">🦍 You've used your free previews</div>
+                <button className="gate-cta-btn" onClick={(e) => { e.stopPropagation(); onAuthRequired() }}>Sign Up Free to Unlock 800+ Workouts</button>
+              </div>
+            </div>
+          ) : (
+          <>
           <div className="dsc">{formatDesc(cleanDesc(w))}</div>
 
           <div className="plog">
@@ -371,6 +383,8 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
                 ))
               )}
             </div>
+          )}
+          </>
           )}
         </div>
       )}
