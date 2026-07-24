@@ -305,42 +305,54 @@ export default function ShareImage({ workout, onClose }) {
         continue
       }
 
-      // Detect labels: "5 Rounds For Time:", "Part A:", "Round 1:"
-      const isLabel = /^[\w].*:$/.test(trimmed) || /^(Part [A-Z]|Round \d)/i.test(trimmed)
+      // Sub-bullet detection MUST use the raw line — trimming destroys the 2-space indent
+      const isSub = /^\s{2,}(\u2022|-)\s/.test(rl)
+      const isMainBullet = !isSub && (trimmed.startsWith('\u2022 ') || trimmed.startsWith('- '))
 
-      // Bullet handling — require dash+space to avoid matching --- sections
+      // Labels: "5 Rounds For Time:", "Part A:", "Round 1:" — colon stripped to match the app
+      const isLabel = !isSub && !isMainBullet && (/^[\w].*:$/.test(trimmed) || /^(Part [A-Z]|Round \d)/i.test(trimmed))
+
       let lineText = trimmed
+      if (isSub) lineText = trimmed.replace(/^(\u2022|-)\s+/, '')
+      else if (isMainBullet) lineText = lineText.slice(2)
+
       let indent = 0
-      if (lineText.startsWith('  \u2022 ') || lineText.startsWith('  - ')) {
-        lineText = lineText.slice(4)
-        indent = 36
-      } else if (lineText.startsWith('\u2022 ')) {
-        lineText = lineText.slice(2)
-      } else if (lineText.startsWith('- ')) {
-        lineText = lineText.slice(2)
+      let marker = ''
+      let markerColor = accent
+      let textColor = hexA(text, 0.88)
+
+      if (isSub) {
+        // Sub-bullets: hollow muted marker, slightly softer text, deeper indent — matches the app
+        indent = 44
+        marker = '\u25E6'
+        markerColor = hexA(text, 0.45)
+        textColor = hexA(text, 0.78)
+      } else if (isMainBullet) {
+        // Main bullets: accent-red marker, normal text — matches the app
+        marker = '\u2022'
+        markerColor = accent
       }
 
       if (isLabel) {
         dy += 4
         ctx.font = '700 ' + fontSize + 'px sans-serif'
-        ctx.fillStyle = accent
-        lineText = lineText.toUpperCase()
+        lineText = lineText.replace(/:\s*$/, '').toUpperCase()
       } else {
         ctx.font = fontSize + 'px sans-serif'
-        ctx.fillStyle = hexA(text, 0.88)
       }
 
       ctx.textAlign = 'left'
-      // Only add bullet prefix for actual bullets (• or single dash+space), NOT -- or ---
-      const isBullet = trimmed.startsWith('\u2022 ') || trimmed.startsWith('  \u2022 ') || trimmed.startsWith('- ') || trimmed.startsWith('  - ')
-      const bulletPrefix = isBullet ? '\u2022  ' : ''
-      const bpW = bulletPrefix ? ctx.measureText(bulletPrefix).width : 0
-      const wrapped = wrapLines(ctx, lineText, cw - indent - bpW)
+      const markerGap = marker ? ctx.measureText(marker + '  ').width : 0
+      const wrapped = wrapLines(ctx, lineText, cw - indent - markerGap)
 
       for (let wi = 0; wi < wrapped.length; wi++) {
         if (dy + fontSize > descBottom) { truncated = true; break }
-        const prefix = (wi === 0 && bulletPrefix) ? bulletPrefix : (wi > 0 && bulletPrefix ? '    ' : '')
-        ctx.fillText(prefix + wrapped[wi], px + indent, dy + fontSize)
+        if (wi === 0 && marker) {
+          ctx.fillStyle = markerColor
+          ctx.fillText(marker, px + indent, dy + fontSize)
+        }
+        ctx.fillStyle = isLabel ? accent : textColor
+        ctx.fillText(wrapped[wi], px + indent + markerGap, dy + fontSize)
         dy += lineH
       }
     }
