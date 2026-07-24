@@ -405,6 +405,7 @@ input, select, textarea { font-family: inherit; }
   .srow { flex-direction: column; }
   .wc-top { flex-wrap: wrap; gap: 6px; }
   .wtg { padding-left: 14px; }
+  .wc-preview { padding-left: 14px; }
   .plog-form { flex-direction: column; align-items: stretch; }
   .plog-form input, .plog-form textarea { font-size: 16px; padding: 12px 14px; min-width: unset; }
   .plog-form textarea { min-height: 60px; }
