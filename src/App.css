@@ -862,13 +862,13 @@ input, select, textarea { font-family: inherit; }
 .doc-card-face::before { content: ''; position: absolute; inset: 6px; border: 1px solid rgba(0,0,0,.06); border-radius: 10px; pointer-events: none; }
 
 /* Center content */
-.doc-card-center { display: flex; flex-direction: column; align-items: center; gap: 0; }
-.doc-card-rank { font-family: 'Georgia', 'Times New Roman', serif; font-size: 140px; font-weight: 700; line-height: 1; }
-.doc-card-suit { font-size: 80px; line-height: 1; margin-top: -8px; }
+.doc-card-center { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.doc-card-rank { font-family: 'Georgia', 'Times New Roman', serif; font-size: 156px; font-weight: 700; line-height: 1; }
+.doc-card-suit { font-size: 100px; line-height: 1; }
 
 /* Corner labels */
-.doc-card-corner-tl { position: absolute; top: 12px; left: 14px; font-family: 'Georgia', 'Times New Roman', serif; font-size: 22px; font-weight: 700; line-height: 1.1; text-align: center; }
-.doc-card-corner-br { position: absolute; bottom: 12px; right: 14px; font-family: 'Georgia', 'Times New Roman', serif; font-size: 22px; font-weight: 700; line-height: 1.1; text-align: center; transform: rotate(180deg); }
+.doc-card-corner-tl { position: absolute; top: 12px; left: 14px; font-family: 'Georgia', 'Times New Roman', serif; font-size: 32px; font-weight: 700; line-height: 1.05; text-align: center; }
+.doc-card-corner-br { position: absolute; bottom: 12px; right: 14px; font-family: 'Georgia', 'Times New Roman', serif; font-size: 32px; font-weight: 700; line-height: 1.05; text-align: center; transform: rotate(180deg); }
 
 /* Joker card */
 .doc-card-joker-icon { font-size: 100px; }
@@ -882,8 +882,8 @@ input, select, textarea { font-family: inherit; }
 .doc-card-back-text { font-family: 'JetBrains Mono', monospace; font-size: 16px; color: #d4af37; letter-spacing: 4px; margin-top: 16px; text-transform: uppercase; }
 
 /* Movement display */
-.doc-movement { text-align: center; padding: 12px 20px; flex-shrink: 0; }
-.doc-movement-name { font-family: 'JetBrains Mono', monospace; font-size: 36px; font-weight: 700; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,.4); }
+.doc-movement { text-align: center; padding: 4px 20px; flex: 1; display: flex; align-items: center; justify-content: center; min-height: 64px; max-height: 140px; }
+.doc-movement-name { font-family: 'JetBrains Mono', monospace; font-size: 42px; font-weight: 700; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,.4); }
 .doc-movement-name.joker { color: #ffd700; }
 .doc-movement-name.tap { color: rgba(255,255,255,.4); font-size: 20px; }
 
@@ -930,15 +930,16 @@ input, select, textarea { font-family: inherit; }
 @media (max-width: 640px) {
   .doc-preset-grid { grid-template-columns: repeat(2, 1fr); }
   .doc-card { width: calc(100vw - 40px); height: calc((100vw - 40px) * 1.4); max-height: 58vh; }
-  .doc-card-rank { font-size: 120px; }
-  .doc-card-suit { font-size: 68px; }
-  .doc-card-corner-tl { font-size: 20px; top: 10px; left: 12px; }
-  .doc-card-corner-br { font-size: 20px; bottom: 10px; right: 12px; }
+  .doc-card-rank { font-size: 128px; }
+  .doc-card-suit { font-size: 84px; }
+  .doc-card-center { gap: 10px; }
+  .doc-card-corner-tl { font-size: 27px; top: 10px; left: 12px; }
+  .doc-card-corner-br { font-size: 27px; bottom: 10px; right: 12px; }
   .doc-card-joker-icon { font-size: 86px; }
   .doc-card-joker-text { font-size: 34px; }
   .doc-card-gorilla { font-size: 96px; }
   .doc-card-back-text { font-size: 14px; }
-  .doc-movement-name { font-size: 28px; }
+  .doc-movement-name { font-size: 34px; }
   .doc-play-timer { font-size: 36px; }
   .doc-play-stats { font-size: 14px; }
   .doc-play-top { padding: 8px 12px 4px; }

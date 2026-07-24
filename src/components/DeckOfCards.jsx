@@ -68,6 +68,7 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
   const wakeLockRef = useRef(null)
   const videoRef = useRef(null)
   const startTimeRef = useRef(null)
+  const flipLockRef = useRef(false)
   const pausedElapsedRef = useRef(0)
 
   useEffect(() => {
@@ -184,15 +185,16 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
     const d = buildDeck(includeJokers)
     setDeck(d); setCurrentIdx(-1); setElapsed(0); setTotalReps(0)
     setSuitReps({ '♠': 0, '♥': 0, '♦': 0, '♣': 0, '🃏': 0 })
-    setLogged(false); setPaused(false); setPhase('playing'); setRunning(true)
-    startTimeRef.current = Date.now(); pausedElapsedRef.current = 0
+    setLogged(false); setPaused(false); setPhase('playing'); setRunning(false)
+    startTimeRef.current = null; pausedElapsedRef.current = 0
     requestWakeLock()
-    setTimeout(() => flipNext(d, -1), 400)
   }
 
   function flipNext(d = deck, idx = currentIdx) {
+    if (flipLockRef.current) return
+    flipLockRef.current = true
     const nextIdx = idx + 1
-    if (nextIdx >= d.length) { setRunning(false); setPhase('complete'); releaseWakeLock(); return }
+    if (nextIdx >= d.length) { flipLockRef.current = false; setRunning(false); setPhase('complete'); releaseWakeLock(); return }
     setFlipping(true)
     setTimeout(() => {
       setCurrentIdx(nextIdx)
@@ -202,6 +204,7 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
         setSuitReps(prev => ({ ...prev, [card.suit]: prev[card.suit] + card.value }))
       }
       setFlipping(false)
+      flipLockRef.current = false
     }, 200)
   }
 
@@ -385,7 +388,10 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
       : ''
 
     return (
-      <div className="doc-play" onClick={() => { if (!paused && currentCard) flipNext() }}>
+      <div className="doc-play" onClick={() => {
+        if (paused || flipping) return
+        if (!currentCard) { setRunning(true); flipNext() } else { flipNext() }
+      }}>
         <div className="doc-play-top" onClick={e => e.stopPropagation()}>
           <div className="doc-play-timer">{formatTime(elapsed)}</div>
           <div className="doc-play-progress">
@@ -438,7 +444,7 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
               <div className="doc-movement-name">{currentCard.value} × {movement}</div>
             )
           ) : (
-            <div className="doc-movement-name tap">Tap anywhere to start</div>
+            <div className="doc-movement-name tap">Tap anywhere to flip your first card</div>
           )}
         </div>
 
@@ -502,7 +508,7 @@ export default function DeckOfCards({ session, onAuthRequired, onWorkoutsChanged
         ) : logged ? (
           <div style={{ color: 'var(--grn)', fontWeight: 600, fontSize: '16px', textAlign: 'center', padding: '10px' }}>✓ Logged to Activity Feed!</div>
         ) : null}
-        <button className="doc-ctrl" style={{ width: '100%' }} onClick={() => { const d = buildDeck(includeJokers); setDeck(d); setCurrentIdx(-1); setElapsed(0); setTotalReps(0); setSuitReps({ '♠': 0, '♥': 0, '♦': 0, '♣': 0, '🃏': 0 }); setRunning(true); setLogged(false); setPhase('playing'); requestWakeLock(); setTimeout(() => flipNext(d, -1), 400) }}>🔄 Reshuffle & Go Again</button>
+        <button className="doc-ctrl" style={{ width: '100%' }} onClick={() => { const d = buildDeck(includeJokers); setDeck(d); setCurrentIdx(-1); setElapsed(0); setTotalReps(0); setSuitReps({ '♠': 0, '♥': 0, '♦': 0, '♣': 0, '🃏': 0 }); setRunning(false); startTimeRef.current = null; pausedElapsedRef.current = 0; setLogged(false); setPaused(false); setPhase('playing'); requestWakeLock() }}>🔄 Reshuffle & Go Again</button>
         <button className="doc-ctrl sec" style={{ width: '100%' }} onClick={() => { setPhase('setup'); setRunning(false); releaseWakeLock() }}>← Back to Setup</button>
       </div>
     </div>
