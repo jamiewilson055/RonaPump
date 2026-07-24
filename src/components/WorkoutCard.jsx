@@ -202,7 +202,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
         {durDisplay && <span className="wdr">{durDisplay}</span>}
         {w.score_type !== 'None' && <span className="wst">{w.score_type}</span>}
         {bs && <span className="wbs">{bs}</span>}
-        {w.original_date_display && <span className="wdt">{w.original_date_display}</span>}
+        {expanded && w.original_date_display && <span className="wdt">{w.original_date_display}</span>}
       </div>
 
       {!expanded && w.summary && <div className="wc-preview">{w.summary}</div>}
