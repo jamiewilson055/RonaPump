@@ -40,20 +40,6 @@ function SimilarCard({ workout: s }) {
   )
 }
 
-function previewLine(w) {
-  const d = cleanDesc(w)
-  let header = ''
-  for (const raw of (d || '').split('\n')) {
-    let line = raw.trim().replace(/^-{3,}\s*/, '').replace(/^(\u2022|-)\s+/, '').replace(/\*\*/g, '').trim()
-    if (!line) continue
-    // Remember short headers ("Strength:", "20 Rounds:") as a prefix, keep looking for content
-    if (/^.{1,30}:$/.test(line)) { if (!header) header = line.slice(0, -1).trim(); continue }
-    // Skip structural labels with no workout content
-    if (/^(superset|part|round|block|station)\s*\d*[a-z]?$/i.test(line)) continue
-    return header ? header + ': ' + line : line
-  }
-  return header
-}
 
 export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session, isAdmin, onAuthRequired, onWorkoutsChanged, getSimilar, collections, onCollectionsChanged }) {
   const [gateLocked, setGateLocked] = useState(false)
@@ -219,7 +205,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
         {w.original_date_display && <span className="wdt">{w.original_date_display}</span>}
       </div>
 
-      {!expanded && previewLine(w) && <div className="wc-preview">{previewLine(w)}</div>}
+      {!expanded && w.summary && <div className="wc-preview">{w.summary}</div>}
 
       <div className="wtg">
         {w.equipment?.filter(q => q !== 'Bodyweight').map(q => <span key={q} className="tg te">{q}</span>)}
