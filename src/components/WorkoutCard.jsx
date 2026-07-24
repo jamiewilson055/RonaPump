@@ -200,7 +200,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
           {w.created_at && (Date.now() - new Date(w.created_at).getTime()) < 7 * 24 * 60 * 60 * 1000 && <span className="new-tag">NEW</span>}
         </div>
         {durDisplay && <span className="wdr">{durDisplay}</span>}
-        {w.score_type !== 'None' && <span className="wst">{w.score_type}</span>}
+        {expanded && w.score_type !== 'None' && <span className="wst">{w.score_type}</span>}
         {bs && <span className="wbs">{bs}</span>}
         {expanded && w.original_date_display && <span className="wdt">{w.original_date_display}</span>}
       </div>
