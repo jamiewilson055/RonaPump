@@ -229,7 +229,7 @@ input, select, textarea { font-family: inherit; }
 .wn.u { color: var(--tx3); font-weight: 400; }
 .wn.auto { font-style: italic; opacity: .85; }
 .auto-tag { display: inline-block; font-size: 8px; background: var(--ylw-d); color: var(--ylw); padding: 1px 5px; border-radius: 3px; margin-left: 6px; font-family: 'JetBrains Mono', monospace; font-weight: 600; letter-spacing: .5px; vertical-align: middle; text-transform: uppercase; }
-.wdr { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--tx3); background: var(--s3); padding: 2px 6px; border-radius: 3px; }
+.wdr { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--tx2); background: var(--s3); padding: 2px 6px; border-radius: 3px; }
 .wst { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--cyn); background: var(--cyn-d); padding: 2px 6px; border-radius: 3px; }
 .wbs { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--grn); font-weight: 600; }
 .wdt { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--tx3); }
@@ -2068,6 +2068,6 @@ input, select, textarea { font-family: inherit; }
 .mention-opt.none { color: var(--tx3); cursor: default; }
 
 /* ── Collapsed-card workout preview line ── */
-.wc-preview { font-size: 12px; color: var(--tx3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: -4px 0 7px; padding: 0 12px 0 40px; line-height: 1.4; }
+.wc-preview { font-size: 12px; color: var(--tx2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: -4px 0 7px; padding: 0 12px 0 40px; line-height: 1.4; }
 
 @media (max-width: 640px) { .wc-preview { padding-left: 14px; } }
