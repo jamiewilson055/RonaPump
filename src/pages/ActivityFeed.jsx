@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import PublicProfile from './PublicProfile'
 import Challenges from '../components/Challenges'
@@ -19,6 +19,10 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
   const [commentText, setCommentText] = useState('')
   const [feedScope, setFeedScope] = useState(() => { try { return localStorage.getItem('rp_feed_scope') || 'all' } catch { return 'all' } })
   const [mentionQuery, setMentionQuery] = useState(null)
+  // Ids of members explicitly chosen from the @ dropdown. Resolving mentions by
+  // id (not by display-name text) keeps notifications correct when two members
+  // share a name.
+  const mentionedIdsRef = useRef(new Set())
 
   useEffect(() => {
     if (session) {
@@ -291,9 +295,15 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
       })
     }
 
-    // Notify @mentioned members (skip self and the owner, who was already notified)
+    // Notify @mentioned members (skip self and the owner, who was already notified).
+    // Ids picked from the dropdown win; name matching only covers hand-typed
+    // mentions, and duplicates are collapsed by id so nobody is notified twice.
     const lowerBody = body.toLowerCase()
-    const mentioned = allUsers.filter(u => u.display_name && lowerBody.includes('@' + u.display_name.toLowerCase()))
+    const pickedIds = mentionedIdsRef.current
+    const byId = allUsers.filter(u => pickedIds.has(u.id) && u.display_name && lowerBody.includes('@' + u.display_name.toLowerCase()))
+    const typed = allUsers.filter(u => !pickedIds.has(u.id) && u.display_name && lowerBody.includes('@' + u.display_name.toLowerCase()))
+    const seen = new Set()
+    const mentioned = [...byId, ...typed].filter(u => { if (seen.has(u.id)) return false; seen.add(u.id); return true })
     for (const u of mentioned) {
       if (u.id === session.user.id || u.id === a.user_id) continue
       await supabase.from('notifications').insert({
@@ -306,6 +316,7 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
     }
 
     if (!textOverride) setCommentText('')
+    mentionedIdsRef.current = new Set()
     setMentionQuery(null)
     const key = actKey(a)
     setComments(prev => ({ ...prev, [key]: (prev[key] || 0) + 1 }))
@@ -549,6 +560,7 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
                               {allUsers.filter(u => (u.display_name || '').toLowerCase().startsWith(mentionQuery.toLowerCase())).slice(0, 5).map(u => (
                                 <div key={u.id} className="mention-opt" onClick={() => {
                                   setCommentText(prev => prev.replace(/@[\w ]{0,20}$/, '@' + u.display_name + ' '))
+                                  mentionedIdsRef.current.add(u.id)
                                   setMentionQuery(null)
                                 }}>@{u.display_name}</div>
                               ))}
