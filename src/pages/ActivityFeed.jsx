@@ -36,7 +36,7 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
   // Re-load and highlight when navigated from notification
   useEffect(() => {
     if (session && highlightId) {
-      loadActivity()
+      loadActivity(highlightId)
     }
   }, [highlightId])
 
@@ -67,7 +67,7 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
     if (data) setFollowing(data.map(f => f.following_id))
   }
 
-  async function loadActivity() {
+  async function loadActivity(targetId = highlightId) {
     setLoading(true)
     const { data: followData } = await supabase.from('user_follows').select('following_id').eq('follower_id', session.user.id)
     const followIds = followData?.map(f => f.following_id) || []
@@ -111,22 +111,22 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
     // window (limits 40/20/10) or be filtered by My Pack scope. Fetch it
     // directly and pin it to the top so the scroll effect always finds it.
     let finalActivities = combined
-    if (highlightId && !combined.find(a => String(a.id) === String(highlightId))) {
+    if (targetId && !combined.find(a => String(a.id) === String(targetId))) {
       let target = null
       const { data: tLog } = await supabase.from('performance_log')
         .select('*, workouts(id, name, score_type), profiles(display_name, avatar_url)')
-        .eq('id', highlightId).maybeSingle()
+        .eq('id', targetId).maybeSingle()
       if (tLog) target = { ...tLog, feed_type: 'workout' }
       if (!target) {
         const { data: tPr } = await supabase.from('personal_records')
           .select('*, profiles(display_name, avatar_url)')
-          .eq('id', highlightId).maybeSingle()
+          .eq('id', targetId).maybeSingle()
         if (tPr) target = { ...tPr, feed_type: 'pr' }
       }
       if (!target) {
         const { data: tCh } = await supabase.from('challenges')
           .select('*, challenger:profiles!challenges_challenger_id_fkey(display_name), challenged:profiles!challenges_challenged_id_fkey(display_name), workouts(name)')
-          .eq('id', highlightId).maybeSingle()
+          .eq('id', targetId).maybeSingle()
         if (tCh) target = { ...tCh, feed_type: 'challenge' }
       }
       if (target) finalActivities = [target, ...combined]
@@ -139,8 +139,8 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
 
     // Auto-expand highlighted activity + preload its comments after load.
     // The scroll itself is handled by the dedicated effect above.
-    if (highlightId) {
-      const match = finalActivities.find(a => String(a.id) === String(highlightId))
+    if (targetId) {
+      const match = finalActivities.find(a => String(a.id) === String(targetId))
       if (match) {
         setExpandedComments(match.id)
         // Load comments for this activity
