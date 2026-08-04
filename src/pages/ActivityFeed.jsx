@@ -107,15 +107,40 @@ export default function ActivityFeed({ session, onAuthRequired, onNavigateToWork
       ...(challenges || []).map(c => ({ ...c, feed_type: 'challenge', created_at: c.created_at })),
     ].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || '')).slice(0, 50)
 
-    setActivities(combined)
+    // If navigated from a notification, the target may sit outside the loaded
+    // window (limits 40/20/10) or be filtered by My Pack scope. Fetch it
+    // directly and pin it to the top so the scroll effect always finds it.
+    let finalActivities = combined
+    if (highlightId && !combined.find(a => String(a.id) === String(highlightId))) {
+      let target = null
+      const { data: tLog } = await supabase.from('performance_log')
+        .select('*, workouts(id, name, score_type), profiles(display_name, avatar_url)')
+        .eq('id', highlightId).maybeSingle()
+      if (tLog) target = { ...tLog, feed_type: 'workout' }
+      if (!target) {
+        const { data: tPr } = await supabase.from('personal_records')
+          .select('*, profiles(display_name, avatar_url)')
+          .eq('id', highlightId).maybeSingle()
+        if (tPr) target = { ...tPr, feed_type: 'pr' }
+      }
+      if (!target) {
+        const { data: tCh } = await supabase.from('challenges')
+          .select('*, challenger:profiles!challenges_challenger_id_fkey(display_name), challenged:profiles!challenges_challenged_id_fkey(display_name), workouts(name)')
+          .eq('id', highlightId).maybeSingle()
+        if (tCh) target = { ...tCh, feed_type: 'challenge' }
+      }
+      if (target) finalActivities = [target, ...combined]
+    }
+
+    setActivities(finalActivities)
 
     // Load likes and comments for these activities
-    await loadLikesAndComments(combined)
+    await loadLikesAndComments(finalActivities)
 
     // Auto-expand highlighted activity + preload its comments after load.
     // The scroll itself is handled by the dedicated effect above.
     if (highlightId) {
-      const match = combined.find(a => String(a.id) === String(highlightId))
+      const match = finalActivities.find(a => String(a.id) === String(highlightId))
       if (match) {
         setExpandedComments(match.id)
         // Load comments for this activity
