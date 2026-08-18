@@ -2131,7 +2131,9 @@ input, select, textarea { font-family: inherit; }
 /* Floating timer sheet — one persistent instance.
    Not open: wrapper is display:contents so the fixed pill renders freely. */
 .timer-sheet { display: contents; }
-.timer-sheet.open { display: block; position: fixed; left: 50%; transform: translateX(-50%); bottom: 0; width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto; background: var(--bg); border: 1px solid var(--brd); border-bottom: none; border-radius: 16px 16px 0 0; z-index: 220; box-shadow: 0 -12px 40px rgba(0,0,0,.45); }
+/* No transform here — a transformed ancestor traps position:fixed descendants,
+   which broke the timer's fullscreen (.timer-fs) view. Centered via auto margins. */
+.timer-sheet.open { display: block; position: fixed; left: 0; right: 0; margin: 0 auto; bottom: 0; width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto; background: var(--bg); border: 1px solid var(--brd); border-bottom: none; border-radius: 16px 16px 0 0; z-index: 220; box-shadow: 0 -12px 40px rgba(0,0,0,.45); }
 .timer-sheet-bar { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--s1); border-bottom: 1px solid var(--brd); z-index: 2; }
 .timer-sheet-title { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--tx2); }
 .timer-sheet-actions { display: flex; gap: 6px; }
@@ -2160,3 +2162,23 @@ input, select, textarea { font-family: inherit; }
 .wl-empty-icon { font-size: 30px; margin-bottom: 8px; }
 .wl-empty b { color: var(--tx); display: block; margin-bottom: 4px; }
 .wl-empty p { margin: 0 auto 14px; max-width: 340px; line-height: 1.5; }
+
+/* ============================================================
+   Header polish: one-line mobile top bar + uniform icon buttons
+   ============================================================ */
+
+/* Uniform 34×34 icon buttons: timer, theme toggle, notifications */
+.hdr-timer-btn, .notif-btn { width: 34px; height: 34px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 6px; flex-shrink: 0; }
+.theme-toggle { flex-shrink: 0; }
+
+/* Mobile: single-row header. Stat boxes (Workouts/Done/Queue) hide on mobile —
+   the same counts live in the filter tabs right below. */
+@media (max-width: 640px) {
+  .hdr { flex-direction: row; align-items: center; gap: 8px; }
+  .hdr-r { margin-left: auto; width: auto; justify-content: flex-end; flex-wrap: nowrap; gap: 6px; }
+  .hs { display: none; }
+  .logo { font-size: 19px; }
+  .harambe-img { width: 34px; height: 34px; }
+  .hdr-sub { margin-top: 1px; }
+  .user-btn { padding: 8px 8px; font-size: 11px; max-width: 88px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; }
+}
