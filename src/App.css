@@ -2171,14 +2171,15 @@ input, select, textarea { font-family: inherit; }
 .hdr-timer-btn, .notif-btn { width: 34px; height: 34px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 6px; flex-shrink: 0; }
 .theme-toggle { flex-shrink: 0; }
 
-/* Mobile: single-row header. Stat boxes (Workouts/Done/Queue) hide on mobile —
-   the same counts live in the filter tabs right below. */
+/* Mobile header: two clean lines.
+   Line 1 — original logo block (Harambe, RONAPUMP, Workout Explorer, @ronapump).
+   Line 2 — Workouts · Done · Queue · ⏱ · theme · bell · profile, all on ONE row. */
 @media (max-width: 640px) {
-  .hdr { flex-direction: row; align-items: center; gap: 8px; }
-  .hdr-r { margin-left: auto; width: auto; justify-content: flex-end; flex-wrap: nowrap; gap: 6px; }
-  .hs { display: none; }
-  .logo { font-size: 19px; }
-  .harambe-img { width: 34px; height: 34px; }
-  .hdr-sub { margin-top: 1px; }
-  .user-btn { padding: 8px 8px; font-size: 11px; max-width: 88px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; }
+  .hdr { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .hdr-r { margin-left: 0; width: 100%; justify-content: space-between; align-items: center; flex-wrap: nowrap; gap: 6px; }
+  .hs { flex-shrink: 0; }
+  .hs-n { font-size: 15px; }
+  .hs-l { font-size: 8px; letter-spacing: .8px; }
+  .hdr-timer-btn, .notif-btn, .theme-toggle { width: 32px; height: 32px; }
+  .user-btn { padding: 7px 8px; font-size: 11px; max-width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; }
 }
