@@ -347,7 +347,7 @@ function App() {
     <div className="app">
       <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onNotifNavigate={handleNotifNavigate} />
       {unsubBanner}
-      {!session && <Welcome onSignIn={() => setShowAuth(true)} />}
+      {!session && <Welcome onSignIn={() => setShowAuth(true)} workouts={workouts} />}
 
       {/* Continue where you left off banner */}
       {activeWorkout && (

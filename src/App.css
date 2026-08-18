@@ -2071,3 +2071,35 @@ input, select, textarea { font-family: inherit; }
 .wc-preview { font-size: 12px; color: var(--tx2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: -4px 0 7px; padding: 0 12px 0 40px; line-height: 1.4; }
 
 @media (max-width: 640px) { .wc-preview { padding-left: 14px; } }
+
+/* ============================================================
+   First-visit hero (signed-out landing) — hero-v2
+   Mobile-first; replaces the old .welcome box markup.
+   Old .welcome styles kept above for safety (no longer referenced).
+   ============================================================ */
+.hero-v2 { background: linear-gradient(160deg, var(--s2), var(--s1) 60%, var(--s1)); border: 1px solid var(--acc); border-radius: 12px; margin-bottom: 14px; padding: 22px 18px 18px; text-align: center; position: relative; overflow: hidden; }
+.hero-v2::before { content: ''; position: absolute; top: -40px; right: -40px; width: 140px; height: 140px; background: radial-gradient(circle, var(--acc-d), transparent 70%); pointer-events: none; }
+.hero-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--tx2); margin-bottom: 10px; }
+.hero-title { font-family: 'JetBrains Mono', monospace; font-size: 26px; line-height: 1.2; color: var(--tx); margin: 0 0 8px; font-weight: 700; }
+.hero-title b { color: var(--acc); }
+.hero-sub { font-size: 13px; color: var(--tx2); line-height: 1.5; margin: 0 auto 14px; max-width: 420px; }
+.hero-stats { display: flex; justify-content: center; gap: 10px; margin-bottom: 16px; }
+.hero-stat { background: var(--bg); border: 1px solid var(--brd); border-radius: 10px; padding: 8px 14px; min-width: 84px; }
+.hero-stat b { display: block; font-family: 'JetBrains Mono', monospace; font-size: 17px; color: var(--tx); }
+.hero-stat span { font-size: 10px; color: var(--tx3); text-transform: uppercase; letter-spacing: .06em; }
+.hero-ctas { display: flex; flex-direction: column; gap: 8px; align-items: center; margin-bottom: 10px; }
+.hero-cta-main { background: var(--acc); color: #fff; border: none; border-radius: 10px; padding: 13px 28px; font-size: 15px; font-weight: 700; font-family: 'DM Sans', sans-serif; cursor: pointer; width: 100%; max-width: 340px; transition: transform .12s, box-shadow .12s; box-shadow: 0 4px 14px var(--acc-d); }
+.hero-cta-main:hover { transform: translateY(-1px); box-shadow: 0 6px 18px var(--acc-d); }
+.hero-cta-ghost { background: transparent; color: var(--tx2); border: 1px solid var(--brd); border-radius: 10px; padding: 10px 22px; font-size: 13px; font-family: 'DM Sans', sans-serif; cursor: pointer; width: 100%; max-width: 340px; transition: border-color .12s, color .12s; }
+.hero-cta-ghost:hover { border-color: var(--tx2); color: var(--tx); }
+.hero-ig { display: inline-block; font-size: 12px; color: var(--tx3); text-decoration: none; }
+.hero-ig:hover { color: var(--tx2); }
+
+/* Desktop: side-by-side CTAs, slightly larger type */
+@media (min-width: 641px) {
+  .hero-v2 { padding: 28px 24px 22px; }
+  .hero-title { font-size: 32px; }
+  .hero-sub { font-size: 14px; }
+  .hero-ctas { flex-direction: row; justify-content: center; }
+  .hero-cta-main, .hero-cta-ghost { width: auto; }
+}
