@@ -62,6 +62,13 @@ function App() {
   const [totalCompleted, setTotalCompleted] = useState(0)
   const [activeWorkout, setActiveWorkout] = useState(null)
 
+  // Floating timer — mounted once opened so a running timer survives tab switches;
+  // timerOpen=false collapses it to a floating pill (StandaloneTimer renders the pill itself)
+  const [timerMounted, setTimerMounted] = useState(false)
+  const [timerOpen, setTimerOpen] = useState(false)
+  function openTimer() { setTimerMounted(true); setTimerOpen(true) }
+  function closeTimer() { setTimerOpen(false); setTimerMounted(false) }
+
   // Check for active workout from previous session
   useEffect(() => {
     try {
@@ -284,8 +291,9 @@ function App() {
   // Must stay above every conditional return (Rules of Hooks).
   useEffect(() => {
     if (tab === 'train') setTab('ai')
-    else if (tab === 'track') setTab('longevity')
+    else if (tab === 'track') setTab('stats')
     else if (tab === 'social') setTab('activity')
+    else if (tab === 'timer') { openTimer(); setTab('all') } // timer is a floating overlay now, not a page
   }, [tab])
 
   function handleProfileClick() {
@@ -326,7 +334,7 @@ function App() {
   if (showProfile && session) {
     return (
       <div className="app">
-        <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onNotifNavigate={handleNotifNavigate} />
+        <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onNotifNavigate={handleNotifNavigate} onTimerClick={openTimer} />
         {unsubBanner}
         <Profile
           session={session}
@@ -345,7 +353,7 @@ function App() {
 
   return (
     <div className="app">
-      <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onNotifNavigate={handleNotifNavigate} />
+      <Header counts={counts} session={session} profile={profile} onAuthClick={handleProfileClick} streak={streak} totalCompleted={totalCompleted} onLogoClick={() => { setTab("all"); window.scrollTo({ top: 0, behavior: "smooth" }) }} onNotifNavigate={handleNotifNavigate} onTimerClick={openTimer} />
       {unsubBanner}
       {!session && <Welcome onSignIn={() => setShowAuth(true)} workouts={workouts} />}
 
@@ -376,7 +384,7 @@ function App() {
       </div>
 
       {/* Bigger secondary tabs — desktop only */}
-      <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} collectionsCount={collections.length} hideMainOnMobile={!['all', 'done', 'queue', 'favs', 'collections'].includes(tab)} />
+      <Tabs tab={tab} setTab={setTab} counts={counts} prsCount={0} collectionsCount={collections.length} hideMainOnMobile={!['all', 'done', 'queue', 'favs', 'collections'].includes(tab)} onTimerClick={openTimer} />
 
       {/* Two-column layout on desktop for main workout tabs */}
       {isMainTab ? (
@@ -398,33 +406,14 @@ function App() {
               onWorkoutsChanged={loadWorkouts}
               collections={collections}
               onCollectionsChanged={() => session && loadCollections(session.user.id)}
+              onGenerateAI={() => setTab('ai')}
             />
           </div>
 
-          {/* Sticky sidebar — desktop only */}
+          {/* Sticky sidebar — desktop only. Nav grid removed: the four sections
+              now live in the always-visible section nav (Tabs.jsx). Sidebar keeps
+              glanceable data widgets only. */}
           <div className="desktop-sidebar desktop-only">
-            {/* Desktop Feature Nav — grouped */}
-            <div className="sidebar-card sidebar-nav">
-              <div className="sidebar-nav-label">⚡ Train</div>
-              <div className="sidebar-nav-grid">
-                <button className={`sidebar-nav-btn${tab === 'ai' ? ' on' : ''}`} onClick={() => setTab('ai')}>🤖 AI Gen</button>
-                <button className={`sidebar-nav-btn${tab === 'ai-coach' ? ' on' : ''}`} onClick={() => setTab('ai-coach')}>🧠 Coach</button>
-                <button className={`sidebar-nav-btn${tab === 'deck' ? ' on' : ''}`} onClick={() => setTab('deck')}>🃏 Deck</button>
-                <button className={`sidebar-nav-btn${tab === 'timer' ? ' on' : ''}`} onClick={() => setTab('timer')}>⏱ Timer</button>
-              </div>
-              <div className="sidebar-nav-label" style={{ marginTop: '8px' }}>📊 Track</div>
-              <div className="sidebar-nav-grid">
-                <button className={`sidebar-nav-btn${tab === 'longevity' ? ' on' : ''}`} onClick={() => setTab('longevity')}>🧬 Longevity</button>
-                <button className={`sidebar-nav-btn${tab === 'prs' ? ' on' : ''}`} onClick={() => setTab('prs')}>💪 Strength</button>
-                <button className={`sidebar-nav-btn${tab === 'stats' ? ' on' : ''}`} onClick={() => setTab('stats')}>📊 Stats</button>
-              </div>
-              <div className="sidebar-nav-label" style={{ marginTop: '8px' }}>👥 Social</div>
-              <div className="sidebar-nav-grid">
-                <button className={`sidebar-nav-btn${tab === 'activity' ? ' on' : ''}`} onClick={() => { setActivityHighlight(null); setTab('activity') }}>👥 Activity</button>
-                <button className={`sidebar-nav-btn${tab === 'h2h' ? ' on' : ''}`} onClick={() => setTab('h2h')}>⚔️ H2H</button>
-              </div>
-            </div>
-
             {/* Body Map */}
             {session ? <BodyMap session={session} /> : <BodyMap preview />}
 
@@ -480,19 +469,19 @@ function App() {
       ) : (
         <>
           {/* Section Back Bar */}
-          {['ai-coach', 'ai', 'deck', 'timer'].includes(tab) && (
+          {['ai-coach', 'ai', 'deck'].includes(tab) && (
             <div className="tile-switch">
               <button className={`tile-btn${tab === 'ai' ? ' on' : ''}`} onClick={() => setTab('ai')}><span className="tile-icon">🤖</span>Generator</button>
               <button className={`tile-btn${tab === 'ai-coach' ? ' on' : ''}`} onClick={() => setTab('ai-coach')}><span className="tile-icon">🧠</span>Coach</button>
               <button className={`tile-btn${tab === 'deck' ? ' on' : ''}`} onClick={() => setTab('deck')}><span className="tile-icon">🃏</span>Deck</button>
-              <button className={`tile-btn${tab === 'timer' ? ' on' : ''}`} onClick={() => setTab('timer')}><span className="tile-icon">⏱</span>Timer</button>
+              <button className="tile-btn" onClick={openTimer}><span className="tile-icon">⏱</span>Timer</button>
             </div>
           )}
           {['longevity', 'stats', 'prs'].includes(tab) && (
             <div className="tile-switch">
-              <button className={`tile-btn${tab === 'longevity' ? ' on' : ''}`} onClick={() => setTab('longevity')}><span className="tile-icon">🧬</span>Longevity</button>
               <button className={`tile-btn${tab === 'stats' ? ' on' : ''}`} onClick={() => setTab('stats')}><span className="tile-icon">📊</span>Stats</button>
               <button className={`tile-btn${tab === 'prs' ? ' on' : ''}`} onClick={() => setTab('prs')}><span className="tile-icon">💪</span>Strength</button>
+              <button className={`tile-btn${tab === 'longevity' ? ' on' : ''}`} onClick={() => setTab('longevity')}><span className="tile-icon">🧬</span>Longevity</button>
             </div>
           )}
           {['activity', 'h2h'].includes(tab) && (
@@ -510,7 +499,7 @@ function App() {
           ) : tab === 'h2h' ? (
             <Challenges session={session} onAuthRequired={() => setShowAuth(true)} workouts={workouts} />
           ) : tab === 'timer' ? (
-            <StandaloneTimer session={session} onAuthRequired={() => setShowAuth(true)} />
+            null /* legacy key — redirected to the floating timer by the effect above */
           ) : tab === 'longevity' ? (
             <Longevity session={session} onAuthRequired={() => setShowAuth(true)} />
           ) : tab === 'prs' ? (
@@ -549,6 +538,32 @@ function App() {
           ) : null}
         </>
       )}
+      {/* Floating timer — one persistent instance. Open = bottom sheet; minimized = pill.
+          StandaloneTimer stays mounted either way so running timers survive tab switches. */}
+      {timerMounted && (
+        <div className={`timer-sheet${timerOpen ? ' open' : ''}`}>
+          {timerOpen && (
+            <div className="timer-sheet-bar">
+              <span className="timer-sheet-title">⏱ Timer</span>
+              <div className="timer-sheet-actions">
+                <button className="timer-sheet-btn" onClick={() => setTimerOpen(false)} title="Minimize — timer keeps running">—</button>
+                <button className="timer-sheet-btn" onClick={() => { if (confirm('Close the timer? A running timer will be reset.')) closeTimer() }} title="Close">✕</button>
+              </div>
+            </div>
+          )}
+          <div className="timer-sheet-body">
+            <StandaloneTimer
+              session={session}
+              onAuthRequired={() => setShowAuth(true)}
+              floating
+              minimized={!timerOpen}
+              onExpand={() => setTimerOpen(true)}
+              onLogScore={() => { setTimerOpen(false); setTab('all'); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+            />
+          </div>
+        </div>
+      )}
+
       {showAuth && <Auth onClose={() => setShowAuth(false)} />}
       {showUpdatePassword && <UpdatePassword onClose={() => setShowUpdatePassword(false)} />}
       <AddToHomeScreen />

@@ -2103,3 +2103,60 @@ input, select, textarea { font-family: inherit; }
   .hero-ctas { flex-direction: row; justify-content: center; }
   .hero-cta-main, .hero-cta-ghost { width: auto; }
 }
+
+/* ============================================================
+   Nav restructure: desktop section nav + floating timer + wl-empty
+   ============================================================ */
+
+/* Desktop section nav — replaces the old sidebar Train/Track/Social grid */
+.section-nav { display: none; }
+@media (min-width: 641px) {
+  .section-nav { display: flex; gap: 6px; margin: 2px 0 10px; flex-wrap: wrap; }
+}
+.section-nav-btn { display: inline-flex; align-items: center; gap: 7px; background: var(--s1); border: 1px solid var(--brd); border-radius: 10px; padding: 9px 16px; font-size: 13px; font-weight: 700; color: var(--tx2); cursor: pointer; transition: all .12s; font-family: 'JetBrains Mono', monospace; }
+.section-nav-btn:hover { border-color: var(--acc); color: var(--tx); background: var(--acc-d); }
+.section-nav-btn.on { background: var(--acc); border-color: var(--acc); color: #fff; }
+.section-nav-ic { font-size: 15px; }
+.section-nav-timer { margin-left: auto; }
+
+/* Mobile bottom-nav labels — four wider labels need a touch less size */
+@media (max-width: 640px) {
+  .bnav span:last-child { font-size: 11px; }
+}
+
+/* Header timer button */
+.hdr-timer-btn { background: var(--s1); border: 1px solid var(--brd); border-radius: 8px; padding: 6px 10px; font-size: 15px; cursor: pointer; color: var(--tx); transition: all .12s; line-height: 1; }
+.hdr-timer-btn:hover { border-color: var(--acc); background: var(--acc-d); }
+
+/* Floating timer sheet — one persistent instance.
+   Not open: wrapper is display:contents so the fixed pill renders freely. */
+.timer-sheet { display: contents; }
+.timer-sheet.open { display: block; position: fixed; left: 50%; transform: translateX(-50%); bottom: 0; width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto; background: var(--bg); border: 1px solid var(--brd); border-bottom: none; border-radius: 16px 16px 0 0; z-index: 220; box-shadow: 0 -12px 40px rgba(0,0,0,.45); }
+.timer-sheet-bar { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--s1); border-bottom: 1px solid var(--brd); z-index: 2; }
+.timer-sheet-title { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--tx2); }
+.timer-sheet-actions { display: flex; gap: 6px; }
+.timer-sheet-btn { background: var(--s2); border: 1px solid var(--brd); border-radius: 7px; width: 30px; height: 28px; font-size: 13px; color: var(--tx2); cursor: pointer; line-height: 1; }
+.timer-sheet-btn:hover { color: var(--tx); border-color: var(--tx3); }
+.timer-sheet.open .timer-sheet-body { padding: 4px 10px 16px; }
+
+/* Minimized pill — floats above the mobile bottom nav; keeps ticking */
+.timer-pill { position: fixed; right: 12px; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 210; display: inline-flex; align-items: center; gap: 7px; background: var(--s1); border: 1px solid var(--acc); border-radius: 24px; padding: 10px 16px; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,.4); font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; color: var(--tx); transition: transform .12s; }
+.timer-pill:hover { transform: translateY(-1px); }
+.timer-pill.rest { border-color: var(--cyn, #22d3ee); }
+.timer-pill.done { border-color: var(--grn); color: var(--grn); }
+.timer-pill.paused { opacity: .85; }
+.timer-pill-ic { font-size: 15px; }
+.timer-pill-state { font-size: 11px; color: var(--tx2); }
+@media (min-width: 641px) {
+  .timer-pill { bottom: 20px; right: 20px; }
+}
+
+/* Post-timer log prompt */
+.timer-log-btn { display: block; width: 100%; margin-top: 12px; background: var(--grn-d); border: 1px solid var(--grn); color: var(--grn); border-radius: 10px; padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .12s; }
+.timer-log-btn:hover { background: var(--grn); color: #fff; }
+
+/* Workout list empty state (in-flow AI discovery) */
+.wl-empty { text-align: center; padding: 36px 20px; border: 1px dashed var(--brd); border-radius: 12px; color: var(--tx2); font-size: 13px; }
+.wl-empty-icon { font-size: 30px; margin-bottom: 8px; }
+.wl-empty b { color: var(--tx); display: block; margin-bottom: 4px; }
+.wl-empty p { margin: 0 auto 14px; max-width: 340px; line-height: 1.5; }

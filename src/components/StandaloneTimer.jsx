@@ -93,7 +93,7 @@ const MODES = [
   { key: 'custom', label: 'Custom', icon: '⚙️', desc: 'Build your own intervals' },
 ]
 
-export default function StandaloneTimer({ session, onAuthRequired }) {
+export default function StandaloneTimer({ session, onAuthRequired, floating = false, minimized = false, onExpand, onLogScore }) {
   const [mode, setMode] = useState(null)
   const [phase, setPhase] = useState('setup') // setup, countdown, running, rest, done
   const [time, setTime] = useState(0)
@@ -592,6 +592,27 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
   const phaseColor = phase === 'rest' ? 'var(--cyn)' : phase === 'countdown' ? 'var(--ylw)' : phase === 'done' ? 'var(--grn)' : 'var(--acc)'
   const phaseLabel = phase === 'rest' ? 'REST' : phase === 'countdown' ? 'GET READY' : phase === 'done' ? 'DONE!' : phase === 'running' ? (mode === 'tabata' || mode === 'custom' ? 'WORK' : '') : ''
 
+  // ============= Minimized floating pill =============
+  // Component stays mounted while minimized, so a running timer keeps ticking
+  // (state, wall-clock refs, and intervals all live here). Renders ONLY the pill.
+  if (minimized) {
+    const active = mode && phase !== 'setup'
+    const pillTime = (mode === 'stopwatch' || mode === 'fortime' || mode === 'amrap') ? time : intervalTimeLeft
+    const isPaused = active && !running && phase !== 'done' && phase !== 'countdown'
+    return (
+      <button
+        className={`timer-pill${phase === 'rest' ? ' rest' : ''}${phase === 'done' ? ' done' : ''}${isPaused ? ' paused' : ''}`}
+        onClick={onExpand}
+        title="Expand timer"
+      >
+        <span className="timer-pill-ic">⏱</span>
+        <span className="timer-pill-time">{active ? (phase === 'countdown' ? time : fmt(pillTime)) : 'Timer'}</span>
+        {isPaused && <span className="timer-pill-state">⏸</span>}
+        {phase === 'done' && <span className="timer-pill-state">✓</span>}
+      </button>
+    )
+  }
+
   // ============= Mode Selector =============
   if (!mode) {
     return (
@@ -890,6 +911,11 @@ export default function StandaloneTimer({ session, onAuthRequired }) {
             <div className="timer-done-row"><span>Total Time</span><span>{fmt(time)}</span></div>
             {rounds > 0 && <div className="timer-done-row"><span>Rounds</span><span>{rounds}</span></div>}
             {tapCount > 0 && <div className="timer-done-row"><span>Total Reps</span><span>{tapCount}</span></div>}
+            {floating && onLogScore && (
+              <button className="timer-log-btn" onClick={() => onLogScore({ mode, time, rounds, tapCount })}>
+                ✓ Log this score on a workout
+              </button>
+            )}
           </div>
         )}
       </div>

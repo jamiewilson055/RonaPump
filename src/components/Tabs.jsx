@@ -1,4 +1,4 @@
-export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount, hideMainOnMobile }) {
+export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount, hideMainOnMobile, onTimerClick }) {
   const mainTabs = [
     { key: 'all', label: 'All', short: 'All', count: counts.total },
     { key: 'done', label: 'Completed', short: 'Done', count: counts.done },
@@ -8,12 +8,34 @@ export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount, 
   ]
 
   const isWorkoutsTab = ['all', 'done', 'queue', 'favs', 'collections'].includes(tab)
-  const isTrainTab = ['train', 'ai', 'deck', 'timer'].includes(tab)
-  const isTrackTab = ['track', 'longevity', 'prs', 'stats'].includes(tab)
-  const isSocialTab = ['social', 'activity', 'h2h'].includes(tab)
+  const isWodTab = ['train', 'ai', 'ai-coach', 'deck', 'timer'].includes(tab)
+  const isProgressTab = ['track', 'longevity', 'prs', 'stats'].includes(tab)
+  const isCommunityTab = ['social', 'activity', 'h2h'].includes(tab)
+
+  // The four primary sections — shared by mobile bottom nav and desktop top nav
+  const sections = [
+    { key: 'workouts', icon: '🏋', label: 'Workouts', on: isWorkoutsTab, go: () => setTab('all') },
+    { key: 'getwod', icon: '🤖', label: 'Get a WOD', on: isWodTab, go: () => setTab('ai') },
+    { key: 'progress', icon: '📊', label: 'Progress', on: isProgressTab, go: () => setTab('stats') },
+    { key: 'community', icon: '👥', label: 'Community', on: isCommunityTab, go: () => setTab('activity') },
+  ]
 
   return (
     <>
+      {/* Desktop section nav — replaces the old sidebar Train/Track/Social grid */}
+      <div className="section-nav desktop-only">
+        {sections.map(s => (
+          <button key={s.key} className={`section-nav-btn${s.on ? ' on' : ''}`} onClick={s.go}>
+            <span className="section-nav-ic">{s.icon}</span>{s.label}
+          </button>
+        ))}
+        {onTimerClick && (
+          <button className="section-nav-btn section-nav-timer" onClick={onTimerClick} title="Floating timer — keeps running while you browse">
+            <span className="section-nav-ic">⏱</span>Timer
+          </button>
+        )}
+      </div>
+
       <div className={`tabs${hideMainOnMobile ? ' mobile-hide' : ''}`}>
         {mainTabs.map(t => (
           <button key={t.key} className={`tab${tab === t.key ? ' on' : ''}`} onClick={() => setTab(t.key)}>
@@ -25,18 +47,11 @@ export default function Tabs({ tab, setTab, counts, prsCount, collectionsCount, 
       </div>
 
       <div className="bottom-nav">
-        <button className={`bnav${isWorkoutsTab ? ' on' : ''}`} onClick={() => setTab('all')}>
-          <span>🏋</span><span>Workouts</span>
-        </button>
-        <button className={`bnav${isTrainTab ? ' on' : ''}`} onClick={() => setTab('ai')}>
-          <span>⚡</span><span>Train</span>
-        </button>
-        <button className={`bnav${isTrackTab ? ' on' : ''}`} onClick={() => setTab('longevity')}>
-          <span>📊</span><span>Track</span>
-        </button>
-        <button className={`bnav${isSocialTab ? ' on' : ''}`} onClick={() => setTab('activity')}>
-          <span>👥</span><span>Social</span>
-        </button>
+        {sections.map(s => (
+          <button key={s.key} className={`bnav${s.on ? ' on' : ''}`} onClick={s.go}>
+            <span>{s.icon}</span><span>{s.label}</span>
+          </button>
+        ))}
       </div>
     </>
   )

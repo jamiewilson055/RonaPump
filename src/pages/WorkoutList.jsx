@@ -6,7 +6,7 @@ import NewWorkoutModal from '../components/NewWorkoutModal'
 
 const PP = 30
 
-export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, session, profile, isAdmin, onAuthRequired, onWorkoutsChanged, collections, onCollectionsChanged }) {
+export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, session, profile, isAdmin, onAuthRequired, onWorkoutsChanged, collections, onCollectionsChanged, onGenerateAI }) {
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState('added')
   const [page, setPage] = useState(1)
@@ -444,6 +444,14 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
               </div>
             </div>
           ))
+        ) : items.length === 0 ? (
+          /* In-flow discovery: nothing matched → offer the AI Generator right here */
+          <div className="wl-empty">
+            <div className="wl-empty-icon">🦍</div>
+            <b>No workouts match.</b>
+            <p>Loosen a filter or search — or have the AI build exactly what you're looking for.</p>
+            {onGenerateAI && <button className="ab p" onClick={onGenerateAI}>🤖 Generate one with AI</button>}
+          </div>
         ) : items.map(w => (
           <WorkoutCard
             key={w.id}

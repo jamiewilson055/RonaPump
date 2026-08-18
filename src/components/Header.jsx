@@ -23,7 +23,7 @@ function getCurrentMilestone(total) {
   return current
 }
 
-export default function Header({ counts, session, profile, onAuthClick, streak, totalCompleted, onLogoClick, onNotifNavigate }) {
+export default function Header({ counts, session, profile, onAuthClick, streak, totalCompleted, onLogoClick, onNotifNavigate, onTimerClick }) {
   const currentMs = getCurrentMilestone(totalCompleted || 0)
   const nextMs = getNextMilestone(totalCompleted || 0)
 
@@ -48,6 +48,7 @@ export default function Header({ counts, session, profile, onAuthClick, streak, 
         <div className="hs"><div className="hs-n">{counts.total}</div><div className="hs-l">Workouts</div></div>
         <div className="hs"><div className="hs-n">{counts.done}</div><div className="hs-l">Done</div></div>
         <div className="hs"><div className="hs-n">{counts.queue}</div><div className="hs-l">Queue</div></div>
+        {onTimerClick && <button className="hdr-timer-btn" onClick={onTimerClick} title="Timer — keeps running while you browse">⏱</button>}
         <ThemeToggle />
         {session && <NotificationBell session={session} onNavigate={onNotifNavigate} />}
         {session ? (
