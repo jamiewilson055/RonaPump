@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { formatDesc, bestScore } from '../lib/workoutFormat'
+import { formatDesc, bestScore, compareLogs } from '../lib/workoutFormat'
 import WorkoutTimer from '../components/WorkoutTimer'
 import WorkoutEditModal from '../components/WorkoutEditModal'
 import ShareImage from '../components/ShareImage'
@@ -78,7 +78,7 @@ export default function WorkoutPage() {
   const [showCollections, setShowCollections] = useState(false)
   const [collections, setCollections] = useState([])
   const [editMode, setEditMode] = useState(null) // null | 'edit' | 'remix'
-  const [logSort, setLogSort] = useState('date')
+  const [logSort, setLogSort] = useState('score') // leaderboard defaults to best score on top
   const [editingLogId, setEditingLogId] = useState(null)
   const [editLogForm, setEditLogForm] = useState(null)
   const isAdmin = profile?.is_admin || false
@@ -268,19 +268,13 @@ export default function WorkoutPage() {
   const leaderboardPl = (w.performance_log || []).filter(p => p.notes !== 'Quick logged')
   const totalLoggers = new Set(leaderboardPl.map(p => p.user_id)).size
 
-  // Rx ALWAYS above Scaled, then by score within each group
+  // Rx ALWAYS above Scaled, then by properly parsed score — shared compareLogs helper.
+  // Unscored workouts fall back to date ordering.
+  const effSort = w.score_type === 'None' ? 'date' : logSort
   const sortedPl = (() => {
     const sorted = [...leaderboardPl]
-    if (logSort === 'score') {
-      const cmpScore = w.score_type === 'Time'
-        ? (a, b) => (a.score || '').localeCompare(b.score || '')
-        : (a, b) => (b.score || '').localeCompare(a.score || '')
-      sorted.sort((a, b) => {
-        const aRx = a.is_rx !== false
-        const bRx = b.is_rx !== false
-        if (aRx !== bRx) return aRx ? -1 : 1
-        return cmpScore(a, b)
-      })
+    if (effSort === 'score') {
+      sorted.sort((a, b) => compareLogs(a, b, w.score_type))
     } else {
       sorted.sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''))
     }
@@ -338,7 +332,7 @@ export default function WorkoutPage() {
             </h4>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               {leaderboardPl.length > 1 && (
-                <select className="ssel" value={logSort} onChange={e => setLogSort(e.target.value)} style={{ width: 'auto', fontSize: '10px', padding: '3px 6px' }}>
+                <select className="ssel" value={effSort} onChange={e => setLogSort(e.target.value)} style={{ width: 'auto', fontSize: '10px', padding: '3px 6px' }}>
                   <option value="date">By Date</option>
                   <option value="score">By {w.score_type === 'Time' ? 'Time' : 'Score'}</option>
                 </select>
@@ -353,7 +347,7 @@ export default function WorkoutPage() {
                 {sortedPl.map((e, idx) => {
                   const isBest = e.score === bs && leaderboardPl.length > 1
                   const isEditingThis = editingLogId === e.id
-                  const rank = logSort === 'score' ? idx + 1 : null
+                  const rank = effSort === 'score' ? idx + 1 : null
                   const isMine = e.user_id === session?.user?.id
 
                   if (isEditingThis && editLogForm) {

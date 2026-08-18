@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
-import { formatDesc, cleanDesc, bestScore } from '../lib/workoutFormat'
+import { formatDesc, cleanDesc, bestScore, compareLogs } from '../lib/workoutFormat'
 import WorkoutTimer from './WorkoutTimer'
 import WorkoutEditModal from './WorkoutEditModal'
 import WorkoutComments from './WorkoutComments'
@@ -50,7 +50,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const [logNotes, setLogNotes] = useState('')
   const [editMode, setEditMode] = useState(null) // null | 'edit' | 'remix'
   const [copied, setCopied] = useState(false)
-  const [logSort, setLogSort] = useState('date') // date, score
+  const [logSort, setLogSort] = useState(w.score_type && w.score_type !== 'None' ? 'score' : 'date') // leaderboard defaults to best score on top
   const [editingLogId, setEditingLogId] = useState(null)
   const [editLogForm, setEditLogForm] = useState(null)
   const [showSimilar, setShowSimilar] = useState(false)
@@ -85,19 +85,12 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const leaderboardPl = pl.filter(p => p.notes !== 'Quick logged')
   const totalLoggers = new Set(leaderboardPl.map(p => p.user_id)).size
 
-  // Sort performance logs: Rx ALWAYS above Scaled, then by score within each group
+  // Sort performance logs: Rx ALWAYS above Scaled, then by properly parsed score
+  // (times ascending, everything else descending) — shared compareLogs helper
   const sortedPl = useMemo(() => {
     const sorted = [...leaderboardPl]
     if (logSort === 'score') {
-      const cmpScore = w.score_type === 'Time'
-        ? (a, b) => (a.score || '').localeCompare(b.score || '')
-        : (a, b) => (b.score || '').localeCompare(a.score || '')
-      sorted.sort((a, b) => {
-        const aRx = a.is_rx !== false
-        const bRx = b.is_rx !== false
-        if (aRx !== bRx) return aRx ? -1 : 1
-        return cmpScore(a, b)
-      })
+      sorted.sort((a, b) => compareLogs(a, b, w.score_type))
     } else {
       sorted.sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''))
     }

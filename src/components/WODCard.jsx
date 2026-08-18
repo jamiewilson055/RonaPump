@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { compareLogs } from '../lib/workoutFormat'
 import WorkoutTimer from './WorkoutTimer'
 import ShareImage from './ShareImage'
 import StoryCard from './StoryCard'
@@ -174,14 +175,8 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
   }
 
   const isFav = favorites?.has(wod.id)
-  // Rx ALWAYS above Scaled, then by score within each group
-  const pl = [...(wod.performance_log || [])].sort((a, b) => {
-    const aRx = a.is_rx !== false
-    const bRx = b.is_rx !== false
-    if (aRx !== bRx) return aRx ? -1 : 1
-    if (wod.score_type === 'Time') return (a.score || '').localeCompare(b.score || '')
-    return (b.score || '').localeCompare(a.score || '')
-  })
+  // Rx ALWAYS above Scaled, then by properly parsed score — shared compareLogs helper
+  const pl = [...(wod.performance_log || [])].sort((a, b) => compareLogs(a, b, wod.score_type))
   const scoreLabel = wod.score_type === 'Time' ? 'Time' : wod.score_type === 'Rounds + Reps' ? 'Score' : wod.score_type === 'Calories' ? 'Cals' : 'Result'
   const descPreview = previewDesc(wod.description)
 
