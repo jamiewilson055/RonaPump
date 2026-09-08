@@ -182,7 +182,7 @@ function VitalRing({ vitalAge, actualAge, index, unlocked, stale, testedCount, m
         {unlocked
           ? <div className="lon-ring-badge" style={{ color }}>{diff < 0 ? `${Math.abs(diff)} yrs younger` : diff === 0 ? 'on track' : `${diff} yrs older`}</div>
           : <div className="lon-ring-badge muted">{testedCount}/{minMarkers} markers</div>}
-        <div className="lon-ring-tap">{!unlocked ? 'test to unlock' : stale ? '↻ retest · tap' : onClick ? 'Tap for analysis' : `index ${index}/100`}</div>
+        <div className="lon-ring-tap">{!unlocked ? 'test to unlock' : onClick ? 'Tap for analysis' : `index ${index}/100`}</div>
       </div>
     </div>
   )
@@ -558,7 +558,7 @@ export default function Longevity({ session, onAuthRequired, onOpenWorkouts }) {
             <div className="lon-test-input"><input type="number" className="orm-input" placeholder={marker.inputLabel} value={inputValue} onChange={e => setInputValue(e.target.value)} style={{ flex: 1 }} /><span className="lon-test-unit">{marker.unit}</span></div>
           )}
           {marker.bilateral && inputLeft && inputRight && (() => { const a = asymmetry(parseFloat(inputLeft), parseFloat(inputRight)); return a ? <div className="lon-side-preview">Score: <b>{Math.min(parseFloat(inputLeft), parseFloat(inputRight))} {marker.unit}</b> (weaker leg){a.flagged ? <span className="lon-asym-tag">⚠ {a.pct}% gap</span> : null}</div> : null })()}
-          <input className="orm-input" placeholder="Notes (optional)" value={inputNotes} onChange={e => setInputNotes(e.target.value)} style={{ marginTop: '6px' }} />
+          <textarea className="orm-input lon-test-notes" rows={2} placeholder="Notes (optional) — conditions, how it felt, what to beat next time" value={inputNotes} onChange={e => { setInputNotes(e.target.value); e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px' }} />
           <div className="lon-test-actions">
             <button className="doc-ctrl" onClick={advance}>{testStep < order.length - 1 ? 'Skip →' : 'Skip & Finish'}</button>
             <button className="timer-go-btn" disabled={saving || (marker.bilateral ? !(inputLeft && inputRight) : !inputValue)} onClick={async () => { await saveScore(marker.key); advance() }}>{testStep < order.length - 1 ? 'Save & Next →' : '🏁 Finish'}</button>
