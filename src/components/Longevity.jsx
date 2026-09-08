@@ -154,6 +154,40 @@ function computeVitalAge(idx, ca) {
   return Math.min(ca + 25, Math.max(Math.max(16, ca - 12), va))
 }
 
+// Vital Age ring: SVG progress arc (fills with Longevity Index), tick dial, glow, tiered color.
+function VitalRing({ vitalAge, actualAge, index, unlocked, stale, testedCount, minMarkers, size = 150, onClick }) {
+  const diff = (vitalAge ?? actualAge) - actualAge
+  const color = !unlocked ? '#6e6e7a' : diff <= -5 ? '#22d3ee' : diff <= 0 ? '#4ade80' : diff <= 5 ? '#e0c81e' : '#e01e1e'
+  const stroke = Math.round(size * 0.06), r = size / 2 - stroke / 2 - 9, c = 2 * Math.PI * r, cx = size / 2
+  const pct = unlocked ? Math.max(0.02, Math.min(1, (index || 0) / 100)) : Math.min(1, testedCount / minMarkers)
+  const gid = useMemo(() => 'vr' + Math.random().toString(36).slice(2, 8), [])
+  const ticks = Array.from({ length: 60 })
+  return (
+    <div className={`lon-vital-ring${unlocked ? ' live' : ' locked'}${stale ? ' stale' : ''}`} style={{ width: size, height: size, '--ring': color, cursor: onClick ? 'pointer' : 'default' }} onClick={onClick} role={onClick ? 'button' : undefined}>
+      <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} className="lon-ring-svg">
+        <defs>
+          <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor={color} /><stop offset="100%" stopColor={color} stopOpacity=".5" /></linearGradient>
+          <filter id={gid + 'g'} x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation={stroke * 0.6} /></filter>
+        </defs>
+        {ticks.map((_, i) => { const a = (i / 60) * Math.PI * 2 - Math.PI / 2, major = i % 15 === 0, ro = r + stroke / 2 + 2, ri = ro + (major ? 6 : 3)
+          return <line key={i} x1={cx + Math.cos(a) * ro} y1={cx + Math.sin(a) * ro} x2={cx + Math.cos(a) * ri} y2={cx + Math.sin(a) * ri} stroke={major ? color : 'var(--brd)'} strokeWidth={major ? 1.5 : 1} opacity={major ? .9 : .7} /> })}
+        <circle cx={cx} cy={cx} r={r} fill="none" stroke="var(--brd)" strokeWidth={stroke} strokeDasharray={unlocked ? undefined : '2 6'} strokeLinecap="round" />
+        <circle className="lon-ring-glow" cx={cx} cy={cx} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={`${c * pct} ${c}`} transform={`rotate(-90 ${cx} ${cx})`} filter={`url(#${gid}g)`} />
+        <circle className="lon-ring-arc" cx={cx} cy={cx} r={r} fill="none" stroke={`url(#${gid})`} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={`${c * pct} ${c}`} transform={`rotate(-90 ${cx} ${cx})`} />
+        <circle cx={cx} cy={cx} r={r - stroke / 2 - 3} fill="var(--bg)" opacity=".85" />
+      </svg>
+      <div className="lon-ring-inner">
+        <div className="lon-ring-eyebrow">Vital Age</div>
+        <div className="lon-vital-age" style={{ fontSize: Math.round(size * 0.26) }}>{unlocked ? vitalAge : '?'}</div>
+        {unlocked
+          ? <div className="lon-ring-badge" style={{ color }}>{diff < 0 ? `${Math.abs(diff)} yrs younger` : diff === 0 ? 'on track' : `${diff} yrs older`}</div>
+          : <div className="lon-ring-badge muted">{testedCount}/{minMarkers} markers</div>}
+        <div className="lon-ring-tap">{!unlocked ? 'test to unlock' : stale ? '↻ retest · tap' : onClick ? 'Tap for analysis' : `index ${index}/100`}</div>
+      </div>
+    </div>
+  )
+}
+
 function fmtClock(sec) { const m = Math.floor(sec / 60), s = sec % 60; return `${m}:${s < 10 ? '0' : ''}${s.toFixed(1)}` }
 
 // Inline stopwatch / countdown for Test Day
@@ -541,10 +575,7 @@ export default function Longevity({ session, onAuthRequired, onOpenWorkouts }) {
         <button className="pr-hub-back" onClick={() => setShowAnalytics(false)}>← Back to Dashboard</button>
         <div className="lon-analytics">
           <div className="lon-analytics-hero">
-            <div className="lon-vital-ring lon-ring-lg" style={{ borderColor: ageDiff <= -5 ? '#22d3ee' : ageDiff <= 0 ? '#4ade80' : ageDiff <= 5 ? '#e0c81e' : '#e01e1e' }}>
-              <div className="lon-vital-age">{vitalAge}</div>
-              <div className="lon-vital-label">Vital Age</div>
-            </div>
+            <VitalRing vitalAge={vitalAge} actualAge={parseInt(age) || 30} index={longevityIndex} unlocked={unlocked} stale={staleCount > 0} testedCount={testedCount} minMarkers={MIN_MARKERS} size={180} />
             <div className="lon-analytics-idx">Longevity Index: <b>{longevityIndex}/100</b></div>
             <div className="lon-vital-diff" style={{ color: ageDiff <= -5 ? '#22d3ee' : ageDiff <= 0 ? '#4ade80' : ageDiff <= 5 ? '#e0c81e' : '#e01e1e', fontSize: '16px', fontWeight: 800 }}>
               {ageDiff < 0 ? `${Math.abs(ageDiff)} years younger` : ageDiff === 0 ? 'On track' : `${ageDiff} years older`} than age {age}
@@ -626,10 +657,7 @@ export default function Longevity({ session, onAuthRequired, onOpenWorkouts }) {
     <div className="lon-section">
       {/* Vital Age Hero */}
       <div className="lon-vital">
-        <div className={`lon-vital-ring${unlocked && staleCount > 0 ? ' stale' : ''}`} onClick={() => unlocked && setShowAnalytics(true)} style={{ cursor: unlocked ? 'pointer' : 'default', borderColor: !unlocked ? 'var(--brd)' : ageDiff <= -5 ? '#22d3ee' : ageDiff <= 0 ? '#4ade80' : ageDiff <= 5 ? '#e0c81e' : '#e01e1e' }}>
-          <div className="lon-vital-age">{unlocked ? vitalAge : '?'}</div>
-          {unlocked ? <div className="lon-ring-tap">Tap for analysis</div> : <div className="lon-ring-tap">{testedCount}/{MIN_MARKERS} to unlock</div>}
-        </div>
+        <VitalRing vitalAge={vitalAge} actualAge={parseInt(age) || 30} index={longevityIndex} unlocked={unlocked} stale={staleCount > 0} testedCount={testedCount} minMarkers={MIN_MARKERS} size={160} onClick={unlocked ? () => setShowAnalytics(true) : undefined} />
         <div className="lon-vital-info">
           <div className="lon-vital-heading">🧬 Vital Age</div>
           {unlocked ? (
