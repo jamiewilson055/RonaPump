@@ -47,6 +47,7 @@ function App() {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [tab, setTab] = useState('all')
+  const [workoutPreset, setWorkoutPreset] = useState(null) // { filters, label, nonce } — set by Longevity Focus Areas
   const [showProfile, setShowProfile] = useState(false)
   const [workouts, setWorkouts] = useState([])
   const [favorites, setFavorites] = useState(new Set())
@@ -314,6 +315,8 @@ function App() {
       setTab('activity')
     } else if (link === 'stats') {
       setTab('stats')
+    } else if (link === 'longevity') {
+      setTab('longevity')
     } else if (link.startsWith('/workout/')) {
       window.location.href = link
     } else {
@@ -407,6 +410,7 @@ function App() {
               collections={collections}
               onCollectionsChanged={() => session && loadCollections(session.user.id)}
               onGenerateAI={() => setTab('ai')}
+              preset={workoutPreset}
             />
           </div>
 
@@ -501,7 +505,7 @@ function App() {
           ) : tab === 'timer' ? (
             null /* legacy key — redirected to the floating timer by the effect above */
           ) : tab === 'longevity' ? (
-            <Longevity session={session} onAuthRequired={() => setShowAuth(true)} />
+            <Longevity session={session} onAuthRequired={() => setShowAuth(true)} onOpenWorkouts={(filters, label) => { setWorkoutPreset({ filters, label, nonce: Date.now() }); setTab('all'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
           ) : tab === 'prs' ? (
             <PRTracker session={session} onAuthRequired={() => setShowAuth(true)} />
           ) : tab === 'activity' ? (

@@ -137,7 +137,7 @@ export default function NotificationBell({ session, onNavigate }) {
     return Math.floor(s / 604800) + 'w'
   }
 
-  const icons = { approval: '✅', rejection: '❌', score: '🏆', comment: '💬', like: '❤️', challenge: '⚔️', milestone: '🎉' }
+  const icons = { approval: '✅', rejection: '❌', score: '🏆', comment: '💬', like: '❤️', challenge: '⚔️', milestone: '🎉', longevity: '🧬' }
 
   // Every notification should navigate somewhere even without an explicit link
   function getNotifLink(n) {
@@ -145,6 +145,7 @@ export default function NotificationBell({ session, onNavigate }) {
     if (n.type === 'like' || n.type === 'comment') return 'activity::'
     if (n.type === 'challenge') return 'h2h'
     if (n.type === 'score' || n.type === 'milestone') return 'stats'
+    if (n.type === 'longevity') return 'longevity'
     return 'all'
   }
 

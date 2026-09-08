@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import Filters from '../components/Filters'
 import WorkoutCard from '../components/WorkoutCard'
@@ -6,7 +6,7 @@ import NewWorkoutModal from '../components/NewWorkoutModal'
 
 const PP = 30
 
-export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, session, profile, isAdmin, onAuthRequired, onWorkoutsChanged, collections, onCollectionsChanged, onGenerateAI }) {
+export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, session, profile, isAdmin, onAuthRequired, onWorkoutsChanged, collections, onCollectionsChanged, onGenerateAI, preset }) {
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState('added')
   const [page, setPage] = useState(1)
@@ -26,6 +26,14 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
   const [qlParsed, setQlParsed] = useState(null)
   const [qlSaved, setQlSaved] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+  const [presetLabel, setPresetLabel] = useState(null)
+
+  // Preset filters pushed from elsewhere (e.g. Longevity Focus Areas → "Train it")
+  useEffect(() => {
+    if (!preset?.filters) return
+    setFilters({ eq: [], eqEx: [], mv: [], mvEx: [], cat: [], wt: [], bp: [], durMin: null, durMax: null, includeNoDur: true, ...preset.filters })
+    setQuery(''); setPage(1); setPresetLabel(preset.label || 'Preset')
+  }, [preset?.nonce])
 
   const allEquipment = useMemo(() => [...new Set(workouts.flatMap(w => w.equipment || []))].sort(), [workouts])
   const allMovements = useMemo(() => [...new Set(workouts.flatMap(w => w.movement_categories || []))].sort(), [workouts])
@@ -395,6 +403,12 @@ export default function WorkoutList({ workouts, tab, favorites, toggleFavorite, 
         </>
       )}
 
+      {presetLabel && (
+        <div style={{ margin: '4px 0 8px', padding: '8px 12px', borderRadius: 8, fontSize: 13, border: '1px solid var(--acc, #888)', background: 'var(--bg2, rgba(128,128,128,0.08))', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span>🧬 Training for <strong>{presetLabel}</strong></span>
+          <span onClick={() => { setPresetLabel(null); clearFilters() }} style={{ cursor: 'pointer', textDecoration: 'underline', opacity: 0.8 }}>clear</span>
+        </div>
+      )}
       {(aiActive || aiError) && (
         <div style={{
           margin: '4px 0 8px', padding: '8px 12px', borderRadius: 8, fontSize: 13,

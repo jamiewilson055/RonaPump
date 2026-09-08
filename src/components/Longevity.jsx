@@ -249,10 +249,28 @@ function SparkChart({ data, unit, color }) {
   )
 }
 
-export default function Longevity({ session, onAuthRequired }) {
+// Which workout filters fix which marker (Focus Areas → workout list)
+const MARKER_WORKOUT_FILTERS = {
+  vo2max:       { filters: { cat: ['Cardio Only'] },        label: 'Cardio workouts' },
+  bike60:       { filters: { eq: ['Air Bike'] },            label: 'Air Bike workouts' },
+  deadhang:     { filters: { eq: ['Pull-Up Bar'] },         label: 'Pull-Up Bar workouts' },
+  grip:         { filters: { mv: ['Farmers Carry'] },       label: 'Carry workouts' },
+  farmerscarry: { filters: { mv: ['Farmers Carry'] },       label: 'Carry workouts' },
+  pushup:       { filters: { mv: ['Push-Up'] },             label: 'Push-Up workouts' },
+  squat60:      { filters: { mv: ['Squat'] },               label: 'Squat workouts' },
+  broadjump:    { filters: { mv: ['Jump'] },                label: 'Jump workouts' },
+  balance:      { filters: { mv: ['Lunge'] },               label: 'Single-leg workouts' },
+  sitrise:      { filters: { bp: ['Lower Body'] },          label: 'Lower-body workouts' },
+}
+
+function parseBodyweight(w) { if (w == null) return null; const n = parseFloat(String(w)); if (isNaN(n) || n <= 0) return null; return /kg/i.test(String(w)) ? Math.round(n * 2.2046) : Math.round(n) }
+
+export default function Longevity({ session, onAuthRequired, onOpenWorkouts }) {
   const [scores, setScores] = useState([])
   const [age, setAge] = useState('')
   const [gender, setGender] = useState('male')
+  const [bodyweight, setBodyweight] = useState('')
+  const [vaBoard, setVaBoard] = useState([])
   const [expandedMarker, setExpandedMarker] = useState(null)
   const [testMode, setTestMode] = useState(false)
   const [testStep, setTestStep] = useState(0)
@@ -271,12 +289,26 @@ export default function Longevity({ session, onAuthRequired }) {
   const [showAnalytics, setShowAnalytics] = useState(false)
   const [showStory, setShowStory] = useState(false)
 
-  useEffect(() => { if (session) { loadScores(); loadProfile() } }, [session])
+  useEffect(() => { if (session) { loadScores(); loadProfile(); loadVaBoard() } }, [session])
 
   async function loadProfile() {
-    const { data } = await supabase.from('profiles').select('age, gender').eq('id', session.user.id).single()
-    if (data) { if (data.age) setAge(String(data.age)); if (data.gender) setGender(data.gender) }
+    const { data } = await supabase.from('profiles').select('age, gender, weight').eq('id', session.user.id).single()
+    if (data) { if (data.age) setAge(String(data.age)); if (data.gender) setGender(data.gender); const bw = parseBodyweight(data.weight); if (bw) setBodyweight(String(bw)) }
     setProfileLoaded(true)
+  }
+
+  async function saveBodyweight(bw) {
+    const n = parseFloat(bw)
+    if (isNaN(n) || n <= 0) return
+    // profiles.weight is free text shared with the Profile page — keep its "185 lbs" format
+    await supabase.from('profiles').update({ weight: `${Math.round(n)} lbs` }).eq('id', session.user.id)
+  }
+
+  async function loadVaBoard() {
+    const { data } = await supabase.from('profiles').select('id, display_name, avatar_url, age, vital_age, longevity_index').not('vital_age', 'is', null).not('age', 'is', null).limit(200)
+    if (!data) return
+    const rows = data.map(p => ({ ...p, diff: Number(p.age) - Number(p.vital_age) })).sort((a, b) => b.diff - a.diff || Number(b.longevity_index) - Number(a.longevity_index))
+    setVaBoard(rows)
   }
 
   async function loadScores() {
@@ -349,6 +381,7 @@ export default function Longevity({ session, onAuthRequired }) {
       const idx = Math.round((totalWeightedScore / totalWeight) * 100)
       const va = tested.length >= MIN_MARKERS ? computeVitalAge(idx, parseInt(age)) : null
       await supabase.from('profiles').update({ longevity_index: idx, vital_age: va }).eq('id', session.user.id)
+      loadVaBoard()
     }, 300)
   }
 
@@ -375,6 +408,10 @@ export default function Longevity({ session, onAuthRequired }) {
     return { longevityIndex: idx, vitalAge: computeVitalAge(idx, a), testedCount: count, staleCount, markerResults: results }
   }, [latestScores, prevScores, age, gender])
   const unlocked = testedCount >= MIN_MARKERS
+  const bwNum = parseFloat(bodyweight) > 0 ? Math.round(parseFloat(bodyweight)) : null
+  const carryTotal = bwNum ? Math.round(bwNum * (gender === 'male' ? 1.0 : 0.75)) : null
+  const carryEach = carryTotal ? Math.round(carryTotal / 2) : null
+  const myRank = useMemo(() => { const i = vaBoard.findIndex(p => p.id === session?.user?.id); return i >= 0 ? i + 1 : null }, [vaBoard, session])
 
   // Test Day order: untested first, then stale, then fresh (original order within each group)
   function startTestDay() {
@@ -433,11 +470,13 @@ export default function Longevity({ session, onAuthRequired }) {
           <label className="orm-label">Age</label>
           <input type="number" className="orm-input" placeholder="e.g. 35" value={age} onChange={e => setAge(e.target.value)} style={{ maxWidth: '120px', marginBottom: '12px' }} />
           <label className="orm-label">Sex</label>
-          <div className="orm-gender" style={{ marginBottom: '16px' }}>
+          <div className="orm-gender" style={{ marginBottom: '12px' }}>
             <button className={`orm-gender-btn${gender === 'male' ? ' on' : ''}`} onClick={() => setGender('male')}>Male</button>
             <button className={`orm-gender-btn${gender === 'female' ? ' on' : ''}`} onClick={() => setGender('female')}>Female</button>
           </div>
-          {age && <button className="timer-go-btn" onClick={() => saveAge(age, gender)} style={{ maxWidth: '240px' }}>Save & Continue</button>}
+          <label className="orm-label">Bodyweight (lbs) <span style={{ color: 'var(--tx3)', fontWeight: 400 }}>· optional, sets your Farmer's Carry load</span></label>
+          <input type="number" inputMode="numeric" className="orm-input" placeholder="e.g. 185" value={bodyweight} onChange={e => setBodyweight(e.target.value)} style={{ maxWidth: '120px', marginBottom: '16px' }} />
+          {age && <button className="timer-go-btn" onClick={() => { saveAge(age, gender); if (bodyweight) saveBodyweight(bodyweight) }} style={{ maxWidth: '240px' }}>Save & Continue</button>}
         </div>
       </div>
     )
@@ -464,6 +503,11 @@ export default function Longevity({ session, onAuthRequired }) {
           </div>
           <p className="lon-test-desc">{marker.desc}</p>
           <div className="lon-test-how"><div className="lon-test-how-label">How to Test</div><p>{marker.howToTest}</p></div>
+          {marker.key === 'farmerscarry' && (bwNum ? (
+            <div className="lon-load">🏋️ Your load: <b>2 × {carryEach} lb</b> ({carryTotal} lb total, {gender === 'male' ? '100' : '75'}% of {bwNum} lb)</div>
+          ) : (
+            <div className="lon-load muted">Add your bodyweight above the marker list to get your exact carry load.</div>
+          ))}
           {benchmarks.length > 0 && (<div className="lon-test-benchmarks"><div className="lon-bench-header">{gender === 'male' ? 'Male' : 'Female'}, age {getAgeBracket(a)}</div>
             {LEVEL_LABELS.map((l, i) => (<div key={l} className="lon-test-bench"><span className="lon-bench-dot" style={{ background: LEVEL_COLORS[i] }}></span><span className="lon-bench-label">{l}</span><span className="lon-bench-val">{benchmarks[i]} {marker.unit}</span></div>))}
           </div>)}
@@ -513,16 +557,20 @@ export default function Longevity({ session, onAuthRequired }) {
           {analytics.weakest.length > 0 && (
             <div className="lon-analytics-card">
               <div className="lon-analytics-title">🔴 Focus Areas — Where to Improve</div>
-              {analytics.weakest.map(m => (
-                <div key={m.key} className="lon-analytics-row">
-                  <span className="lon-analytics-icon">{m.icon}</span>
-                  <div className="lon-analytics-info">
-                    <div className="lon-analytics-name">{m.name}</div>
-                    <div className="lon-analytics-meta">{m.value} {m.unit} • <span style={{ color: m.level >= 0 ? LEVEL_COLORS[m.level] : '#e01e1e' }}>{m.levelLabel}</span> • {m.score}/10 (×{WEIGHTS[m.key]} weight)</div>
-                    {m.target && <div className="lon-analytics-target">→ Target for next level: {m.target} {m.unit}</div>}
+              {analytics.weakest.map(m => {
+                const fix = MARKER_WORKOUT_FILTERS[m.key]
+                return (
+                  <div key={m.key} className="lon-analytics-row">
+                    <span className="lon-analytics-icon">{m.icon}</span>
+                    <div className="lon-analytics-info">
+                      <div className="lon-analytics-name">{m.name}</div>
+                      <div className="lon-analytics-meta">{m.value} {m.unit} • <span style={{ color: m.level >= 0 ? LEVEL_COLORS[m.level] : '#e01e1e' }}>{m.levelLabel}</span> • {m.score}/10 (×{WEIGHTS[m.key]} weight)</div>
+                      {m.target && <div className="lon-analytics-target">→ Target for next level: {m.target} {m.unit}</div>}
+                      {fix && onOpenWorkouts && <button className="lon-fix-btn" onClick={() => onOpenWorkouts(fix.filters, `${m.icon} ${m.name} · ${fix.label}`)}>🏋️ Train it: {fix.label} →</button>}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
 
@@ -614,10 +662,37 @@ export default function Longevity({ session, onAuthRequired }) {
                 <option value="male">Male</option>
                 <option value="female">Female</option>
               </select>
+              <input type="number" inputMode="numeric" className="lon-age-input lon-bw-input" placeholder="lbs" title="Bodyweight (lbs) — sets your Farmer's Carry load" value={bodyweight} onChange={e => setBodyweight(e.target.value)} onBlur={e => saveBodyweight(e.target.value)} />
             </div>
           </div>
         </div>
       </div>
+
+      {/* Vital Age Leaderboard */}
+      {vaBoard.length > 0 && (
+        <div className="lon-board">
+          <div className="lon-board-hd">
+            <span>🏆 Vital Age Leaderboard</span>
+            <span className="lon-board-sub">ranked by years younger{myRank ? ` · you're #${myRank}` : unlocked ? '' : ` · unlock yours with ${MIN_MARKERS} markers`}</span>
+          </div>
+          {vaBoard.slice(0, 10).map((p, i) => {
+            const mine = p.id === session?.user?.id
+            const d = p.diff
+            return (
+              <div key={p.id} className={`lon-board-row${mine ? ' me' : ''}`}>
+                <span className="lon-board-rank">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}</span>
+                {p.avatar_url ? <img className="lon-board-avatar" src={p.avatar_url} alt="" /> : <span className="lon-board-avatar ph">🦍</span>}
+                <span className="lon-board-name">{p.display_name || 'Athlete'}</span>
+                <span className="lon-board-va">{Math.round(Number(p.vital_age))} <small>vs {p.age}</small></span>
+                <span className="lon-board-diff" style={{ color: d >= 5 ? '#22d3ee' : d >= 0 ? '#4ade80' : d >= -5 ? '#e0c81e' : '#e01e1e' }}>{d > 0 ? `${d} yrs younger` : d === 0 ? 'on track' : `${Math.abs(d)} yrs older`}</span>
+              </div>
+            )
+          })}
+          {myRank && myRank > 10 && (() => { const p = vaBoard[myRank - 1]; return (
+            <div className="lon-board-row me"><span className="lon-board-rank">#{myRank}</span><span className="lon-board-avatar ph">🦍</span><span className="lon-board-name">You</span><span className="lon-board-va">{Math.round(Number(p.vital_age))} <small>vs {p.age}</small></span><span className="lon-board-diff">{p.diff > 0 ? `${p.diff} yrs younger` : p.diff === 0 ? 'on track' : `${Math.abs(p.diff)} yrs older`}</span></div>
+          ) })()}
+        </div>
+      )}
 
       {/* Marker Cards */}
       <div className="lon-markers">

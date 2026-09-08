@@ -50,6 +50,10 @@
     {
       "path": "/api/summarize-workouts",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/retest-nudge",
+      "schedule": "0 13 * * 1"
     }
   ]
 }
