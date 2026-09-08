@@ -59,6 +59,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
   const [showComments, setShowComments] = useState(false)
   const [viewingProfile, setViewingProfile] = useState(null)
   const [logRx, setLogRx] = useState(true)
+  const [openNotes, setOpenNotes] = useState({})
   const [showShareImage, setShowShareImage] = useState(false)
   const [showStoryCard, setShowStoryCard] = useState(false)
   const [lastLogScore, setLastLogScore] = useState(null)
@@ -280,7 +281,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
                           {e.is_rx === false && <span className="scaled-tag">Scaled</span>}
                           {e.is_rx === true && e.score && <span className="rx-tag">Rx</span>}
                         </td>
-                        <td style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
+                        <td className={`plog-note${openNotes[e.id] ? ' open' : ''}`} onClick={(ev) => { ev.stopPropagation(); if (e.notes) setOpenNotes(o => ({ ...o, [e.id]: !o[e.id] })) }} title={e.notes && !openNotes[e.id] ? 'Tap to expand' : undefined} style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
                         <td style={{ whiteSpace: 'nowrap' }}>
                           {(e.is_mine || isAdmin) && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); startEditLog(e) }} style={{ marginRight: '4px' }} title={e.is_mine ? 'Edit' : 'Edit (admin)'}>✎</span>}
                           {(e.is_mine || isAdmin) && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); deleteLog(e.id) }} title={e.is_mine ? 'Delete' : 'Delete (admin)'}>✕</span>}

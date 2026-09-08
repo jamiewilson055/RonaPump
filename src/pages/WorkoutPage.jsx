@@ -71,6 +71,7 @@ export default function WorkoutPage() {
   const [logDate, setLogDate] = useState(new Date().toISOString().slice(0, 10))
   const [logNotes, setLogNotes] = useState('')
   const [logRx, setLogRx] = useState(true)
+  const [openNotes, setOpenNotes] = useState({})
   const [lastLogScore, setLastLogScore] = useState(null)
   const [isFav, setIsFav] = useState(false)
   const [similar, setSimilar] = useState([])
@@ -383,7 +384,7 @@ export default function WorkoutPage() {
                         {e.is_rx === false && <span className="scaled-tag">Scaled</span>}
                         {e.is_rx === true && e.score && <span className="rx-tag">Rx</span>}
                       </td>
-                      <td style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
+                      <td className={`plog-note${openNotes[e.id] ? ' open' : ''}`} onClick={(ev) => { ev.stopPropagation(); if (e.notes) setOpenNotes(o => ({ ...o, [e.id]: !o[e.id] })) }} title={e.notes && !openNotes[e.id] ? 'Tap to expand' : undefined} style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>
                         {(isMine || isAdmin) && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); startEditLog(e) }} style={{ marginRight: '4px' }} title="Edit">✎</span>}
                         {(isMine || isAdmin) && <span className="del-entry" onClick={(ev) => { ev.stopPropagation(); deleteLog(e.id) }}>✕</span>}

@@ -47,6 +47,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
   const [logDate, setLogDate] = useState(new Date().toISOString().slice(0, 10))
   const [logNotes, setLogNotes] = useState('')
   const [logRx, setLogRx] = useState(true)
+  const [openNotes, setOpenNotes] = useState({})
   const [showShareImage, setShowShareImage] = useState(false)
   const [showStoryCard, setShowStoryCard] = useState(false)
   const [lastLogScore, setLastLogScore] = useState(null)
@@ -241,7 +242,7 @@ export default function WODCard({ workouts, session, onAuthRequired, onWorkoutsC
                       <tr key={e.id}>
                         <td>{e.completed_at || '—'}</td>
                         <td>{e.score || '—'} {e.is_rx === false && <span className="scaled-tag">Scaled</span>}{e.is_rx === true && e.score && <span className="rx-tag">Rx</span>}</td>
-                        <td style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
+                        <td className={`plog-note${openNotes[e.id] ? ' open' : ''}`} onClick={(ev) => { ev.stopPropagation(); if (e.notes) setOpenNotes(o => ({ ...o, [e.id]: !o[e.id] })) }} title={e.notes && !openNotes[e.id] ? 'Tap to expand' : undefined} style={{ fontFamily: "'DM Sans'", fontSize: '11px' }}>{e.notes || '—'}</td>
                       </tr>
                     ))}
                   </tbody>

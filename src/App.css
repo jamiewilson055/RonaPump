@@ -416,6 +416,9 @@ input, select, textarea { font-family: inherit; }
   .plog-edit-notes:focus { min-height: 100px; font-size: 16px !important; }
   .plog-table td:has(.plog-edit-notes:focus) { width: 50%; }
   .plog-table .del-entry { font-size: 18px; padding: 6px 7px; display: inline-block; line-height: 1; }
+  .plog-table td { vertical-align: top; }
+  .plog-table td.plog-note { max-width: 96px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+  .plog-table td.plog-note.open { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
   .pr-form { flex-direction: column; }
   .pr-group-hd { flex-wrap: wrap; gap: 6px; }
   .wod-desc { white-space: normal; }
