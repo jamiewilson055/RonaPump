@@ -31,8 +31,9 @@ const MARKERS = [
   {
     key: 'balance', name: 'Single-Leg Balance', icon: '🦩', domain: 'Balance & Neuromuscular',
     unit: 'seconds', inputLabel: 'Time (seconds, eyes closed)',
-    desc: 'Inability to balance 10s on one leg nearly doubles all-cause mortality risk. Eyes closed removes visual input for a deeper neuromuscular test.',
-    howToTest: 'Stand on one leg, hands on hips, close eyes. Time until other foot touches or eyes open. Best of 3.',
+    bilateral: true, sides: ['Left', 'Right'],
+    desc: 'Inability to balance 10s on one leg nearly doubles all-cause mortality risk. Eyes closed removes visual input for a deeper neuromuscular test. Both legs are tested; your score is the weaker leg, and a big left/right gap is flagged.',
+    howToTest: 'Stand on one leg, hands on hips, close eyes. Time until other foot touches or eyes open. Best of 3 on each leg. Score = weaker leg.',
     source: 'Araújo et al. 2022 (Br J Sports Med) — 1,702 subjects',
     benchmarks: {
       male:   { '20-29': [10, 18, 30, 45, 65], '30-39': [7, 14, 24, 38, 55], '40-49': [5, 10, 18, 30, 45], '50-59': [3, 7, 13, 22, 35], '60+': [2, 5, 9, 16, 25] },
@@ -138,6 +139,26 @@ function scoreMarker(value, benchmarks, gender, age) {
 
 function computeVitalAge(idx, ca) { if (idx >= 90) return ca - Math.round((idx - 90) * 1.5); if (idx >= 70) return ca - Math.round((idx - 70) * 0.5); if (idx >= 50) return ca; if (idx >= 30) return ca + Math.round((50 - idx) * 0.4); return ca + Math.round((50 - idx) * 0.75) }
 
+const ASYM_THRESHOLD = 0.2 // 20%+ left/right gap gets flagged
+
+function asymmetry(l, r) {
+  if (l == null || r == null) return null
+  const hi = Math.max(l, r), lo = Math.min(l, r)
+  if (hi <= 0) return null
+  return { pct: Math.round(((hi - lo) / hi) * 100), weaker: l < r ? 'L' : r < l ? 'R' : null, flagged: (hi - lo) / hi >= ASYM_THRESHOLD }
+}
+
+function SidesTag({ row, unit }) {
+  if (!row || row.value_left == null || row.value_right == null) return null
+  const a = asymmetry(Number(row.value_left), Number(row.value_right))
+  return (
+    <span className="lon-sides">
+      L {Number(row.value_left)} / R {Number(row.value_right)} {unit === 'seconds' ? 's' : unit}
+      {a?.flagged && <span className="lon-asym-tag" title={`${a.pct}% gap between legs`}>⚠ {a.pct}% gap</span>}
+    </span>
+  )
+}
+
 function SparkChart({ data, unit, color }) {
   if (!data || data.length < 2) return null
   const vals = data.map(d => d.value), min = Math.min(...vals) * 0.9, max = Math.max(...vals) * 1.1, range = max - min || 1
@@ -159,12 +180,16 @@ export default function Longevity({ session, onAuthRequired }) {
   const [testMode, setTestMode] = useState(false)
   const [testStep, setTestStep] = useState(0)
   const [inputValue, setInputValue] = useState('')
+  const [inputLeft, setInputLeft] = useState('')
+  const [inputRight, setInputRight] = useState('')
   const [inputNotes, setInputNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [showHistory, setShowHistory] = useState(null)
   const [profileLoaded, setProfileLoaded] = useState(false)
   const [editingScoreId, setEditingScoreId] = useState(null)
   const [editVal, setEditVal] = useState('')
+  const [editLeft, setEditLeft] = useState('')
+  const [editRight, setEditRight] = useState('')
   const [showAnalytics, setShowAnalytics] = useState(false)
   const [showStory, setShowStory] = useState(false)
 
@@ -187,23 +212,39 @@ export default function Longevity({ session, onAuthRequired }) {
 
   async function saveScore(markerKey) {
     if (!session) { onAuthRequired(); return }
-    const val = parseFloat(inputValue)
-    if (isNaN(val) || val <= 0) return
-    setSaving(true)
     const marker = MARKERS.find(m => m.key === markerKey)
-    await supabase.from('longevity_scores').insert({ user_id: session.user.id, marker: markerKey, value: val, unit: marker?.unit || '', notes: inputNotes.trim() || null, tested_at: new Date().toISOString().slice(0, 10) })
-    setInputValue(''); setInputNotes(''); setSaving(false)
+    let val, sides = {}
+    if (marker?.bilateral) {
+      const l = parseFloat(inputLeft), r = parseFloat(inputRight)
+      if (isNaN(l) || isNaN(r) || l <= 0 || r <= 0) return
+      val = Math.min(l, r) // score = weaker side
+      sides = { value_left: l, value_right: r }
+    } else {
+      val = parseFloat(inputValue)
+      if (isNaN(val) || val <= 0) return
+    }
+    setSaving(true)
+    await supabase.from('longevity_scores').insert({ user_id: session.user.id, marker: markerKey, value: val, unit: marker?.unit || '', notes: inputNotes.trim() || null, tested_at: new Date().toISOString().slice(0, 10), ...sides })
+    setInputValue(''); setInputLeft(''); setInputRight(''); setInputNotes(''); setSaving(false)
     await loadScores()
     // Always update vital age
     saveAge(age, gender)
     updateVitalAge()
   }
 
-  async function editScore(id) {
-    const val = parseFloat(editVal)
-    if (isNaN(val) || val <= 0) return
-    await supabase.from('longevity_scores').update({ value: val }).eq('id', id)
-    setEditingScoreId(null); setEditVal(''); loadScores(); updateVitalAge()
+  async function editScore(id, bilateral) {
+    let patch
+    if (bilateral) {
+      const l = parseFloat(editLeft), r = parseFloat(editRight)
+      if (isNaN(l) || isNaN(r) || l <= 0 || r <= 0) return
+      patch = { value: Math.min(l, r), value_left: l, value_right: r }
+    } else {
+      const val = parseFloat(editVal)
+      if (isNaN(val) || val <= 0) return
+      patch = { value: val }
+    }
+    await supabase.from('longevity_scores').update(patch).eq('id', id)
+    setEditingScoreId(null); setEditVal(''); setEditLeft(''); setEditRight(''); loadScores(); updateVitalAge()
   }
 
   async function deleteScore(id) {
@@ -242,7 +283,7 @@ export default function Longevity({ session, onAuthRequired }) {
       const latest = latestScores[m.key]
       if (latest) {
         const r = scoreMarker(latest.value, m.benchmarks, gender, a)
-        results[m.key] = { ...r, value: latest.value, tested_at: latest.tested_at, weight: WEIGHTS[m.key] || 1.0 }
+        results[m.key] = { ...r, value: latest.value, tested_at: latest.tested_at, weight: WEIGHTS[m.key] || 1.0, row: latest }
         const w = WEIGHTS[m.key] || 1.0
         twScore += r.score * w; twTotal += 10 * w; count++
       } else {
@@ -328,11 +369,19 @@ export default function Longevity({ session, onAuthRequired }) {
           {benchmarks.length > 0 && (<div className="lon-test-benchmarks"><div className="lon-bench-header">{gender === 'male' ? 'Male' : 'Female'}, age {getAgeBracket(a)}</div>
             {LEVEL_LABELS.map((l, i) => (<div key={l} className="lon-test-bench"><span className="lon-bench-dot" style={{ background: LEVEL_COLORS[i] }}></span><span className="lon-bench-label">{l}</span><span className="lon-bench-val">{benchmarks[i]} {marker.unit}</span></div>))}
           </div>)}
-          <div className="lon-test-input"><input type="number" className="orm-input" placeholder={marker.inputLabel} value={inputValue} onChange={e => setInputValue(e.target.value)} style={{ flex: 1 }} /><span className="lon-test-unit">{marker.unit}</span></div>
+          {marker.bilateral ? (
+            <div className="lon-test-input lon-sides-input">
+              <label className="lon-side-field"><span className="lon-side-label">{marker.sides[0]}</span><input type="number" inputMode="decimal" className="orm-input" placeholder={marker.unit} value={inputLeft} onChange={e => setInputLeft(e.target.value)} /></label>
+              <label className="lon-side-field"><span className="lon-side-label">{marker.sides[1]}</span><input type="number" inputMode="decimal" className="orm-input" placeholder={marker.unit} value={inputRight} onChange={e => setInputRight(e.target.value)} /></label>
+            </div>
+          ) : (
+            <div className="lon-test-input"><input type="number" className="orm-input" placeholder={marker.inputLabel} value={inputValue} onChange={e => setInputValue(e.target.value)} style={{ flex: 1 }} /><span className="lon-test-unit">{marker.unit}</span></div>
+          )}
+          {marker.bilateral && inputLeft && inputRight && (() => { const a = asymmetry(parseFloat(inputLeft), parseFloat(inputRight)); return a ? <div className="lon-side-preview">Score: <b>{Math.min(parseFloat(inputLeft), parseFloat(inputRight))} {marker.unit}</b> (weaker leg){a.flagged ? <span className="lon-asym-tag">⚠ {a.pct}% gap</span> : null}</div> : null })()}
           <input className="orm-input" placeholder="Notes (optional)" value={inputNotes} onChange={e => setInputNotes(e.target.value)} style={{ marginTop: '6px' }} />
           <div className="lon-test-actions">
-            {marker.optional && <button className="doc-ctrl" onClick={() => { if (testStep < MARKERS.length - 1) { setTestStep(testStep + 1); setInputValue(''); setInputNotes('') } else { setTestMode(false); setTestStep(0) } }}>Skip</button>}
-            <button className="timer-go-btn" disabled={saving || !inputValue} onClick={async () => { await saveScore(marker.key); if (testStep < MARKERS.length - 1) { setTestStep(testStep + 1); setInputValue(''); setInputNotes('') } else { setTestMode(false); setTestStep(0) } }}>{testStep < MARKERS.length - 1 ? 'Save & Next →' : '🏁 Finish'}</button>
+            {marker.optional && <button className="doc-ctrl" onClick={() => { if (testStep < MARKERS.length - 1) { setTestStep(testStep + 1); setInputValue(''); setInputLeft(''); setInputRight(''); setInputNotes('') } else { setTestMode(false); setTestStep(0) } }}>Skip</button>}
+            <button className="timer-go-btn" disabled={saving || (marker.bilateral ? !(inputLeft && inputRight) : !inputValue)} onClick={async () => { await saveScore(marker.key); if (testStep < MARKERS.length - 1) { setTestStep(testStep + 1); setInputValue(''); setInputLeft(''); setInputRight(''); setInputNotes('') } else { setTestMode(false); setTestStep(0) } }}>{testStep < MARKERS.length - 1 ? 'Save & Next →' : '🏁 Finish'}</button>
           </div>
         </div>
       </div>
@@ -479,7 +528,7 @@ export default function Longevity({ session, onAuthRequired }) {
 
           return (
             <div key={m.key} className={`lon-marker${isExp ? ' expanded' : ''}${m.optional ? ' optional' : ''}`}>
-              <div className="lon-marker-hd" onClick={() => { setExpandedMarker(isExp ? null : m.key); setShowHistory(null); setInputValue(''); setEditingScoreId(null) }}>
+              <div className="lon-marker-hd" onClick={() => { setExpandedMarker(isExp ? null : m.key); setShowHistory(null); setInputValue(''); setInputLeft(''); setInputRight(''); setEditingScoreId(null) }}>
                 <span className="lon-marker-icon">{m.icon}</span>
                 <div className="lon-marker-info">
                   <div className="lon-marker-name">{m.name}{m.optional ? ' ⓘ' : ''}</div>
@@ -489,6 +538,7 @@ export default function Longevity({ session, onAuthRequired }) {
                   <div className="lon-marker-score-wrap">
                     <div className="lon-marker-value">{result.value} <span className="lon-marker-unit">{m.unit}</span></div>
                     <div className="lon-marker-level" style={{ color: result.level >= 0 ? LEVEL_COLORS[result.level] : '#e01e1e' }}>{result.levelLabel} • {result.score}/10</div>
+                    {m.bilateral && <SidesTag row={result.row} unit={m.unit} />}
                   </div>
                 ) : (<div className="lon-marker-empty">Not tested</div>)}
                 <span className={`lon-marker-arrow${isExp ? ' open' : ''}`}>▾</span>
@@ -506,7 +556,15 @@ export default function Longevity({ session, onAuthRequired }) {
                     </div>
                   )}
                   {history.length >= 2 && <div className="lon-overall-chart" style={{ marginBottom: '8px' }}><div className="lon-chart-label">📈 Progress</div><SparkChart data={history} unit={m.unit} color={result.level >= 0 ? LEVEL_COLORS[result.level] : 'var(--acc)'} /></div>}
-                  <div className="lon-quick-log"><input type="number" className="orm-input" placeholder={m.inputLabel} value={inputValue} onChange={e => setInputValue(e.target.value)} style={{ flex: 1 }} /><button className="ab p" disabled={saving || !inputValue} onClick={() => saveScore(m.key)}>{saving ? '...' : '💾 Log'}</button></div>
+                  {m.bilateral ? (
+                    <div className="lon-quick-log lon-sides-input">
+                      <label className="lon-side-field"><span className="lon-side-label">{m.sides[0]}</span><input type="number" inputMode="decimal" className="orm-input" placeholder={m.unit} value={inputLeft} onChange={e => setInputLeft(e.target.value)} /></label>
+                      <label className="lon-side-field"><span className="lon-side-label">{m.sides[1]}</span><input type="number" inputMode="decimal" className="orm-input" placeholder={m.unit} value={inputRight} onChange={e => setInputRight(e.target.value)} /></label>
+                      <button className="ab p" disabled={saving || !(inputLeft && inputRight)} onClick={() => saveScore(m.key)}>{saving ? '...' : '💾 Log'}</button>
+                    </div>
+                  ) : (
+                    <div className="lon-quick-log"><input type="number" className="orm-input" placeholder={m.inputLabel} value={inputValue} onChange={e => setInputValue(e.target.value)} style={{ flex: 1 }} /><button className="ab p" disabled={saving || !inputValue} onClick={() => saveScore(m.key)}>{saving ? '...' : '💾 Log'}</button></div>
+                  )}
                   <button className="lon-history-btn" onClick={() => setShowHistory(showHistory === m.key ? null : m.key)}>{showHistory === m.key ? 'Hide History' : `📊 History (${scores.filter(s => s.marker === m.key).length})`}</button>
                   {showHistory === m.key && (
                     <div className="lon-history">
@@ -515,16 +573,27 @@ export default function Longevity({ session, onAuthRequired }) {
                           <span className="lon-history-date">{h.tested_at}</span>
                           {editingScoreId === h.id ? (
                             <div className="lon-edit-row">
-                              <input type="number" className="lon-edit-input" value={editVal} onChange={e => setEditVal(e.target.value)} />
-                              <button className="lon-edit-btn save" onClick={() => editScore(h.id)}>✓</button>
+                              {m.bilateral && h.value_left != null && h.value_right != null ? (
+                                <>
+                                  <span className="lon-side-label">L</span><input type="number" className="lon-edit-input" value={editLeft} onChange={e => setEditLeft(e.target.value)} />
+                                  <span className="lon-side-label">R</span><input type="number" className="lon-edit-input" value={editRight} onChange={e => setEditRight(e.target.value)} />
+                                  <button className="lon-edit-btn save" onClick={() => editScore(h.id, true)}>✓</button>
+                                </>
+                              ) : (
+                                <>
+                                  <input type="number" className="lon-edit-input" value={editVal} onChange={e => setEditVal(e.target.value)} />
+                                  <button className="lon-edit-btn save" onClick={() => editScore(h.id, false)}>✓</button>
+                                </>
+                              )}
                               <button className="lon-edit-btn" onClick={() => setEditingScoreId(null)}>✕</button>
                             </div>
                           ) : (
                             <>
                               <span className="lon-history-val">{h.value} {h.unit}</span>
+                              {m.bilateral && <SidesTag row={h} unit={h.unit} />}
                               {h.notes && <span className="lon-history-notes">{h.notes}</span>}
                               <div className="lon-hist-actions">
-                                <button className="lon-hist-btn" onClick={() => { setEditingScoreId(h.id); setEditVal(String(h.value)) }}>✏️</button>
+                                <button className="lon-hist-btn" onClick={() => { setEditingScoreId(h.id); setEditVal(String(h.value)); setEditLeft(h.value_left != null ? String(h.value_left) : ''); setEditRight(h.value_right != null ? String(h.value_right) : '') }}>✏️</button>
                                 <button className="lon-hist-btn del" onClick={() => deleteScore(h.id)}>🗑</button>
                               </div>
                             </>
