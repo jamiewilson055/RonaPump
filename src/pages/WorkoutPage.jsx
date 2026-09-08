@@ -398,7 +398,7 @@ export default function WorkoutPage() {
             <div className="plog-form" style={{ marginTop: '6px' }}>
               <input placeholder={`${scoreLabel} (optional)`} value={logScore} onChange={e => setLogScore(e.target.value)} />
               <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} />
-              <input placeholder="Notes (optional)" value={logNotes} onChange={e => setLogNotes(e.target.value)} />
+              <textarea className="plog-notes" rows={1} placeholder="Notes (optional)" value={logNotes} onChange={e => { setLogNotes(e.target.value); e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px' }} />
               <label className="rx-toggle" title="Rx = prescribed weights/movements">
                 <input type="checkbox" checked={logRx} onChange={e => setLogRx(e.target.checked)} />
                 <span className={logRx ? 'rx-on' : 'rx-off'}>Rx</span>

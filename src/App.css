@@ -275,6 +275,7 @@ input, select, textarea { font-family: inherit; }
 .plog-form input, .plog-form textarea { background: var(--bg); border: 1px solid var(--brd); border-radius: 5px; padding: 6px 8px; color: var(--tx); font-size: 12px; outline: none; flex: 1; min-width: 60px; font-family: inherit; }
 .plog-form input:focus, .plog-form textarea:focus { border-color: var(--acc); }
 .plog-form textarea { resize: vertical; min-height: 40px; }
+.plog-form textarea.plog-notes { min-height: 0; resize: none; overflow: hidden; line-height: 1.4; transition: min-height .15s; }
 
 /* Pagination */
 .pgr { display: flex; justify-content: center; gap: 4px; padding: 14px 0; }
@@ -408,6 +409,10 @@ input, select, textarea { font-family: inherit; }
   .plog-form { flex-direction: column; align-items: stretch; }
   .plog-form input, .plog-form textarea { font-size: 16px; padding: 12px 14px; min-width: unset; }
   .plog-form textarea { min-height: 60px; }
+  .plog-form textarea.plog-notes { min-height: 0; }
+  .plog-form textarea.plog-notes:focus { min-height: 120px; }
+  .timer-log-notes { width: 100% !important; }
+  .timer-log-notes:focus { min-height: 110px; font-size: 16px !important; }
   .pr-form { flex-direction: column; }
   .pr-group-hd { flex-wrap: wrap; gap: 6px; }
   .wod-desc { white-space: normal; }

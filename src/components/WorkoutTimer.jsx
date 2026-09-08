@@ -527,8 +527,9 @@ export default function WorkoutTimer({ workout, onClose, session, onWorkoutsChan
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'center' }}>
                   <input placeholder={isTimeScore ? 'Time' : 'Score (optional)'} value={timerLogScore} onChange={e => setTimerLogScore(e.target.value)}
                     style={{ background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.2)', borderRadius: '5px', padding: '7px 10px', color: '#fff', fontSize: '13px', width: '120px', outline: 'none' }} />
-                  <input placeholder="Notes (optional)" value={timerLogNotes} onChange={e => setTimerLogNotes(e.target.value)}
-                    style={{ background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.2)', borderRadius: '5px', padding: '7px 10px', color: '#fff', fontSize: '13px', width: '120px', outline: 'none' }} />
+                  <textarea className="timer-log-notes" rows={1} placeholder="Notes (optional)" value={timerLogNotes}
+                    onChange={e => { setTimerLogNotes(e.target.value); e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px' }}
+                    style={{ background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.2)', borderRadius: '5px', padding: '7px 10px', color: '#fff', fontSize: '13px', width: '120px', outline: 'none', resize: 'none', overflow: 'hidden', fontFamily: 'inherit', lineHeight: '1.4' }} />
                   <label style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#fff', fontSize: '12px', cursor: 'pointer' }}>
                     <input type="checkbox" checked={timerLogRx} onChange={e => setTimerLogRx(e.target.checked)} style={{ accentColor: '#22c55e' }} />
                     <span style={{ fontWeight: 700, color: timerLogRx ? '#22c55e' : '#888' }}>Rx</span>
