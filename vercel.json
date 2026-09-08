@@ -2,21 +2,54 @@
   "headers": [
     {
       "source": "/(.*).html",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache, must-revalidate" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
+      ]
     },
     {
       "source": "/",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache, must-revalidate" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
+      ]
     },
     {
       "source": "/assets/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
     }
   ],
   "rewrites": [
-    { "source": "/api/generate-workout", "destination": "/api/generate-workout" },
-    { "source": "/api/og", "destination": "/api/og" },
-    { "source": "/workout/:slug", "destination": "/api/og?slug=:slug" },
-    { "source": "/((?!api/).*)", "destination": "/" }
+    {
+      "source": "/api/generate-workout",
+      "destination": "/api/generate-workout"
+    },
+    {
+      "source": "/api/og",
+      "destination": "/api/og"
+    },
+    {
+      "source": "/workout/:slug",
+      "destination": "/api/og?slug=:slug"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/summarize-workouts",
+      "schedule": "0 4 * * *"
+    }
   ]
 }
