@@ -21,7 +21,7 @@ const MARKERS = [
     key: 'sitrise', name: 'Sit-Rise Test', icon: '🧘', domain: 'Composite (5-in-1)',
     unit: 'score', inputLabel: 'Score (0-10)', allowZero: true,
     desc: 'The only test evaluating strength, power, flexibility, balance, AND body composition simultaneously. Each 1-point increase = 21% survival improvement.',
-    howToTest: 'Stand barefoot. Sit cross-legged, then stand up. 5 pts per movement. Subtract 1 per hand/knee/forearm/leg used. Subtract 0.5 for wobbling.',
+    howToTest: 'Barefoot on a mat. Lower to sitting cross-legged, then stand back up. Start at 10 (5 down + 5 up). Minus 1 each time a hand, forearm, knee or side of leg touches the floor or your body for support. Minus 0.5 per wobble. No hands, no knees, no wobble = 10. Crossing your legs is not a support.',
     source: 'Araújo et al. 2012 — 2,002 subjects, 6.3-year follow-up',
     benchmarks: {
       male:   { '20-29': [6, 7, 8, 9, 10], '30-39': [5, 6.5, 7.5, 8.5, 10], '40-49': [4, 5.5, 7, 8, 9.5], '50-59': [3, 4.5, 6, 7.5, 9], '60+': [2, 3.5, 5, 7, 8.5] },
@@ -131,26 +131,26 @@ const LEVEL_COLORS = ['#e01e1e', '#e0881e', '#e0c81e', '#4ade80', '#22d3ee']
 
 function getAgeBracket(age) { if (age < 30) return '20-29'; if (age < 40) return '30-39'; if (age < 50) return '40-49'; if (age < 60) return '50-59'; return '60+' }
 
+// Score bands: Poor 1-3, Below Avg 3-5, Average 5-7, Good 7-9, Excellent 9-10.
+// Hitting a threshold exactly earns the band's floor; the top band reaches 10 at 10% above Excellent.
+const BAND_FLOOR = [1, 3, 5, 7, 9]
 function scoreMarker(value, benchmarks, gender, age) {
   const levels = benchmarks?.[gender]?.[getAgeBracket(age)]
   if (!levels || value == null) return { score: 0, level: -1, levelLabel: 'Not tested' }
   let level = -1
   for (let i = levels.length - 1; i >= 0; i--) { if (value >= levels[i]) { level = i; break } }
-  if (level < 0) return { score: Math.round(Math.max(0, (value / levels[0]) * 2) * 10) / 10, level: -1, levelLabel: 'Below Poor', target: levels[0] }
-  const base = (level + 1) * 2
-  const next = level < 4 ? levels[level + 1] : levels[4] * 1.2
+  if (level < 0) return { score: Math.round(Math.max(0, (value / levels[0])) * 10) / 10, level: -1, levelLabel: 'Below Poor', target: levels[0] }
+  const floor = BAND_FLOOR[level]
+  const span = level < 4 ? 2 : 1
+  const next = level < 4 ? levels[level + 1] : levels[4] * 1.1
   const pct = next > levels[level] ? Math.min(1, (value - levels[level]) / (next - levels[level])) : 1
-  return { score: Math.min(10, Math.round((base - 2 + pct * 2) * 10) / 10), level, levelLabel: LEVEL_LABELS[level], target: level < 4 ? levels[level + 1] : null }
+  return { score: Math.min(10, Math.round((floor + pct * span) * 10) / 10), level, levelLabel: LEVEL_LABELS[level], target: level < 4 ? levels[level + 1] : null }
 }
 
+// Index 50 = your actual age. Each point above or below moves Vital Age 0.3 years.
+// Clamp: never more than 12 years younger (floor 16) or 25 years older than actual age.
 function computeVitalAge(idx, ca) {
-  let va
-  if (idx >= 90) va = ca - Math.round((idx - 90) * 1.5)
-  else if (idx >= 70) va = ca - Math.round((idx - 70) * 0.5)
-  else if (idx >= 50) va = ca
-  else if (idx >= 30) va = ca + Math.round((50 - idx) * 0.4)
-  else va = ca + Math.round((50 - idx) * 0.75)
-  // Clamp: never more than 12 years younger (floor 16) or 25 years older than actual age
+  const va = ca - Math.round((idx - 50) * 0.3)
   return Math.min(ca + 25, Math.max(Math.max(16, ca - 12), va))
 }
 
@@ -290,6 +290,8 @@ export default function Longevity({ session, onAuthRequired, onOpenWorkouts }) {
   const [showStory, setShowStory] = useState(false)
 
   useEffect(() => { if (session) { loadScores(); loadProfile(); loadVaBoard() } }, [session])
+  // Keep the stored Vital Age (used by the leaderboard) in sync with the current formula
+  useEffect(() => { if (session && age && scores.length) updateVitalAge() }, [scores.length, age, gender])
 
   async function loadProfile() {
     const { data } = await supabase.from('profiles').select('age, gender, weight').eq('id', session.user.id).single()
@@ -604,7 +606,7 @@ export default function Longevity({ session, onAuthRequired, onOpenWorkouts }) {
           {/* Weighting explanation */}
           <div className="lon-analytics-card">
             <div className="lon-analytics-title">⚖️ How Scoring Works</div>
-            <p className="lon-analytics-explain">Markers are weighted by strength of mortality evidence. VO2 Max (×1.5) carries the most weight based on 20.9M observations. Grip Strength (×1.4) and Dead Hang (×1.3) are next. Your Longevity Index is the weighted average of all tested markers.</p>
+            <p className="lon-analytics-explain">Each marker scores 1–10 against age- and sex-adjusted benchmarks: Poor 1–3, Below Avg 3–5, Average 5–7, Good 7–9, Excellent 9–10. Markers are weighted by strength of mortality evidence — VO2 Max (×1.5) carries the most, then Grip (×1.4) and Dead Hang (×1.3). Your Longevity Index is the weighted average; 50 equals your actual age and every point above or below moves your Vital Age 0.3 years, capped at 12 years younger.</p>
             <div className="lon-weight-grid">
               {MARKERS.map(m => (
                 <div key={m.key} className="lon-weight-item">
