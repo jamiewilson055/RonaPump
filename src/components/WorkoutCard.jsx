@@ -257,7 +257,7 @@ export default function WorkoutCard({ workout: w, isFav, toggleFavorite, session
                               <span style={{ color: editLogForm.is_rx ? 'var(--red)' : 'var(--tx2)', fontWeight: 600 }}>{editLogForm.is_rx ? 'Rx' : 'Scaled'}</span>
                             </label>
                           </td>
-                          <td><input value={editLogForm.notes} onChange={ev => setEditLogForm({ ...editLogForm, notes: ev.target.value })} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%' }} /></td>
+                          <td><textarea className="plog-edit-notes" rows={1} value={editLogForm.notes} onChange={ev => { setEditLogForm({ ...editLogForm, notes: ev.target.value }); ev.target.style.height = 'auto'; ev.target.style.height = ev.target.scrollHeight + 'px' }} style={{ background: 'var(--bg)', border: '1px solid var(--brd)', borderRadius: '3px', color: 'var(--tx)', padding: '2px 4px', fontSize: '11px', width: '100%', resize: 'none', overflow: 'hidden', fontFamily: 'inherit', lineHeight: '1.4', display: 'block' }} /></td>
                           <td style={{ whiteSpace: 'nowrap' }}>
                             <span className="del-entry" onClick={saveEditLog} style={{ color: 'var(--grn)', marginRight: '4px' }}>✓</span>
                             <span className="del-entry" onClick={() => { setEditingLogId(null); setEditLogForm(null) }}>✕</span>
